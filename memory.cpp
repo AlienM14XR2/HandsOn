@@ -108,7 +108,10 @@ void test_Heap_No_Copy_Constructor();
 int main() {
     cout << "START memory ========== " << endl;
     test_Heap_Class();
-    test_Heap_No_Copy_Constructor();
+    // これがあると実行時に次のメッセージが流れるのだが。
+    // free(): double free detected in tcache 2
+    // 中止 (コアダンプ)
+    // test_Heap_No_Copy_Constructor();
  //   test_heap();
     cout << "========== memory END " << endl;
     return 0;
