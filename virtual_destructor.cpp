@@ -39,7 +39,7 @@ protected:
     string name;
     Component(){}
 public:
-    string getName() {
+    string& getName() {
         return name;
     }
     Component(const string& name) {
@@ -49,7 +49,7 @@ public:
         cout << "Debug. Component Destructor." << endl;
     }
 };
-class Leaf:Component {
+class Leaf:public Component {
 public:
     Leaf(){}
     Leaf(const string& name) {
@@ -57,23 +57,59 @@ public:
     }
 };
 class Composite:public Component {
-    // これをポインタで管理したい、配列でもいいけど。
-    Leaf leaf;
+    int index = -1;
+    Leaf* pl;
 public:
-    Composite(const string& name, const Leaf& lef) {
+    Leaf pop(const int& i) {
+        return (pl[i]);
+    }
+    void push(const Leaf& lf) {
+        pl[index] = lf;
+        ++index;
+    }
+    Composite(const string& name, const int& lfSize) {
+        index = 0;
         this->name = name;
-        leaf = lef;
+        pl = new Leaf[lfSize];
+    }
+    // Composite(const string& name, const Leaf& lef) {
+    //     this->name = name;
+    //     leaf = lef;
+    // }
+    ~Composite() {
+        cout << "Debug. == Composite Destructor." << endl;
+        delete [] pl;
     }
 };
 
 void test_string();
 int main() {
     cout << "START virtual_destructor ========== " << endl;
-    string name("Alice");
-    string cheshire("Cheshire cat");
-    Leaf cat(cheshire);
-    Composite alice(name,cat);
-    cout << "alice.getName() is " << alice.getName() << endl;
+    // string name("Alice");
+    // string cheshire("Cheshire cat");
+    // Leaf cat(cheshire);
+    // Composite alice(name,cat);
+    // cout << "alice.getName() is " << alice.getName() << endl;
+
+    string name2("Alice 2");
+    Composite alice2(name2,3);
+    cout << "alice2.getName() is " << alice2.getName() << endl;
+    string humptyName("Humptydumpty");
+    Leaf humpty(humptyName);
+    alice2.push(humpty);
+
+    string jabberName("Jabberwocky");
+    Leaf jabber(jabberName);
+    alice2.push(jabber);
+
+    string lionName("Lion");
+    Leaf lion(lionName);
+    alice2.push(lion);
+
+    cout << "alice2.pop(0).getName() is " << alice2.pop(0).getName() << endl;
+    cout << "alice2.pop(1).getName() is " << alice2.pop(1).getName() << endl;
+    cout << "alice2.pop(2).getName() is " << alice2.pop(2).getName() << endl;
+    
     // test_string();
     cout << "virtual_destructor ========== END " << endl;
     return 0;
