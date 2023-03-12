@@ -52,7 +52,19 @@ struct Person {
     string name = "";
     int level = -1;
     int power = -1;
-    int interigent = -1;
+    int intelligent = -1;
+
+    Person():name{""},level{-1},power{-1},intelligent{-1} {}
+    Person(const string& na, 
+        const int& lev, 
+        const int& pow, 
+        const int& intel) 
+    {
+        name = na;
+        level = lev;
+        power = pow;
+        intelligent = intel;
+    }
 };
 
 // 意味は同じ、コードが短い方を使ってるだけ。
@@ -81,6 +93,9 @@ public:
     ~Strategy(){cout << "Debug. == Strategy Destructor." << endl;}
 };
 
+/**
+ * Person オブジェクトの力の比較を行うクラス。
+*/
 class PowerComparator: public Strategy<Person> {
 public:
     int compare(const Person& p1, const Person& p2) {
@@ -94,14 +109,77 @@ public:
     }
 };
 
+/**
+ * Person オブジェクトの知識の比較を行うクラス。
+*/
 class IntelligentComparator:public Strategy<Person> {
-
+public:
+    int compare(const Person& p1, const Person& p2) {
+        if(p1.intelligent < p2.intelligent) {
+            return 1;
+        } else if(p1.intelligent == p2.intelligent) {
+            return 0;
+        } else {
+            return -1;
+        }
+    }
 };
+/**
+ * こんな風にコードの中に埋没、溶け込みすぎるロジックを
+ * 切り出して、見通しをよくしたりできる。そんな、ストラテジーパターンであった。
+ * 
+ * この例で言えば、Personのパラメータが増えて、その何らかの比較が必要に
+ * なったら、一個クラスを追加してあげればいいと。それがプラグインとも呼ばれる
+ * 所以なのかな、後付可能だからね。
+ * 
+ * 無論、発想力に乏しい私だから、世間同様に、比較を関数にしたが、比較だけに
+ * 限った話でないことは、分かるよね。
+ * 
+ * あっ。
+ * 目的を完全に見失っていた、orz
+ * クラスのメンバ関数及び、メンバ変数のポインタの利用が、今回のメインだった。
+ * はい、やりますよ。
+*/
+void test_Power_Compare() {
+    cout << "----------------------- test_Power_Compare " << endl;
+    string humptyName = "Humptydumpty";
+    Person humpty(humptyName,9,9,9);
+    string aname = "Alice";
+    Person alice(aname,1,1024,1);
 
+    PowerComparator powComparator;
+    int ret = powComparator.compare(humpty,alice);
+    // Aliceの方がバカ力で上回るはず、1 を期待する。
+    // 見た目に反して、実は前衛において素手で敵をぶっ叩くのに向いているキャラ。
+    // Alice は脳筋ですよね、やっぱり。
+    // TODO C++ のアサーションを調べてみるか。
+    cout << "ret is " << ret << endl;
+}
 
+void test_Intelligent_Compare() {
+    cout << "----------------------- test_Intelligent_Compare " << endl;
+    // 本当は toPerson() みたいな関数を設けるべき、今DRYの原則破りました。
+    // ええ、上のコピペしましたよ、それが何か。
+    string humptyName = "Humptydumpty";
+    Person humpty(humptyName,9,9,9);
+    string aname = "Alice";
+    Person alice(aname,1,1024,1);
+
+    IntelligentComparator intelComparator;
+    int ret = intelComparator.compare(humpty,alice);
+    // 僅差ではあるが、humptyが勝つ、よって -1 を期待する。
+    cout << "ret is " << ret << endl;
+}
 
 int main() {
     cout << "START クラスメンバに対するポインタ ========== " << endl;
+    test_Power_Compare();
+    test_Intelligent_Compare();
+    //
+    // ここから、本題のクラス関数と変数のポインタの実践を行う。
+    // 中々ここまで、辿り着かなんだが、それが必要なのだよ、今の私には。
+    // 後、明菜ちゃんの歌声が。
+    //
     cout << "========== クラスメンバに対するポインタ END" << endl;
     return 0;
 }
