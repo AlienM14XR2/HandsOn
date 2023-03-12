@@ -1,14 +1,30 @@
 /**
 うん、つい先日やった、クラスのメンバ関数とメンバ変数のポインタ、
 これは HandsOn に載せたいな、きっと忘れるから。
-利用シーンも分かりやすいし、生成コストゼロでメンバ関数にアクセスできるなんて
-素晴らしいしね。
+
+そして今は使い道が分からなくなった。
+それについて、少しDebug（cout 出力するだけだよ。）検証してみる。
+
+Yes 私は勘違いをしていた。結果、クラスメンバ関数のポインタの使い道が
+よく分からなくなった。結局、実体は必要なんだよね。
+だったらその実体で呼べばいいじゃん。
+プラグのイメージだったんだけど、それは間違ってないと思う。
+
+ファクトリがあって、何らかのクラスオブジェクトを生成する。
+ファクトリはそのオブジェクトの処理スコープは持たない、作るだけ。
+処理スコープを持つ Executor その間に何かいるのか、実行者である
+Executorがオブジェクトの実体からメンバ関数を呼ぶのではないと。
+やっぱり、イメージが沸かないな。あぁ、インタフェースなのかな、Pure Virtual
+でなくても、何らかの基底クラスにプラグインして実行するのかな。
+それなら分かるな。今はそんな理解だ、未来のオレよ、ついて来ているのか？
 
 pointer_class_members.cpp
 
 これはストラテジーを使ってみるか、プラグインとも呼ばれるらしいが。
 Java Comparator がこれかな。ラムダ以前は無名クラスか個別にクラス実装
 して、実現する必要があったもの。
+デザインパターンの多くがプラグインな気が少しだけしてる、そんなことないか。
+シングルトンとかテンプレートメソッドは違うもんな。まぁんなこたぁいいか。
 
 プログラムなんて結局どのように使うか、発想次第なところもあるしね。
 今、ふとメンバ関数のポインタはテストには使いがってがいいかも、なんて
@@ -41,12 +57,17 @@ GoFも結局次の轍を踏んだ結果、その有効な解決作となった�
 
 最高の教材は自分の作りたいものを作ることだと思う。
 今私にはそれがない。なので、GoFを極小のアプリに見立てているに過ぎない。
+
+だいぶ、前置きが長くなったが、基本、上記コンセプトのもと、GitHubのC++は
+作って、学習していく。
+
+免責事項、デザインパターンを完全に踏襲していないこともあるので注意、目的は
+C++の学習であり、その効率的な方法、手段としてGoFを用いている、GoFの学習ではない。
 */
 #include <iostream>
 #include <cstring>
 
 using namespace std;
-
 
 struct Person {
     string name = "";
@@ -54,6 +75,13 @@ struct Person {
     int power = -1;
     int intelligent = -1;
 
+    // Person コンストラクタの糖衣構文だよな。
+    // 第一引数のおかげでstringを関数内部に隠蔽できてるだけかな。
+    static Person toPerson(const char* na, const int& lev, const int& pow, const int& intel) {
+        string name = na;
+        Person p(name,lev,pow,intel);
+        return p;
+    }
     Person():name{""},level{-1},power{-1},intelligent{-1} {}
     Person(const string& na, 
         const int& lev, 
@@ -98,6 +126,7 @@ public:
 */
 class PowerComparator: public Strategy<Person> {
 public:
+    PowerComparator() {cout << "Debug. === PowerComparator Constructor." << endl;}
     int compare(const Person& p1, const Person& p2) {
         if(p1.power < p2.power) {
             return 1;
@@ -176,10 +205,31 @@ int main() {
     test_Power_Compare();
     test_Intelligent_Compare();
     //
-    // ここから、本題のクラス関数と変数のポインタの実践を行う。
+    // ここから、本題のクラスのメンバ関数とメンバ変数のポインタの実践を行う。
     // 中々ここまで、辿り着かなんだが、それが必要なのだよ、今の私には。
     // 後、明菜ちゃんの歌声が。
     //
+
+    // PowerComparatorのメンバ関数である、compare()をポインタを利用して呼び出す。
+    cout << "ここから本題のクラスメンバ関数のポインタの利用です。" << endl;
+    // 以下がクラスのメンバ関数のポインタの宣言。
+    int (PowerComparator::*c)(const Person&,const Person&) = &PowerComparator::compare;
+    Person nancy = Person::toPerson("Nancy",2,512,2);
+    Person bob = Person::toPerson("bob",99,9,99);
+    PowerComparator powComparatorA;    
+    int ret = (powComparatorA.*c)(nancy,bob);
+    // 無論、脳筋のNancyの方が強いのでこの結果は、-1 になるはず。
+    cout << "ret is " << ret << endl;
+
+/**
+ *  int (Foo::*s)(int) = &Foo::square;
+    Foo fooA;
+    Foo fooB;
+    // 構造体のメンバ変数のポインタ
+    int Foo::*d5 = &Foo::data;
+    fooA.*d5 = (fooA.*s)(5);
+ */
+
     cout << "========== クラスメンバに対するポインタ END" << endl;
     return 0;
 }
