@@ -221,8 +221,15 @@ int main() {
     // 無論、脳筋のNancyの方が強いのでこの結果は、-1 になるはず。
     cout << "ret is " << ret << endl;
 
+    // 型に厳しいC++、次のものはいけるのか
+    // うん、現状のオレの知識では、ダメなことなのか、単なる構文エラーなのかが分からない。
+    // リファレンス先生もここまでは言及していない。
+    // 今は保留しておく。
+//    int (Strategy::*sc)(T t1, T t2) = &Strategy::compare;
+
 /**
- *  int (Foo::*s)(int) = &Foo::square;
+ * // 構造体のメンバ関数のポインタ 
+ * int (Foo::*s)(int) = &Foo::square;
     Foo fooA;
     Foo fooB;
     // 構造体のメンバ変数のポインタ
