@@ -5,6 +5,7 @@
  * 
  * Singleton、今回はこれにしよう、理由は特にない。
  * 作らせない繋がりかな。
+ * ローカルのgitの確認で少し、編集した。
 */
 #include <iostream>
 #include <cstring>
