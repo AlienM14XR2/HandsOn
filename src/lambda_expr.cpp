@@ -169,6 +169,36 @@ void (*ptr_to_lambda_x)(const char* cch) = [](const char* cch)->void{
     cout << "ウェーイ、オイラ、無名関数だよ。変なポインタに入れられた、" << cch << " 。" << endl;
 };
 
+// ジェネリックラムダ（C++14）、だと！、いやもうちょっと見たから。
+// ラムダ式の仮引数には、具体的な型のほかに、auto（確か型推論してくれる）
+// も指定できます。
+auto myLambda = [](auto a, auto b) {
+    cout << "I'm by val." << endl;
+    return a + b;
+};
+auto myLambda_ref = [](const auto& a, const auto& b) {
+    cout << "I'm by ref." << endl;
+    return a + b;
+};
+
+// 初期化キャプチャ（C++14）、だと！
+// ラムダ式は、変数を指定するキャプチャのほかに、初期化方法も指定できます。
+int lx = 2;
+// 変数 lx を ly という変数でコピーキャプチャ
+auto myLambda_init_capture = [ly = lx](const int& lz) {
+    return ly + lz;
+};
+
+// ジェネリックラムダのテンプレート構文（C++20）、だと！何？
+/*```
+[]<class T>(T a) {・・・}
+[]<class T>(T* p) {・・・}
+[]<class T, int N>(array<T,N>& arr) {・・・}
+```*/
+// 飽きた
+// 関数テンプレートでいいや。
+// また、戻ってくるかも、今はもういいや。
+
 int main() {
     cout << "START ラムダ式（C++11）========================= " << endl;
     // これは、大先生のとこのサンプルね。
@@ -190,11 +220,18 @@ int main() {
     Y y;
     y.foo();
     // *this のキャプチャは、非同期で処理を実行した最後にラムダ式を呼び出す、
-    // というような状況で有用です。
+    // というような状況で有用です。とうちのリファレンス先生が仰っております。
 
     // 関数ポインタでラムダ式を呼び出している。
     ptr_to_lambda();
     ptr_to_lambda_x("やる気でるわ");
+
+    ret = myLambda(3,6);
+    ret = myLambda_ref(3,6);
+    cout << "myLambda(3,6) is " << ret << endl;
+    cout << "myLambda_ref(3,6) is " << ret << endl;
+    ret = myLambda_init_capture(10);
+    cout << "myLambda_init_capture(10) is " << ret << endl;
     cout << "========================== ラムダ式（C++11）END" << endl;
     return 0;
 }
