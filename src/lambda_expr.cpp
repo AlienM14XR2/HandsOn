@@ -49,32 +49,6 @@ int result = plus(2, 3); // result == 5
 
 using namespace std;
 
-// this のキャプチャ
-class X {
-    int x_ = 1;
-public:
-    void foo() {
-        auto f = [this] {
-            // ラムダ式内で、Xクラスのメンバ変数やメンバ関数を参照する。
-            // private メンバ関数も呼び出せる。ん？特別みたいな言い方だけど
-            // クラススコープ内の話なのだから、別段、普通ではないのか。
-            return x_ + bar();
-        };
-        // ここからオレのDebug
-        int ret = f();
-        cout << "ret 大先生の力をかりて、うちの先生のDEBUG ようやく確認できた。=== " << ret << endl;
-
-    }
-    // このメソッドはリファレンスにはないよ。
-    int getx_() {
-        return x_;
-    }
-private:
-    int bar() const {
-        return 3;
-    }
-};
-
 struct F {
   auto operator()(int a, int b) const -> decltype(a + b)
   {
@@ -82,6 +56,8 @@ struct F {
   }
 };
 /**
+ * 大先生ね。
+ * 
 ラムダ式によって自動的に定義される関数オブジェクトは、それぞれが
 一意な型名を持ち、その型名をユーザーが知る方法はない。そのため、
 ラムダ式によって定義された関数オブジェクトを変数に持つためには、
@@ -128,23 +104,97 @@ void g()
   // 流石、大先生、納得です。
 }
 
+// this のキャプチャ
+class X {
+    int x_ = 1;
+public:
+    void foo() {
+        auto f = [this] {
+            // ラムダ式内で、Xクラスのメンバ変数やメンバ関数を参照する。
+            // private メンバ関数も呼び出せる。ん？特別みたいな言い方だけど
+            // クラススコープ内の話なのだから、別段、普通ではないのか。
+            return x_ + bar();
+        };
+        // ここからオレのDebug
+        int ret = f();
+        cout << "ret 大先生の力をかりて、うちの先生のDEBUG ようやく確認できた。=== " << ret << endl;
+
+        // あれ、ゴメンナサイ、リファレンス先生。
+        // 次の一行の写経にしくじったオイラのミスっぽいな。
+        // うん、遠回りして、寧ろ理解が深まったと前向きに捉えよう。
+        // 大先生のとこにも行ったし。
+        cout << f() << endl;    // 4 が出力される。
+    }
+    // このメソッドはリファレンスにはないよ。
+    int getx_() {
+        return x_;
+    }
+private:
+    int bar() const {
+        return 3;
+    }
+};
+
+// C++17 以降は、*this をキャプチャする方法が追加されました。
+// *this をキャプチャすると、そのクラスのオブジェクトをコピーしますので、寿命切れ
+// を心配する必要がありません。
+// *this のキャプチャ
+class Y {
+    int y_ = 1;
+public:
+    void foo() {
+        auto f = [*this] {
+            return y_ + bar();
+        };
+        // ラムダ式で*this をコピーキャプチャしたあとに
+        // メンバ変数を書き換えても、ラムダ式の呼び出しに影響はない。
+        y_ = 2;
+        cout << f() << endl;    // 4 が出力される。
+    }
+private:
+    int bar() const {
+        return 3;
+    }
+};
+
+// 何もキャプチャしないラムダ式は、関数ポインタへの代入ができる。
+void (*ptr_to_lambda)() = []{
+    cout << "ウェーイ、オイラ、無名関数だよ。変なポインタに入れられた、萎えるわ。" << endl;
+};
+// これは面白かも。
+
+// これはオイラが少し手をくわえたもの。
+// コンパイルは通るのか、実行できるのか。
+void (*ptr_to_lambda_x)(const char* cch) = [](const char* cch)->void{
+    cout << "ウェーイ、オイラ、無名関数だよ。変なポインタに入れられた、" << cch << " 。" << endl;
+};
+
 int main() {
     cout << "START ラムダ式（C++11）========================= " << endl;
-    // これは、大先生のとこサンプルね。
+    // これは、大先生のとこのサンプルね。
     auto plus = [](int a, int b){ return a+b; };
     int result_first_imp = plus(2,5);
     cout << "result_first_imp is " << result_first_imp << endl;
-
     f();
     g();
 
-
+    // ここからうちのリファレンス先生の解説 DEBUG。
+    // this のキャプチャ -----------------------------------------
     // うちの投げっぱなし先生のサンプルは動かして確認中ね。
     X x;
     x.foo();
     int ret = x.getx_();
-    cout << "ret is " << ret << endl;
+    cout << "つまり、あくまでラムダ内の話なのだね。ret is " << ret << endl;
 
+    // *this のキャプチャ -----------------------------------------
+    Y y;
+    y.foo();
+    // *this のキャプチャは、非同期で処理を実行した最後にラムダ式を呼び出す、
+    // というような状況で有用です。
+
+    // 関数ポインタでラムダ式を呼び出している。
+    ptr_to_lambda();
+    ptr_to_lambda_x("やる気でるわ");
     cout << "========================== ラムダ式（C++11）END" << endl;
     return 0;
 }
