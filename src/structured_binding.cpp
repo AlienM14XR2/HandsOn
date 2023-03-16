@@ -16,7 +16,7 @@
 using namespace std;
 
 //
-// ここから、昨日の復習がてら、ウォーキングアップが少し続く。
+// ここから、昨日の復習がてら、ウォーミングアップが少し続く。
 //
 template<class T=const char*> 
 struct Print {
