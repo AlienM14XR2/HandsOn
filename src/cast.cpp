@@ -46,8 +46,11 @@ AbstractAutoMobile
 #include <algorithm>
 
 #define DEFAULT_ALICE_TIRE_FRICTION_FORCE 64
+#define DEFAULT_CHESHIRE_CAT_FRICTION_FORCE 76
 #define ALICE_TIRE "Alice Good Tire."
+#define CHESHIRE_CAT_TIRE "Cheshire Cat Pad Tire."
 #define ALICE_CAR_FACTORY_NAME "Alice Good Speed Factory."
+#define CHESHIRE_CAT_FACTORY_NAME "Cheshire Cat Speed Factory."
 
 using namespace std;
 
@@ -63,30 +66,55 @@ public:
     string getMaker() {
         return maker;
     }
+    virtual ~Maker(){}
 };
-class AbstractTire : public Maker {
+// なんとなく、分かってきたよ、ダウンキャスト。
+// こんなん、ペーパーカンパニだろ。
+// 本来 Maker が持ってるべきものはなにも持たず、派生クラスに作る。
+class VirtualMaker {
+public:
+    VirtualMaker() {}
+    virtual int getFrictionForce() {return -1;}; 
+    virtual string getMaker() {return "";};
+    virtual ~VirtualMaker() {}
+};
+class AbstractTire : virtual VirtualMaker {
 protected:
+    string maker="none";
     int frictionForce;
 public:
     AbstractTire():frictionForce{-1} {}
-    AbstractTire(const int& frictF){
-        frictionForce = frictF;
+    AbstractTire(const int& frict){
+        frictionForce = frict;
     }
     int getFrictionForce() {
         return frictionForce;
+    }
+    string getMaker() {
+        return maker;
     }
     virtual ~AbstractTire() {
         ptr_lambda_debug<string,int>("AbstractTire Destructor === ", frictionForce);
     } 
 };
 class AliceTire : public AbstractTire {
-    AliceTire(const int& frictionF) {
-        frictionForce = frictionF;
+    AliceTire(const int& friction) {
+        frictionForce = friction;
     }
 public:
     AliceTire(){
         maker = ALICE_TIRE;
         frictionForce = DEFAULT_ALICE_TIRE_FRICTION_FORCE;
+    }
+};
+class CheshireCatTire : public AbstractTire {
+    CheshireCatTire(const int& friction) {
+        frictionForce = friction;
+    }
+public:
+    CheshireCatTire() {
+        maker = CHESHIRE_CAT_TIRE;
+        frictionForce = DEFAULT_CHESHIRE_CAT_FRICTION_FORCE;
     }
 };
 class AbstractBody : public Maker {
@@ -201,6 +229,39 @@ public:
     }
 };
 
+class CheshireCatCarFactory : public AbstractCarFactory {
+public:
+    AbstractTire createTire() const override {
+        CheshireCatTire tire;
+        return tire;
+    }
+    AbstractBody createBody() const override {
+        AbstractBody body(CHESHIRE_CAT_FACTORY_NAME);
+        return body;
+    }
+    AbstractEngine createEngine() const override {
+        AbstractEngine engine(CHESHIRE_CAT_FACTORY_NAME);
+        return engine;
+    }
+    AbstractAero createAero() const override {
+        AbstractAero aero(CHESHIRE_CAT_FACTORY_NAME);
+        return aero;
+    }
+    Car madeInCarFactory() const override {
+        Car car(createTire(),createBody(),createEngine(),createAero());
+        return car;
+    }
+};
+
+void test_array(const AbstractTire& flt) {
+    cout << "---------------------------- test_array" << endl;
+    AbstractTire* tires;
+    tires = new AbstractTire[4];
+    tires[0] = flt;
+    cout << "tires[0] is " << tires[0].getFrictionForce() << endl;
+    delete [] tires;
+}
+
 void test_Alice_Car_Factory() {
     cout << "------------------- test_Alice_Car_Factory" << endl;
     AliceCarFactory factory;
@@ -216,13 +277,104 @@ void test_Alice_Car_Factory() {
    cout << car.toString() << endl;
 }
 
-void test_array(const AbstractTire& flt) {
-    cout << "---------------------------- test_array" << endl;
-    AbstractTire* tires;
-    tires = new AbstractTire[4];
-    tires[0] = flt;
-    cout << "tires[0] is " << tires[0].getFrictionForce() << endl;
-    delete [] tires;
+void test_Cheshire_Cat_Car_Factory() {
+    cout << "------------------- test_Cheshire_Cat_Car_Factory" << endl;
+    CheshireCatCarFactory factory;
+    Car car = factory.madeInCarFactory();
+   cout << car.toString() << endl;
+}
+
+void test_up_cast() {
+    cout << "------------------- test_up_cast" << endl;
+    AbstractAero aero("アップキャストエアロ");
+    Maker& maker = static_cast<Maker&>(aero);
+    ptr_lambda_debug<string,string>("maker is ",maker.getMaker());
+    // 確かにできることは分かった。
+    // しかし、アップキャストの用途はなんだ？
+    // 派生クラスから基底クラスを辿れるのは普通だよね。
+    // うん、まぁ今はそんなんがあるのか、ぐらいでいいや。
+}
+
+/**
+ * 仮想基底クラスを介した関係がないと、dynamic_cast ができない。
+ * VCode に叱られるので、そもそもやらない、できない。
+ * なるほど、今回はじめてでてきたな、仮想基底クラス。
+ * Maker をそれに見立てて改造してみる。
+ * 
+ * リファレンス先生は継承関係がない参照の場合は例外（std::bad_cast）が発生、
+ * ポインタの場合はnullptrが代入されると言っている。
+ * これも理解はできるが、用途が分からない。
+ * 
+ * サンプルのように空っぽの構造体なら上手く行くんだろうね。
+ * 興味もないので、今はもういい。
+*/
+void test_down_cast() {
+    cout << "------------------- test_down_cast" << endl;
+    try {
+        VirtualMaker paperCompany;
+        AbstractTire& atire = dynamic_cast<AbstractTire&>(paperCompany);
+        ptr_lambda_debug<string,int>("friction Force is ",atire.getFrictionForce());
+    } catch(exception e) {
+        cerr << e.what() << endl;
+        cout << "これが出力されたってことは、ペーパーカンパニからのダウンキャストに失敗したということ。" << endl;
+    }
+}
+
+/**
+ * はい、悪い子ですね。
+ * const 修飾と volatile 修飾を変更します。
+*/
+void test_const_cast() {
+    cout << "------------------- test_const_cast" << endl;
+    const int i = 256;
+    int& j = const_cast<int&>(i);
+    j = 25;
+    cout << "i is " << i << endl;
+    cout << "j is " << j << endl;
+    int& k = (const_cast<int&>(i) = 0);
+    cout << "i is " << i << endl;
+    cout << "k is " << k << endl;
+    int a = 10;
+    int b = 11;
+    const int* pa = &a;
+    pa = &b;    // ポインタの向きは変えられるのね。
+    // *pa = 33;   // コンパイルエラー、const int の値を変更するのと同じ。
+    cout << "*pa is " << *pa << endl;
+    auto foo = [pa]() {
+        cout << "foo----- Yeah I'm Bad Boy :)" << endl;
+        int* l = const_cast<int*>(pa);
+        cout << "*l is " << *l << endl;
+        *l = 2;
+        cout << "*l is " << *l << endl;
+        cout << "*pa is " << *pa << endl;
+    };
+    foo();
+    cout << "*pa is " << *pa << endl;
+}
+
+/**
+ * reinterpret_cast は整数型とその参照、及びポインタ間で型を変換します。
+*/
+void test_reinterpret_cast() {
+    cout << "------------------- test_reinterpret_cast" << endl;
+    intptr_t a = 8; // ポインタサイズの整数型
+    cout << a << endl;
+    // 整数値をポインタに変換
+    void* p = reinterpret_cast<void*>(a);
+
+    // ポインタを整数値に戻す
+    intptr_t b = reinterpret_cast<intptr_t>(p);
+    cout << b << endl;
+
+    // なんでこんなことやるの？
+    /**
+     * このような変換は、void* もしくは整数型1つのみを仮引数にとる
+     * C 言語の API とやりとりする時に必要となります。しかし、このような
+     * 変換は積極的にやるべきではありません。
+     * 
+     * キャストに関しては static_cast 以外終始こんな調子だな。
+    */
+
 }
 
 int main() {
@@ -230,6 +382,14 @@ int main() {
     // AbstractTire flt(16);
     // test_array(flt);
     test_Alice_Car_Factory();
+    test_Cheshire_Cat_Car_Factory();
+    //
+    // ここから、本題のキャストです。
+    //
+    test_up_cast();
+    test_down_cast();
+    test_const_cast();
+    test_reinterpret_cast();
     cout << "================ キャスト END " << endl;
     return 0;   
 }
