@@ -45,7 +45,7 @@ AbstractAutoMobile
 #include <list>
 #include <algorithm>
 
-#define DEFAULT_ALICE_TIRE 64
+#define DEFAULT_ALICE_TIRE_FRICTION_FORCE 64
 #define ALICE_TIRE "Alice Good Tire."
 #define ALICE_CAR_FACTORY_NAME "Alice Good Speed Factory."
 
@@ -56,9 +56,16 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
     cout << "DEBUG: " << message << '\t' << debug << endl;
 };
 
-class AbstractTire {
+class Maker {
 protected:
-    string maker;
+    string maker="none";
+public:
+    string getMaker() {
+        return maker;
+    }
+};
+class AbstractTire : public Maker {
+protected:
     int frictionForce;
 public:
     AbstractTire():frictionForce{-1} {}
@@ -79,33 +86,39 @@ class AliceTire : public AbstractTire {
 public:
     AliceTire(){
         maker = ALICE_TIRE;
-        frictionForce = DEFAULT_ALICE_TIRE;
+        frictionForce = DEFAULT_ALICE_TIRE_FRICTION_FORCE;
     }
 };
-class AbstractBody {
+class AbstractBody : public Maker {
 protected:
-    string maker;
 public:
     AbstractBody(const string& mname) {
         maker = mname;
     }
+    string getMaker() {
+        return maker;
+    }
     virtual ~AbstractBody() {}
 };
-class AbstractEngine {
+class AbstractEngine : public Maker {
 protected:
-    string maker;
 public:
     AbstractEngine(const string& mname) {
         maker = mname;
     }
+    string getMaker() {
+        return maker;
+    }
     virtual ~AbstractEngine() {}
 };
-class AbstractAero {
+class AbstractAero : public Maker {
 protected:
-    string maker;
 public:
     AbstractAero(const string& mname){
         maker = mname;
+    }
+    string getMaker() {
+        return maker;
     }
     virtual ~AbstractAero() {}
 };
@@ -137,9 +150,23 @@ public:
         delete aero;
         ptr_lambda_debug<string,int>("Car Destructor.",0);
     }
-    void setTires() {
 
+    string toString() {
+        char fforce[50];
+        string s;
+        s = tires[0].getMaker();
+        s += '\n';
+        sprintf(fforce, "friction force is %d\n", tires[0].getFrictionForce());
+        s += fforce;
+        s += body->getMaker();
+        s += '\n';
+        s += engine->getMaker();
+        s += '\n';
+        s += aero->getMaker();
+        s += '\n';
+        return s;
     }
+    
 };
 class AbstractCarFactory {
 public:
@@ -153,7 +180,7 @@ public:
 class AliceCarFactory : public AbstractCarFactory {
 public:
     AbstractTire createTire() const override {
-        AbstractTire tire(32);
+        AliceTire tire;
         return tire;
     }
     AbstractBody createBody() const override {
@@ -185,7 +212,8 @@ void test_Alice_Car_Factory() {
     ptr_lambda_debug<string,int>("made Engine",0);
     factory.createTire();
     ptr_lambda_debug<string,int>("made Tire",0);
-   factory.madeInCarFactory();
+   Car car = factory.madeInCarFactory();
+   cout << car.toString() << endl;
 }
 
 void test_array(const AbstractTire& flt) {
