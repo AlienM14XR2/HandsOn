@@ -64,7 +64,7 @@ protected:
     int size;
     string label;   // ドックタグかな。
 public:
-    EatType(){}
+    EatType():size{-1},label{"none"} {}
     /**
      * labelの参照ができる。
     */
@@ -87,7 +87,7 @@ public:
  * 
  * const のあり、なしは、ありは一時変数を扱えるだけ。
  * 
- * const char* memory を size 分確保する。
+ * const char*の型を memory に size 分確保する。
  * 文字列を保存、吐き出すクラス。
 */
 class ConstCharEat final : public virtual EatType<const char*> {
@@ -124,7 +124,7 @@ public:
         ptr_lambda_debug<const string&,const int&>("memory size is ",size);
         ptr_lambda_debug<const string&,const string&>("label is ",label);
         delete [] memory;
-        ptr_lambda_debug<const string&,const int&>(" == DONE delete. ",0);
+        ptr_lambda_debug<const string&,const int&>(" == DONE delete. ConstCharEat.",0);
     }
 };
 void test_Const_Char_Eat() {
@@ -148,11 +148,14 @@ void test_Const_Char_Eat() {
 class StringEat final : public virtual EatType<string&> {
     string* memory;
 public:
-    StringEat() : memory{nullptr} {}
+    StringEat() : memory{new string()} {}
     StringEat(const int& sz, const string& lab) {
         size = sz;
         label = lab;
         memory = new string();
+    }
+    StringEat(const StringEat& cpy) {   // copy constructor.
+        memory = new string(*cpy.memory);
     }
     const string& getLabel() const override {
         return label;
@@ -167,7 +170,7 @@ public:
         ptr_lambda_debug<const string&,const int&>("memory size is ",size);
         ptr_lambda_debug<const string&,const string&>("label is ",label);
         delete memory;
-        ptr_lambda_debug<const string&,const int&>(" == DONE delete. ",0);
+        ptr_lambda_debug<const string&,const int&>(" == DONE delete. StringEat.",0);
     }
 };
 void test_String_Eat() {
@@ -191,11 +194,14 @@ void test_String_Eat() {
 class IntEat final : public virtual EatType<int&> {
     int* memory;
 public:
-    IntEat() : memory{nullptr} {}
+    IntEat() : memory{new int()} {}
     IntEat(const int& sz, const string& lab) {
         size = sz;
         label = lab;
         memory = new int();
+    }
+    IntEat(const IntEat& cpy) {
+        memory = new int(*cpy.memory);
     }
     const string& getLabel() const override {
         return label;
@@ -210,7 +216,7 @@ public:
         ptr_lambda_debug<const string&,const int&>("memory size is ",size);
         ptr_lambda_debug<const string&,const string&>("label is ",label);
         delete memory;
-        ptr_lambda_debug<const string&,const int&>(" == DONE delete. ",0);
+        ptr_lambda_debug<const string&,const int&>(" == DONE delete. IntEat.",0);
     }
 };
 void test_Int_Eat() {
@@ -227,15 +233,12 @@ void test_Int_Eat() {
 /**
  * 課題、自作クラスのオブジェクトをポインタで扱ってみよう。
  * 
- * その、メンバ変数のオブジェクトのメモリ解放時にデストラクタが
- * 正しく機能するか確認すること。
+ * なるほど、あくまでもポインタ管理にこだわるなら、次のようなことを決める必要がある。
+ * - メモリは誰が取得し解放するのか。
+ * - オブジェクトをNewしたものがその責任を負うべき。
  * 
- * メモリを消費していくクラス。
- * コンストラクタでメモリ取得、デストラクタで解放。
- * 
- * 自作オブジェクトを配列で管理したら、ファクトリがないと扱いが
- * 煩雑になりかねないかな、どぉすっかな。
- * ここは stack 管理に任せる方が各クラスの役割がはっきりするのか。
+ * 現状の形なら、このクラスになるけど。
+ * このクラス内のメンバオブジェクトをNewしないのであれば、二重解放にはならない。
  * 
  * FIXME EatTypeで扱うことを当初は考えていた（理想ね）。
  * 現状の自分のスキルが足りていないと思い断念した。
@@ -245,17 +248,15 @@ class MemoryHardEater final {
     IntEat* intEat;
     MemoryHardEater(): stringEat{nullptr}, intEat{nullptr} {}
 public:
-    MemoryHardEater(const StringEat& st, const IntEat& ie) {
-        stringEat = new StringEat();
-        intEat = new IntEat();
-        *stringEat = st;
-        *intEat = ie;
+    MemoryHardEater(const StringEat& st,const IntEat& ie) {
+        stringEat = new StringEat(st);  // 無駄なことしてるんだよな。
+        intEat = new IntEat(ie);        // 無駄なことしてるんだよな。
     }
     ~MemoryHardEater(){
         // はい、これがC++ メモリ管理の難しさと面白さの醍醐味だね。
         // このコメントを外すとコアダンプで中止、実行時エラーになる。
         // free(): double free detected in tcache 2
-        // 以下は予想。
+        // 以下は予想にもとづく仮設。
         // 理由はメモリの2重解放をおこなってしまうから。
         // それを回避する方法は幾つかある
         // 1. コンストラクタでオブジェクトの参照をやめてコピーを受け取る。
@@ -264,17 +265,31 @@ public:
         // コンパイラは非常に効率よく動くし、設計されている。
         // 勉強中だから、敢えて無駄なことをしたいのだが。
 
-        // delete stringEat;
-        // delete intEat;
+        delete stringEat;
+        delete intEat;
         ptr_lambda_debug<const string&,const int&>("=== DONE delete. MemoryEater...",0);
     }
 };
 void test_Memory_Hard_Eater() {
     cout << "-------------------- test_Memory_Hard_Eater " << endl;
     // +2個のオーバーロードとのコンパイルエラー、operator のオーバーロード
-    // が必要と思われる。
+    // が必要と思われる。仮引数なしに対するありの代入だからだろうね。
     // StringEat se = new StringEat(0,"StringEat RX 78");
-    string stateMessage = "オレは平気（兵器）だ。";
+    // はい、どれもブッブーでした。オブジェクトをNewするとはつまり
+    // ポインタで管理することです。
+    StringEat* newSe = new StringEat();
+    string stateMessage = "オレの扱いには気をつけろよ、解放忘れるなよ。";
+    newSe->eat(stateMessage);
+    cout << newSe->spitout() << endl;
+    delete newSe;
+
+    IntEat* newIe = new IntEat();
+    int n = 333;
+    newIe->eat(n);
+    cout << newIe->spitout() << endl; 
+    delete newIe;
+
+    stateMessage = "オレは平気（兵器）だ。";
     StringEat se(0,"StringEat RX 78");
     se.eat(stateMessage);
 
