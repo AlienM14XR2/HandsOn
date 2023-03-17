@@ -310,11 +310,11 @@ class MemoryEasyEater final {
     IntEat intEat;
     MemoryEasyEater() {}
 public:
-    MemoryEasyEater(const StringEat& se, const IntEat& ie) {
+    MemoryEasyEater(const StringEat& se, const IntEat& ie) noexcept {
         stringEat = se;
         intEat = ie;
     }
-    ~MemoryEasyEater(){
+    ~MemoryEasyEater() noexcept {
         ptr_lambda_debug<const string&,const int&>("=== DONE delete. MemoryEater...",0);
     }
 };
