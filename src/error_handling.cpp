@@ -41,6 +41,9 @@ OK 、GoF は State パターンでいこう。
 #include <stack>
 #include <string>
 #include <string.h>
+#include <initializer_list>
+#include <compare>
+#include <array>
 
 using namespace std;
 
@@ -145,7 +148,7 @@ void test_Const_Char_Eat() {
  * string& 型を memory に確保する。
  * 文字列を保存、吐き出すクラス。
 */
-class StringEat final : public virtual EatType<string&> {
+class StringEat final : public EatType<string&> {
     string* memory;
 public:
     StringEat() : memory{new string()} {}
@@ -191,7 +194,7 @@ void test_String_Eat() {
  * int& 型を memory に確保する。
  * 整数を保持し吐き出すクラス。
 */
-class IntEat final : public virtual EatType<int&> {
+class IntEat final : public EatType<int&> {
     int* memory;
 public:
     IntEat() : memory{new int()} {}
@@ -255,90 +258,6 @@ void test_Int_Eat() {
  * ナメるなよ小僧、IF文を書かずに実装、実行してやる。
  * 
 */
-class MemoryHardEater;
-class MemoryEasyEater;
-template<class T>
-class State {
-public:
-    State(){}
-    virtual void action(T t) const = 0;
-    virtual ~State(){};
-};
-class NormalSys final : public State<stack<MemoryEasyEater>> {
-public:
-    /**
-     * メモリを消費する。
-    */
-    void action(const stack<MemoryEasyEater> stk) const override {
-        ptr_lambda_debug<const string&,const int&>("----- action NormalSys.",0);
-    }
-};
-class AbNormalSys final : public State<stack<MemoryEasyEater>> {
-public:
-    /**
-     * spitout の実行。
-    */
-    void action(const stack<MemoryEasyEater> stk) const override {
-        ptr_lambda_debug<const string&,const int&>("----- action AbNormalSys.",0);
-    }
-};
-class FatalSys final : public State<stack<MemoryEasyEater>> {
-public:
-    /**
-     * メモリ の解放。
-    */
-    void action(const stack<MemoryEasyEater> stk) const override {
-        ptr_lambda_debug<const string&,const int&>("----- action FatalSys.",0);
-    }
-};
-// いらね。
-// class RootState {
-//     State* state;   // 抽象クラスは派生クラスでないここではオプジェクトの実体を持てない、うん。
-// public:
-//     RootState(const State& s) {
-//         *state = s;
-//     }
-//     void whatsHapped() {
-//         state->action();
-//     }
-//     void changeHapped(const State& s) {
-//         *state = s;
-//         state->action();
-//     }
-// };
-class Executor final {
-    const stack<MemoryEasyEater> eater;
-    const NormalSys normal;
-    const AbNormalSys abnormal;
-    const FatalSys fatal;
-public:
-    Executor(){
-    }
-    void eatAction() {
-        normal.action(eater);
-    }
-    void spitAction() {
-        abnormal.action(eater);
-    }
-    void fatalAction() {
-        fatal.action(eater);
-    }
-};
-// ひとまず、オイラの理想的な一時実装はできたよ。
-// これから、そのテストをやってみる。
-// コンパイルは通した。問題、そして怖いのはコアダンプ。
-// だから、慎重に進めるのだね。よし、空っぽの実行確認はできた。
-// ここでコミットして、その後の変遷を見てみたい。
-// この理想がどのように変化あるいは維持、はたまた見落としがあるやも。
-// うん、楽しい :)
-void test_Execute_States() {
-    cout << "-------------------- test_Execute_States " << endl;
-    Executor executor;
-    executor.eatAction();
-    executor.spitAction();
-    executor.fatalAction();
-}
-
 /**
  * 課題、自作クラスのオブジェクトをポインタで扱ってみよう。
  * 
@@ -358,29 +277,107 @@ class MemoryHardEater final {
     MemoryHardEater(): stringEat{nullptr}, intEat{nullptr} {}
 public:
     MemoryHardEater(const StringEat& st,const IntEat& ie) {
-        stringEat = new StringEat(st);  // 無駄なことしてるんだよな。
-        intEat = new IntEat(ie);        // 無駄なことしてるんだよな。
+        stringEat = new StringEat(st);  // 今回に関しては必須だと思ってる。
+        intEat = new IntEat(ie);        // 今回に関しては必須だと思ってる。
+    }
+    void spitouts() {
+        // segmentation fault （コアダンプ）
+        cout << stringEat->spitout() << endl;
+        cout << intEat->spitout() << endl;
     }
     ~MemoryHardEater(){
-        // はい、これがC++ メモリ管理の難しさと面白さの醍醐味だね。
-        // このコメントを外すとコアダンプで中止、実行時エラーになる。
-        // free(): double free detected in tcache 2
-        // 以下は予想にもとづく仮設。
-        // 理由はメモリの2重解放をおこなってしまうから。
-        // それを回避する方法は幾つかある
-        // 1. コンストラクタでオブジェクトの参照をやめてコピーを受け取る。
-        // ただし、その場合はコピーコンストラクタを作らないといけない。
-        // つまり、無駄なこと、処理速度の低下を招く。
-        // コンパイラは非常に効率よく動くし、設計されている。
-        // 勉強中だから、敢えて無駄なことをしたいのだが。
-
         // DONE これが有効になっているということは、二重解放のコアダンプは解消されたのだね。
         // さらに、敢えて無駄なことに挑戦すると。
+        // 今は、必須だと思ってる。
         delete stringEat;
         delete intEat;
         ptr_lambda_debug<const string&,const int&>("=== DONE delete. MemoryEater...",0);
     }
 };
+template<class T>
+class State {
+public:
+    State(){}
+    virtual void action(T t) const = 0;
+    virtual ~State(){};
+};
+class NormalSys final : public State<stack<MemoryHardEater*>&> {
+    const string label = "NormalSys";
+public:
+    /**
+     * メモリを消費する。
+    */
+    void action(stack<MemoryHardEater*>& stk) const override {
+        // FIXME ここで任意の値を入力したいね。
+        ptr_lambda_debug<const string&,const int&>("----- action NormalSys.",0);
+        StringEat se_1 = StringEat(0,label);
+        string s = "やったなオレ。";
+        se_1.eat(s);
+        IntEat ie_1 = IntEat(0,label);
+        int n = 100;
+        ie_1.eat(n);
+        MemoryHardEater* he_1 = new MemoryHardEater(se_1,ie_1);
+        stk.push(he_1);
+    }
+};
+class AbNormalSys final : public State<stack<MemoryHardEater*>&> {
+public:
+    /**
+     * spitout の実行。
+    */
+    void action(stack<MemoryHardEater*>& stk) const override {
+        ptr_lambda_debug<const string&,const int&>("----- action AbNormalSys.",0);
+        MemoryHardEater* pme = stk.top();
+        pme->spitouts();
+    }
+};
+class FatalSys final : public State<stack<MemoryHardEater*>&> {
+public:
+    /**
+     * メモリ の解放。
+    */
+    void action(stack<MemoryHardEater*>& stk) const override {
+        ptr_lambda_debug<const string&,const int&>("----- action FatalSys.",0);
+        MemoryHardEater* pme = stk.top();
+        pme->~MemoryHardEater();
+    }
+};
+class Executor final {
+    std::stack<MemoryHardEater*> stk;
+    const NormalSys normal;
+    const AbNormalSys abnormal;
+    const FatalSys fatal;
+public:
+    Executor(){
+    }
+    void eatAction() {
+        normal.action(stk);
+    }
+    void spitAction() {
+        abnormal.action(stk);
+    }
+    void fatalAction() {
+        fatal.action(stk);
+    }
+};
+// ひとまず、オイラの理想的な一時実装はできたよ。
+// これから、そのテストをやってみる。
+// コンパイルは通した。問題、そして怖いのはコアダンプ。
+// だから、慎重に進めるのだね。よし、空っぽの実行確認はできた。
+// ここでコミットして、その後の変遷を見てみたい。
+// この理想がどのように変化あるいは維持、はたまた見落としがあるやも。
+// うん、楽しい :)
+// 遊びだからだろ、コンパイルエラーとコアダンプを見てもさして憂鬱にならないのは :)
+// では、ここまでで、何が間違っていたのか、そして、何が予想通りだったのか
+// 答え合わせのコミットをしますかね。
+void test_Execute_States() {
+    cout << "-------------------- test_Execute_States " << endl;
+    Executor executor;
+    executor.eatAction();
+    executor.spitAction();
+    executor.fatalAction();
+}
+
 void test_Memory_Hard_Eater() {
     cout << "-------------------- test_Memory_Hard_Eater " << endl;
     // +2個のオーバーロードとのコンパイルエラー、operator のオーバーロード
@@ -410,13 +407,54 @@ void test_Memory_Hard_Eater() {
 
     MemoryHardEater eater(se,ie);
 }
+void test_stack_Memory_Hard_Eat_000() {
+    cout << "-------------------- test_stack_Memory_Hard_Eat_000 " << endl;
+    string voice = "HELP ME.";
+    StringEat se(0,"-");
+    se.eat(voice);
+    int n = 4567;
+    IntEat ie(0,"-");
+    ie.eat(n);
+    MemoryHardEater eater(se,ie);
+    // これか
+    stack<MemoryHardEater> stk;
+    stk.push(eater);
+}
+void test_stack_Memory_Hard_Eat_001(stack<MemoryHardEater> &stk) {
+    cout << "-------------------- test_stack_Memory_Hard_Eat_001 " << endl;
+    string voice = "HELP ME.";
+    StringEat se(0,"-");
+    se.eat(voice);
+    int n = 4567;
+    IntEat ie(0,"-");
+    ie.eat(n);
+    MemoryHardEater eater(se,ie);
+    // これか
+    stk.push(eater);
+}
 
 /**
  * メンバ変数を参照で扱うため、実装が楽（MemoryHardEaterと比較して）。
  * クラス内で new してオブジェクトを生成していないので、delete する
  * 必要もない。
+ * 
+ * これはこれで問題になることを、理解したよ。
+ * メンバ変数が実体であることが、まずい。
+ * これも結局二重解放のトラップにかかっている。
+ * 
+ * 今の解釈、結局、メモリ管理を動的に行っているオブジェクトを
+ * 扱うクラスはそのオブジェクト型、のポインタでそれらを管理する必要がある。
+ * つまり、new し delete する責務から解放されない。
+ * そして、動的にメモリを扱うクラス、この場合は、StringEat、 IntEat は、自らの
+ * コピーを作り出すコピーコンストラクタを絶対に作らなければいけない。
+ * 要するに、非常に面倒なことが増える。
+ * 
+ * どこかで、new したら最後、それを扱うクラスは全てこのルールに従う必要がある。
+ * 例え、コンパイルが通ったとしても、実行時エラー、コアダンプのリスクがある。
+ * 
+ * このクラスは Easy なのではなく、不完全なのだ。
 */
-class MemoryEasyEater final {
+class MemoryEasyEater final {   
     StringEat stringEat;
     IntEat intEat;
     MemoryEasyEater() {}
@@ -429,15 +467,60 @@ public:
         ptr_lambda_debug<const string&,const int&>("=== DONE delete. MemoryEater...",0);
     }
 };
+void test_Memory_Easy_Eater() {
+    cout << "-------------------- test_Memory_Easy_Eater " << endl;
+    cout << "CAUTION コアダンプが起こるよ。free(): double free detected in tcache 2 " << endl;
+    StringEat se(0,"-");
+    IntEat ie(0,"-");
+    MemoryEasyEater eater(se,ie);
+}
+void test_array_stack_001() {
+    cout << "-------------------- test_array_001 " << endl;
+    // array OK
+    // std::array<MemoryHardEater*,1> arr;
+    // StringEat se = StringEat(0,"-s");
+    // IntEat ie = IntEat(0,"-i");
+    // MemoryHardEater* he = new MemoryHardEater(se,ie);
+    // arr[0] = he;
+    // delete he;
+
+    // stack OK
+    std::stack<MemoryHardEater*> stk;
+    StringEat se_1 = StringEat(0,"-s");
+    IntEat ie_1 = IntEat(0,"-i");
+    MemoryHardEater* he_1 = new MemoryHardEater(se_1,ie_1);
+    stk.push(he_1);
+    // delete he_1;
+    // delete もで下のデストラクタでもOK。
+    he_1->~MemoryHardEater();
+
+    // 配列 NG これがオレの実力では無理だった。
+    // コアダンプの原因は分かるが解決策が分からない。
+    // delete eater;
+    // MemoryHardEater* eaters = new MemoryHardEater[1];
+    // for(int i = 0; i < 1 ;++i) {
+    //     StringEat se = StringEat(0,"-s");
+    //     IntEat ie = IntEat(0,"-i");
+    //     MemoryHardEater he(se,ie);
+    //     eaters[i] = he;
+    // }
+    // for(int i = 0; i < 1 ;++i) {
+    //     MemoryHardEater he =eaters[i];
+    //     he.~MemoryHardEater();
+    // }
+    // delete [] eaters;
+}
 
 int main() {
     cout << "START エラーハンドリング ========== " << endl;
-    ptr_lambda_debug<string,int>("Yeah It's NUMB.",0);
-    test_Const_Char_Eat();
-    test_String_Eat();
-    test_Int_Eat();
-    test_Memory_Hard_Eater();
+    // ptr_lambda_debug<string,int>("Yeah It's NUMB.",0);
+    // test_Const_Char_Eat();
+    // test_String_Eat();
+    // test_Int_Eat();
+    // test_Memory_Hard_Eater();
+
     test_Execute_States();
+    // test_array_stack_001();
     cout << "========== エラーハンドリング END" << endl;
     return 0;
 }
