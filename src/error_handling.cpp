@@ -44,6 +44,7 @@ OK 、GoF は State パターンでいこう。
 #include <initializer_list>
 #include <compare>
 #include <array>
+#include <random>
 
 using namespace std;
 
@@ -148,7 +149,7 @@ void test_Const_Char_Eat() {
  * string& 型を memory に確保する。
  * 文字列を保存、吐き出すクラス。
 */
-class StringEat final : public EatType<string&> {
+class StringEat final : public virtual EatType<string&> {
     string* memory;
 public:
     StringEat() : memory{new string()} {}
@@ -194,7 +195,7 @@ void test_String_Eat() {
  * int& 型を memory に確保する。
  * 整数を保持し吐き出すクラス。
 */
-class IntEat final : public EatType<int&> {
+class IntEat final : public virtual EatType<int&> {
     int* memory;
 public:
     IntEat() : memory{new int()} {}
@@ -233,32 +234,6 @@ void test_Int_Eat() {
     cout << ie.spitout() << endl;
 }
 /**
- * ここから少し GoF State の実装をやろうか。
- * インタフェースのState、その具象化クラス x 3（正常、異常、致命的）。
- * State 管理クラス。
- * 全部で 5 つかな。
- * 
- * ここまでで、次のようなことを考えているよ。
- * - 正常である場合、メモリ消費し続ける、MemoryEaterがね。
- * - 消費しているメモリは stack にのせる。
- * - 異常になったら、stack に乗っているものを吐き出す。
- * - 次が、まだ未定、吐き出す = spitout なのか、本当にメモリから消すのか。
- * 
- * OK、パターンを一つ追加して、spitout の出番を作ってあげよう。
- * - 異常になったら、spitout する。
- * - 致命的になったら、メモリ解放する。
- * 
- * state のパターンは、正常、異常、致命的の3つ。
- * Director も必要かも。名前はなんにせよ、MemoryEater と State の Action
- * を実行するクラス、じゃぁ、Executor かな。
- * イメージとしては以上だね。ここまでRoleを分ければ、問題になった時も
- * 切り貼りとテストがやりやすいはず :)
- * 
- * 相変わらずのノリに、恐縮です。 (バカにしてるな :)
- * ナメるなよ小僧、IF文を書かずに実装、実行してやる。
- * 
-*/
-/**
  * 課題、自作クラスのオブジェクトをポインタで扱ってみよう。
  * 
  * なるほど、あくまでもポインタ管理にこだわるなら、次のようなことを決める必要がある。
@@ -294,6 +269,32 @@ public:
         ptr_lambda_debug<const string&,const int&>("=== DONE delete. MemoryEater...",0);
     }
 };
+/**
+ * ここから少し GoF State の実装をやろうか。
+ * インタフェースのState、その具象化クラス x 3（正常、異常、致命的）。
+ * State 管理クラス。
+ * 全部で 5 つかな。
+ * 
+ * ここまでで、次のようなことを考えているよ。
+ * - 正常である場合、メモリ消費し続ける、MemoryEaterがね。
+ * - 消費しているメモリは stack にのせる。
+ * - 異常になったら、stack に乗っているものを吐き出す。
+ * - 次が、まだ未定、吐き出す = spitout なのか、本当にメモリから消すのか。
+ * 
+ * OK、パターンを一つ追加して、spitout の出番を作ってあげよう。
+ * - 異常になったら、spitout する。
+ * - 致命的になったら、メモリ解放する。
+ * 
+ * state のパターンは、正常、異常、致命的の3つ。
+ * Director も必要かも。名前はなんにせよ、MemoryEater と State の Action
+ * を実行するクラス、じゃぁ、Executor かな。
+ * イメージとしては以上だね。ここまでRoleを分ければ、問題になった時も
+ * 切り貼りとテストがやりやすいはず :)
+ * 
+ * 相変わらずのノリに、恐縮です。 (バカにしてるな :)
+ * ナメるなよ小僧、IF文を書かずに実装、実行してやる。
+ * 
+*/
 template<class T>
 class State {
 public:
@@ -308,7 +309,9 @@ public:
      * メモリを消費する。
     */
     void action(stack<MemoryHardEater*>& stk) const override {
-        // FIXME ここで任意の値を入力したいね。
+        // DONE ここで任意の値を入力したいね。
+        // それは、これを呼ばず、己でやればいいのだよ、わかるよね。
+        // これは state のノーマル処理なのだよ、君が呼んでるのよ :)
         ptr_lambda_debug<const string&,const int&>("----- action NormalSys.",0);
         StringEat se_1 = StringEat(0,label);
         string s = "やったなオレ。";
@@ -360,6 +363,27 @@ public:
         fatal.action(stk);
     }
 };
+int test_random() {
+    cout << "-------------------- test_random " << endl;
+    // メルセンヌ・ツイスター法による擬似乱数生成器を、
+    // ハードウェア乱数をシードにして初期化
+    std::random_device seed_gen;
+    std::mt19937 engine(seed_gen());
+    // 一様実数分布
+    // [-1.0, 1.0)の値の範囲で、等確率に実数を生成する
+    std::uniform_real_distribution<> dist1(-1.0, 1.0);
+    double r1 = dist1(engine);
+    cout << r1 << endl;
+
+    int n = (r1*10);
+    cout << n << endl;
+    int a = n%3;
+    if(a < 0) {
+        a *= -1;
+    }
+    cout << a << endl;
+    return a;    
+}
 // ひとまず、オイラの理想的な一時実装はできたよ。
 // これから、そのテストをやってみる。
 // コンパイルは通した。問題、そして怖いのはコアダンプ。
@@ -370,12 +394,40 @@ public:
 // 遊びだからだろ、コンパイルエラーとコアダンプを見てもさして憂鬱にならないのは :)
 // では、ここまでで、何が間違っていたのか、そして、何が予想通りだったのか
 // 答え合わせのコミットをしますかね。
+// うん、OK。
+// では今回のメインであるエラーハンドリングに取り組みますか。
 void test_Execute_States() {
     cout << "-------------------- test_Execute_States " << endl;
     Executor executor;
     executor.eatAction();
     executor.spitAction();
     executor.fatalAction();
+
+    // いい加減な Exception を発生させる。
+    // 0 を一度も発生させずに 1 あるいは 2 を発生させるか
+    // 0 の発生回数より、2の発生回数が上回るか
+    // 0 と 2 の発生回数が同数の時に 1 を発生させれば
+    // 即それは例外 :) つまり、例外必至 :)
+    // 必ず例外が発生するはず。流石に酷い、
+    // 実はもっとちゃんとしたの考えてたけど飽きてきた。気が向いたらやるかも。
+    try {
+        for(int i=0;i<100;i++) {
+            int event = test_random();
+            switch (event)
+            {
+            case 0:
+                executor.eatAction();break;
+            case 1:
+                executor.spitAction();break;
+            case 2:
+                executor.fatalAction();break;
+            default:
+                break;
+            }
+        }
+    } catch(exception& e) {
+        cerr << e.what() << endl;
+    }
 }
 
 void test_Memory_Hard_Eater() {
