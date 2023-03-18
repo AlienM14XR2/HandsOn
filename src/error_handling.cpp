@@ -142,7 +142,7 @@ void test_Const_Char_Eat() {
     cout << ce1.spitout() << endl;
 }
 /**
- * string& を memory に確保する。
+ * string& 型を memory に確保する。
  * 文字列を保存、吐き出すクラス。
 */
 class StringEat final : public virtual EatType<string&> {
@@ -188,7 +188,7 @@ void test_String_Eat() {
     cout << se.spitout() << endl;
 }
 /**
- * int& を memory に確保する。
+ * int& 型を memory に確保する。
  * 整数を保持し吐き出すクラス。
 */
 class IntEat final : public virtual EatType<int&> {
@@ -229,6 +229,115 @@ void test_Int_Eat() {
     ie.eat(num);
     cout << ie.spitout() << endl;
 }
+/**
+ * ここから少し GoF State の実装をやろうか。
+ * インタフェースのState、その具象化クラス x 3（正常、異常、致命的）。
+ * State 管理クラス。
+ * 全部で 5 つかな。
+ * 
+ * ここまでで、次のようなことを考えているよ。
+ * - 正常である場合、メモリ消費し続ける、MemoryEaterがね。
+ * - 消費しているメモリは stack にのせる。
+ * - 異常になったら、stack に乗っているものを吐き出す。
+ * - 次が、まだ未定、吐き出す = spitout なのか、本当にメモリから消すのか。
+ * 
+ * OK、パターンを一つ追加して、spitout の出番を作ってあげよう。
+ * - 異常になったら、spitout する。
+ * - 致命的になったら、メモリ解放する。
+ * 
+ * state のパターンは、正常、異常、致命的の3つ。
+ * Director も必要かも。名前はなんにせよ、MemoryEater と State の Action
+ * を実行するクラス、じゃぁ、Executor かな。
+ * イメージとしては以上だね。ここまでRoleを分ければ、問題になった時も
+ * 切り貼りとテストがやりやすいはず :)
+ * 
+ * 相変わらずのノリに、恐縮です。 (バカにしてるな :)
+ * ナメるなよ小僧、IF文を書かずに実装、実行してやる。
+ * 
+*/
+class MemoryHardEater;
+class MemoryEasyEater;
+template<class T>
+class State {
+public:
+    State(){}
+    virtual void action(T t) const = 0;
+    virtual ~State(){};
+};
+class NormalSys final : public State<stack<MemoryEasyEater>> {
+public:
+    /**
+     * メモリを消費する。
+    */
+    void action(const stack<MemoryEasyEater> stk) const override {
+        ptr_lambda_debug<const string&,const int&>("----- action NormalSys.",0);
+    }
+};
+class AbNormalSys final : public State<stack<MemoryEasyEater>> {
+public:
+    /**
+     * spitout の実行。
+    */
+    void action(const stack<MemoryEasyEater> stk) const override {
+        ptr_lambda_debug<const string&,const int&>("----- action AbNormalSys.",0);
+    }
+};
+class FatalSys final : public State<stack<MemoryEasyEater>> {
+public:
+    /**
+     * メモリ の解放。
+    */
+    void action(const stack<MemoryEasyEater> stk) const override {
+        ptr_lambda_debug<const string&,const int&>("----- action FatalSys.",0);
+    }
+};
+// いらね。
+// class RootState {
+//     State* state;   // 抽象クラスは派生クラスでないここではオプジェクトの実体を持てない、うん。
+// public:
+//     RootState(const State& s) {
+//         *state = s;
+//     }
+//     void whatsHapped() {
+//         state->action();
+//     }
+//     void changeHapped(const State& s) {
+//         *state = s;
+//         state->action();
+//     }
+// };
+class Executor final {
+    const stack<MemoryEasyEater> eater;
+    const NormalSys normal;
+    const AbNormalSys abnormal;
+    const FatalSys fatal;
+public:
+    Executor(){
+    }
+    void eatAction() {
+        normal.action(eater);
+    }
+    void spitAction() {
+        abnormal.action(eater);
+    }
+    void fatalAction() {
+        fatal.action(eater);
+    }
+};
+// ひとまず、オイラの理想的な一時実装はできたよ。
+// これから、そのテストをやってみる。
+// コンパイルは通した。問題、そして怖いのはコアダンプ。
+// だから、慎重に進めるのだね。よし、空っぽの実行確認はできた。
+// ここでコミットして、その後の変遷を見てみたい。
+// この理想がどのように変化あるいは維持、はたまた見落としがあるやも。
+// うん、楽しい :)
+void test_Execute_States() {
+    cout << "-------------------- test_Execute_States " << endl;
+    Executor executor;
+    executor.eatAction();
+    executor.spitAction();
+    executor.fatalAction();
+}
 
 /**
  * 課題、自作クラスのオブジェクトをポインタで扱ってみよう。
@@ -265,6 +374,8 @@ public:
         // コンパイラは非常に効率よく動くし、設計されている。
         // 勉強中だから、敢えて無駄なことをしたいのだが。
 
+        // DONE これが有効になっているということは、二重解放のコアダンプは解消されたのだね。
+        // さらに、敢えて無駄なことに挑戦すると。
         delete stringEat;
         delete intEat;
         ptr_lambda_debug<const string&,const int&>("=== DONE delete. MemoryEater...",0);
@@ -326,6 +437,7 @@ int main() {
     test_String_Eat();
     test_Int_Eat();
     test_Memory_Hard_Eater();
+    test_Execute_States();
     cout << "========== エラーハンドリング END" << endl;
     return 0;
 }
