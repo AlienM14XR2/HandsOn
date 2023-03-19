@@ -45,6 +45,7 @@
  * 
 */
 #include <iostream>
+#include <optional>
 // #include <format>
 
 using namespace std;
@@ -111,8 +112,9 @@ void test_Truck() {
 class AliceTruck final : public virtual TDecorator {
     Truck base;
 public:
-    AliceTruck(){}
-    AliceTruck(const Truck& truck) {
+//    [[deprecated("please use AliceTruck(const Truck& truck)")]]
+    AliceTruck(){}  // これをプロブラマが直接呼ぶことは非推奨。コンパイラのために開けたもの。
+    AliceTruck(const Truck& truck) noexcept {
         base = truck;
     }
     virtual void front() const override {
@@ -200,14 +202,14 @@ void test_Cheshire_Truck_Base_Alice() {
     cat.top();
 }
 class JabberTruck final : public TDecorator {
-    TDecorator* base;
+    const TDecorator* base;     // const には const で、この方が安全だよ。
 
     JabberTruck():base{nullptr} {}
 public:
-    JabberTruck(TDecorator& truck){
+    JabberTruck(const TDecorator& truck) {
         base = &truck;
     }
-    ~JabberTruck(){
+    ~JabberTruck() {
     }
     virtual void front() const override {
         base->front();
@@ -240,6 +242,78 @@ void test_Jabber_Truck() {
     jabber.rear();
     jabber.top();
 }
+
+// handle
+// flame
+// transmission (optional)
+// Wheel
+
+class AbstractHandle {
+public:
+    virtual ~AbstractHandle() {}
+    virtual int getWeght() const = 0;
+};
+class AbstractFlame {
+public:
+    virtual ~AbstractFlame() {}
+    virtual int getWeght() const = 0;
+};
+class AbstractTransmission {
+public:
+    virtual ~AbstractTransmission() {}
+    virtual int getWeght() const = 0;
+};
+class AbstractWheel {
+public:
+    virtual ~AbstractWheel() {}
+    virtual int getWeght() const = 0;
+};
+class AbstractBicycleFactory {
+public:
+    virtual AbstractHandle createHandle() const = 0;
+    virtual AbstractFlame createFlame() const = 0;
+    virtual optional<AbstractTransmission> createTransmission() const = 0;
+    virtual AbstractWheel crreateWheel() const = 0;  
+    virtual ~AbstractBicycleFactory() {}
+};
+
+class AliceHandle final : public AbstractHandle {
+    int weight;
+    AliceHandle():weight{-1} {}
+public:
+    AliceHandle(const int& w) {
+        weight = w;
+    }
+    ~AliceHandle(){}
+    virtual int getWeght() const override {
+        return weight;
+    }
+};
+class AliceFlame final : public AbstractFlame {
+    int weight;
+    AliceFlame():weight{-1} {}
+public:
+    AliceFlame(const int& w) {
+        weight = w;
+    }
+    ~AliceFlame() {}
+    virtual int getWeght() const override {
+        return weight;
+    }
+};
+class AliceWheel final : public AbstractWheel {
+    int weight;
+    AliceWheel():weight{-1} {}
+public:
+    AliceWheel(const int& w) {
+        weight = w;
+    }
+    ~AliceWheel(){}
+    virtual int getWeght() const override {
+        return weight;
+    }
+};
+
 int main() {
     // cout << format(":=^10","START") << endl;
     // ザクとは違うのだよ、ザクとはっ。幸先のいい走り出しじゃないか :)
