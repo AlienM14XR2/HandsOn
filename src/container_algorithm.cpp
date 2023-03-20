@@ -32,6 +32,12 @@
  * アダプタはデコトラとは全く関係ないもの、でも、現実世界にもあってイメージ
  * しやすいものとして、ここは自転車だな。あるもんな、昔あったよね。
  * 
+ * 補足しないと分からなくなるね。おそらく、お前はこの時点で、最後まで
+ * イメージできてたよな :) 端折るのよくないよ :)
+ * 自転車はDecoとは異なる継承構造のものにすることがまず最初にあり、
+ * Decoの機能をAdapterを介して利用するのが自転車、
+ * チャリだね。ここまで説明しないと、未来から来たオレでは少し？ってなる。
+ * 
  * ここまでで、だいぶ読み飛ばしてきた文字列から学習したことで
  * STARTをきってみたいぞ。
  * 
@@ -65,6 +71,27 @@ void (*ptr_lambda_message)(C,I,M) = [](auto c, auto i, auto message) -> void {
 template<class M, class D>
 void (*ptr_lambda_debug)(M,D) = [](auto message,auto debug) -> void {
     cout << "DEBUG: " << message << '\t' << debug << endl;
+};
+
+/**
+ * こんなことをイメージするよ。
+ * 
+ * 自転車のフレームの装飾に Decorator を使いたい。Alice には Alice の装飾を
+ * あるいは複合的な装飾もあり。それを、Adapter で実現してみたい。
+ * こんなストーリー。
+ * 
+ * Decorator から切り出す関数は何でもいいが、次のものにした。
+ * top()
+ * 
+ * これをAdapterにのせる。チャリはそのAdapterを経由して装飾を行う。
+ * はい、仕様は決まりました :)
+ * 
+*/
+
+class DecoAdapter {
+public:
+    virtual void decoration() const = 0;
+    virtual ~DecoAdapter() {}
 };
 
 class TDecorator {
@@ -246,6 +273,23 @@ void test_Jabber_Truck() {
     jabber.top();
 }
 
+/**
+ * TDecorator の top() 関数の機能を提供すること。
+ * さっき決めました。
+*/
+class JabberDecoAdapter : public DecoAdapter {
+public:
+    void decoration() const override {
+        Truck base("Jabberwocky",512);
+        AliceTruck alice(base);
+        JabberTruck jabber(alice);
+        // オイ、機能を提供してくれ、ください。
+        ptr_lambda_debug<const string&,const int&>("offered by Jabber top.",0);
+        jabber.top();
+    }
+};
+
+
 // handle
 // flame
 // transmission (optional)
@@ -372,7 +416,7 @@ public:
  * 
  * 状態の変化は別で考慮する。
 */
-class AliceSportBicycle final : public AbstractBicycle {
+class AliceSportBicycle final : public AbstractBicycle, JabberDecoAdapter {
     AbstractHandle* handle;
     AbstractFlame* flame;
     std::array<AbstractWheel,2> wheels;
@@ -401,6 +445,13 @@ public:
     }
     void back() const override {
         cout << "アリススポーツ,バックするよ。" << endl;
+    }
+    /**
+     * 外観の見た目が追加された。
+     * JabberDecoAdapter の機能提供による独自拡張になったメンバ関数です。
+    */
+    void appearance() {
+        decoration();
     }
 };
 class AliceBicycleFactory final : public AbstractBicycleFactory<AliceSportBicycle> {
@@ -457,6 +508,8 @@ void test_Alice_Bicycle_Factory() {
     aliceSport.turnRight();
     aliceSport.brake();
     aliceSport.back();
+    // adapter による機能拡張。
+    aliceSport.appearance();
 }
 
 int main() {
