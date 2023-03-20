@@ -46,6 +46,9 @@
 */
 #include <iostream>
 #include <optional>
+#include <array>
+#include <cassert>
+
 // #include <format>
 
 using namespace std;
@@ -248,71 +251,213 @@ void test_Jabber_Truck() {
 // transmission (optional)
 // Wheel
 
-class AbstractHandle {
+class AbstractHandle {          // 注意メンバ関数を pure virtual にするとコンパイルエラーになるよ。
+protected:
+    int weight;
 public:
+    AbstractHandle():weight{-1} {}
     virtual ~AbstractHandle() {}
-    virtual int getWeght() const = 0;
+    virtual int getWeight() noexcept {  // これなら、流石に noexcept つけられるよね。
+        return weight;
+    }
+    // virtual int getWeight() const = 0;
 };
 class AbstractFlame {
+protected:
+    int weight;
 public:
+    AbstractFlame():weight{-1} {}
     virtual ~AbstractFlame() {}
-    virtual int getWeght() const = 0;
+    virtual int getWeight() noexcept {
+        return weight;
+    }
 };
 class AbstractTransmission {
+protected:
+    int weight;
 public:
+    AbstractTransmission():weight{-1} {}
     virtual ~AbstractTransmission() {}
-    virtual int getWeght() const = 0;
+    virtual int getWeight() noexcept {
+        return weight;
+    }
 };
 class AbstractWheel {
+protected:
+    int weight;
 public:
+    AbstractWheel():weight{-1} {}
     virtual ~AbstractWheel() {}
-    virtual int getWeght() const = 0;
+    virtual int getWeight() {
+        return weight;
+    }
 };
+
+class AbstractBicycle {     // 状態は別クラスで管理したい。
+public:
+    AbstractBicycle() {}
+    virtual ~AbstractBicycle() {}
+    virtual void ride() const = 0;
+    virtual void accelerate() const = 0;
+    virtual void turnLeft() const = 0;
+    virtual void turnRight() const = 0;
+    virtual void brake() const = 0;
+    virtual void back() const = 0;
+
+    // virtual void ride() const {
+    //     cout << "自転車をこぐよ。" << endl;
+    // }
+    // virtual void accelerate() const {
+    //     cout << "自転車を加速させるよ。" << endl;
+    // }
+    // virtual void turnLeft() const {
+    //     cout << "自転車を左に曲げるよ。" << endl;
+    // }
+    // virtual void turnRight() const {
+    //     cout << "自転車を右に曲げるよ。" << endl;
+    // }
+    // virtual void brake() const {
+    //     cout << "ブレーキをかけるよ。" << endl;
+    // }
+};
+template<class T>
 class AbstractBicycleFactory {
 public:
     virtual AbstractHandle createHandle() const = 0;
     virtual AbstractFlame createFlame() const = 0;
     virtual optional<AbstractTransmission> createTransmission() const = 0;
-    virtual AbstractWheel crreateWheel() const = 0;  
+    virtual AbstractWheel createWheel() const = 0;
+    virtual T madeInFactory() const = 0;
     virtual ~AbstractBicycleFactory() {}
 };
 
-class AliceHandle final : public AbstractHandle {
-    int weight;
-    AliceHandle():weight{-1} {}
+class AliceHandle final : virtual public AbstractHandle {
 public:
     AliceHandle(const int& w) {
         weight = w;
     }
+    AliceHandle(const AliceHandle& cpy) {   // 今回は、使わないと思うけど念のため、コピーコンストラクタを用意した。
+        weight = cpy.getWeight();
+    }
     ~AliceHandle(){}
-    virtual int getWeght() const override {
+    int getWeight() const {     // const cv 修飾、この場合、const AliceHandle ah; ah.getWeight(); を許可している。 
         return weight;
     }
 };
 class AliceFlame final : public AbstractFlame {
-    int weight;
-    AliceFlame():weight{-1} {}
 public:
     AliceFlame(const int& w) {
         weight = w;
     }
     ~AliceFlame() {}
-    virtual int getWeght() const override {
-        return weight;
-    }
 };
 class AliceWheel final : public AbstractWheel {
-    int weight;
-    AliceWheel():weight{-1} {}
 public:
     AliceWheel(const int& w) {
         weight = w;
     }
     ~AliceWheel(){}
-    virtual int getWeght() const override {
-        return weight;
+};
+/**
+ * アリススポーツの自転車クラス。
+ * 
+ * 自転車の具体的な操作ができる。
+ * - こぐ
+ * - 加速させる
+ * - 左に曲がる
+ * - 右に曲がる
+ * - ブレーキ
+ * - バック
+ * - （Uターン    // これは何だ？）
+ * 
+ * 状態の変化は別で考慮する。
+*/
+class AliceSportBicycle final : public AbstractBicycle {
+    AbstractHandle* handle;
+    AbstractFlame* flame;
+    std::array<AbstractWheel,2> wheels;
+    AliceSportBicycle():handle{nullptr},flame{nullptr},wheels{} {}
+public:
+    AliceSportBicycle(AbstractHandle& h, AbstractFlame& f, AbstractWheel& fw, AbstractWheel& rw) {
+        handle = &h;
+        flame = &f;
+        wheels[0] = fw;
+        wheels[1] = rw;
+    }
+    void ride() const override {
+        cout << "アリススポーツをこぐよ。" << endl;
+    }
+    void accelerate() const override {
+        cout << "アリススポーツを加速させるよ。" << endl;
+    }
+    void turnLeft() const override {
+        cout << "アリススポーツを左に曲げるよ。" << endl;
+    }
+    void turnRight() const override {
+        cout << "アリススポーツを右に曲げるよ。" << endl;
+    }
+    void brake() const override {
+        cout << "アリススポーツ,ブレーキをかけるよ。" << endl;
+    }
+    void back() const override {
+        cout << "アリススポーツ,バックするよ。" << endl;
     }
 };
+class AliceBicycleFactory final : public AbstractBicycleFactory<AliceSportBicycle> {
+public:
+    ~AliceBicycleFactory(){}
+    AbstractHandle createHandle() const override {
+        AliceHandle handle(300);
+        return handle;
+    }
+    AbstractFlame createFlame() const override {
+        AliceFlame flame(1500);
+        return flame;
+    }
+    optional<AbstractTransmission> createTransmission() const override {
+        optional<AbstractTransmission> optionTMission;
+        return optionTMission;
+    }
+    AbstractWheel createWheel() const override {
+        AliceWheel wheel(750);
+        return wheel;
+    }
+    AliceSportBicycle madeInFactory() const override {
+        AbstractHandle h = createHandle();
+        AbstractFlame f = createFlame();
+        AbstractWheel fw = createWheel();
+        AbstractWheel rw = createWheel();
+        AliceSportBicycle aliceSport = AliceSportBicycle(h,f,fw,rw);
+        return aliceSport;
+    }
+};
+// Abstract Factory はクラスが増えるな、止めればよかった、一回やってるのに、性懲りもなくね :)
+void test_Alice_Bicycle_Factory() {
+    ptr_lambda_message<const char&,const int&,const string&>('-',10,"test_Alice_Bicycle_Factory");
+    AliceBicycleFactory factory;
+    AbstractHandle h = factory.createHandle();
+    AbstractFlame f = factory.createFlame();
+    optional<AbstractTransmission> optMission = factory.createTransmission();
+    AbstractWheel w = factory.createWheel();
+
+    ptr_lambda_debug<const string&,const int&>("optMission.has_value() is ", optMission.has_value());
+    ptr_lambda_debug<const string&,const int&>("handle weight is ", h.getWeight());
+    ptr_lambda_debug<const string&,const int&>("flame weight is ", f.getWeight());
+    ptr_lambda_debug<const string&,const int&>("wheel weight is ", w.getWeight());
+
+    // 次のアサーションに引っかかると問題がある。
+    assert(h.getWeight() != -1);
+    assert(f.getWeight() != -1);
+    assert(w.getWeight() != -1);
+
+    AliceSportBicycle aliceSport = factory.madeInFactory();
+    aliceSport.ride();
+    aliceSport.accelerate();
+    aliceSport.turnLeft();
+    aliceSport.turnRight();
+    aliceSport.brake();
+    aliceSport.back();
+}
 
 int main() {
     // cout << format(":=^10","START") << endl;
@@ -323,7 +468,7 @@ int main() {
     test_Cheshire_Truck_Base_Normal();
     test_Cheshire_Truck_Base_Alice();
     test_Jabber_Truck();
+    test_Alice_Bicycle_Factory();
     ptr_lambda_message<const char&,const int&,const string&>('=',15,"コンテナとアルゴリズム END");
     return 0;
 }
-
