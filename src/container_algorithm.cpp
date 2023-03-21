@@ -60,6 +60,8 @@
 #include <optional>
 #include <array>
 #include <cassert>
+#include <vector>
+#include <algorithm>
 
 // #include <format>
 
@@ -107,6 +109,7 @@ public:
     virtual void rear() const = 0;
     virtual void top() const = 0;
     virtual void info() const = 0;
+    virtual int getDecoLevel() const = 0;
     virtual ~TDecorator(){}
 };
 class Truck final : public virtual TDecorator {
@@ -134,6 +137,12 @@ public:
         cout << "type is \t" << type << endl;
         cout << "level is \t" << decoLevel << endl;
     }
+    virtual int getDecoLevel() const override {
+        return decoLevel;
+    }
+    virtual pair<string,int> type_decolevel() const {
+        return {type,decoLevel};
+    }
     ~Truck(){}
 };
 void test_Truck() {
@@ -146,30 +155,33 @@ void test_Truck() {
     t.top();
 }
 class AliceTruck final : public virtual TDecorator {
-    Truck base;     // だんだんと、これがメモリの無駄使いに見えてくるよ。
+    Truck base;     // だんだんと、これがメモリの無駄使いに見えてくるよ。そんなことない、これはこれでいいのだよ、ポインタバカは黙ってなさい。
 public:
 //    [[deprecated("please use AliceTruck(const Truck& truck)")]]
-    AliceTruck(){}  // これをプロブラマが直接呼ぶことは非推奨。コンパイラのために開けたもの。
+    AliceTruck(){}  // これをプロブラマが直接呼ぶことは非推奨。コンパイラのために開けたもの。気になるならコメントアウトしてみなさい。
     AliceTruck(const Truck& truck) noexcept {
         base = truck;
     }
-    virtual void front() const override {
+    void front() const override {
         base.front();
         cout << "に見えて、アリスのデスマスク" << endl;
 
     }
-    virtual void side() const override {
+    void side() const override {
         cout << "ALICE LOGO のサイド" << endl;
     }
-    virtual void rear() const override {
+    void rear() const override {
         cout << "大きく振りかぶって魅せるアリス" << endl;
     }
-    virtual void top() const override {
+    void top() const override {
         base.top();
         cout << "に見えて、アリスの全身姿のフォト" << endl;
     }
-    virtual void info() const override {
+    void info() const override {
         base.info();
+    }
+    int getDecoLevel() const override {
+        return base.getDecoLevel();
     }
     ~AliceTruck(){}
 };
@@ -185,7 +197,7 @@ void test_Alice_Truck() {
 }
 template<class T>
 concept Truckable = requires (T& x) {
-  x.front();x.side();x.rear();x.top();x.info(); // 型Tに要求する操作をセミコロン区切りで列挙する。
+  x.front();x.side();x.rear();x.top();x.info();x.getDecoLevel(); // 型Tに要求する操作をセミコロン区切りで列挙する。
 };
 template<Truckable T>
 class CheshireTruck final : public TDecorator {
@@ -196,24 +208,27 @@ public:
         base = truck;
     }
     ~CheshireTruck(){}
-    virtual void front() const override {
+    void front() const override {
         base.front();
         cout << "と、チェシャ猫の不敵な笑み" << endl;
     }
-    virtual void side() const override {
+    void side() const override {
         base.side();
         cout << "と、肉球" << endl;
     }
-    virtual void rear() const override {
+    void rear() const override {
         base.rear();
         cout << "と、そのボールを狙うチェシャ猫" << endl;
     }
-    virtual void top() const override {
+    void top() const override {
         base.top();
         cout << "と、大きな猫の影" << endl;
     }
-    virtual void info() const override {
+    void info() const override {
         base.info();
+    }
+    int getDecoLevel() const override {
+        return base.getDecoLevel();
     }
 };
 void test_Cheshire_Truck_Base_Normal() {
@@ -247,24 +262,27 @@ public:
     }
     ~JabberTruck() {
     }
-    virtual void front() const override {
+    void front() const override {
         base->front();
         cout << "と、JabberWockyの大きな頭の影" << endl;
     }
-    virtual void side() const override {
+    void side() const override {
         base->side();
         cout << "と、大きな爪" << endl;
     }
-    virtual void rear() const override {
+    void rear() const override {
         base->rear();
         cout << "と、襲いかかるJabberwocky" << endl;
     }
-    virtual void top() const override {
+    void top() const override {
         base->top();
         cout << "と、Jabberwockyの巨躯の影" << endl;
     }
-    virtual void info() const override {
+    void info() const override {
         base->info();
+    }
+    int getDecoLevel() const override {
+        return base->getDecoLevel();
     }
 };
 void test_Jabber_Truck() {
@@ -306,6 +324,10 @@ public:
     virtual void info() const override {
         base->info();
     }
+    virtual int getDecoLevel() const override {
+        return base->getDecoLevel();
+    }
+
 };
 void test_Humpty_Truck() {
     ptr_lambda_message<const char&,const int&,const string&>('-',10,"test_Humpty_Truck");
@@ -844,6 +866,71 @@ void test_Alice_Bicycle_Factory() {
  * 
 */
 
+class CompDecoLevel {
+public:
+    bool operator()(const pair<string,int>& l, const pair<string,int>& r ) const {
+        return l.second < r.second;
+    }
+};
+// TODO 飽きた、同じだもの。
+class CompBicycleTotalWeight {
+public:
+};
+
+void test_Vector_Container() {
+    ptr_lambda_message<const char&,const int&,const string&>('-',10,"test_Vector_Container");
+    Truck normal;
+
+    Truck base4Alice("Alice",128);
+    AliceTruck alice(base4Alice);
+    ptr_lambda_debug<const string&,const int&>("alice decoLevel is", alice.getDecoLevel());
+
+    Truck base4Cheshire("Cheshire",256);
+    AliceTruck alice4Cheshire(base4Cheshire);
+    CheshireTruck cheshire(alice4Cheshire);
+    ptr_lambda_debug<const string&,const int&>("cheshire decoLevel is", cheshire.getDecoLevel());
+
+    Truck base4Jabber("Jabberwocky",512);
+    AliceTruck alice4Jabber(base4Jabber);
+    JabberTruck jabber(alice4Jabber);
+    ptr_lambda_debug<const string&,const int&>("jabber decoLevel is", jabber.getDecoLevel());
+
+    Truck base4Humpt("Humptydumpty",1024);
+    AliceTruck alice4Humpt(base4Humpt);
+    CheshireTruck cheshire4Humpt(alice4Humpt);
+    HumptyTruck humpty(cheshire4Humpt);
+    ptr_lambda_debug<const string&,const int&>("humpty decoLevel is", humpty.getDecoLevel());
+    humpty.front();
+    humpty.side();
+    humpty.rear();
+    humpty.top();
+
+    // humpty,jabber,cheshire,normal,alice
+    std::vector<pair<string,int>> trucks {
+        base4Alice.type_decolevel(),
+        base4Jabber.type_decolevel(),
+        base4Cheshire.type_decolevel(),
+        base4Humpt.type_decolevel(),
+        normal.type_decolevel()
+    };
+    ptr_lambda_debug<const string&,const int&>("Before sort...",0);
+    std::for_each(trucks.begin(), trucks.end(), [](pair<string,int> x) {
+        cout << x.first << '\t' << x.second << endl;
+    });
+    CompDecoLevel compDecoLevel;
+    std::sort(trucks.begin(),trucks.end(),compDecoLevel);
+    ptr_lambda_debug<const string&,const int&>("After sort...",0);
+    std::for_each(trucks.begin(), trucks.end(), [](pair<string,int> x) {
+        cout << x.first << '\t' << x.second << endl;
+    });
+    // うん、もう飽きた。
+
+    // ここで構造化束縛もねじ込む。
+    // これでやりたいよな、そう考えてのメンバ変数だと思ってるよ。
+    // std::vector<pair<string,int>> trucks;
+
+
+}
 
 int main() {
     // cout << format(":=^10","START") << endl;
@@ -858,6 +945,25 @@ int main() {
     test_Cheshire_Bicycle_Factory();
     test_Queen_Bicycle_Factory();
     test_Alice_Bicycle_Factory();
+    // ここから本題です。
+    test_Vector_Container();
     ptr_lambda_message<const char&,const int&,const string&>('=',15,"コンテナとアルゴリズム END");
     return 0;
 }
+// ソースを眺めてて、クラス、オブジェクト、その参照とポインタで
+// Abstract Factoryで作られるチャリのパーツを なぜ new したポインタで管理しな
+// ければいけないか、理由が少し見えた。
+// TDecorator の派生クラスである各トラックは自分の意図したもので、なぜ、
+// Abstract Factory では意図したものにならなかったのか。
+// Abstract Factory は途中でキャストされる。ファクトリで作られるものは
+// アブストラクトではなく、その派生クラスのオブジェクトだからだ。
+// これが、Decorator と Abstract Factory で生じた差異。
+// ソースからはそう見える。
+// 
+// Abstract Factory で各パーツをその派生クラスのオブジェクトにしているのは
+// 勿論自分の意図なのだが。だって、変でしょ各工場内で作られるものが同じなんて。
+// 別のオブジェクトを作ってなんぼ、ただし、それらのパーツは基底クラスを
+// 持っている。それがインタフェースなだけで中身は個々に別のオブジェクト。
+// このあたりの自分の解釈が、結果、であれば、そのように作りなさいよと
+// コンパイラに注意されまくったと。コンパイラとオイラのエゴの共存点が今回の 
+// new したポインタだったと、今はそう思ってる。うん、Abstract Factory いらね。
