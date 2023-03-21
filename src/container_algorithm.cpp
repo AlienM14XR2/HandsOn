@@ -49,6 +49,12 @@
  * 
  * いいもん、いらないもん、GCCがいいんだもん。
  * 
+ * はい、ここから本題です。
+ * Decorator の派生クラスをもう一つ量産して
+ * Abstract Factory でつくられるチャリをもっと増やして（最低でもあと２つ）
+ * それぞれ、数値をメンバ変数内でもってるので、その合計値で並べ替えや
+ * 単純なソートでもいいので実践してみたい。
+ * 
 */
 #include <iostream>
 #include <optional>
@@ -107,7 +113,7 @@ class Truck final : public virtual TDecorator {
     string type;
     int decoLevel;
 public:
-    Truck(): type{"Default"}, decoLevel{-1} {}    // const でもこれはいける。なんとなく確認したくなったけど、これはOKなんだね。
+    Truck(): type{"Default"}, decoLevel{-1} {}    // メンバ変数が const でもこれはいける。なんとなく確認したくなったけど、これはOKなんだね。
     Truck(const string& t, const int& lev) {
         type = t;
         decoLevel = lev;
@@ -140,7 +146,7 @@ void test_Truck() {
     t.top();
 }
 class AliceTruck final : public virtual TDecorator {
-    Truck base;
+    Truck base;     // だんだんと、これがメモリの無駄使いに見えてくるよ。
 public:
 //    [[deprecated("please use AliceTruck(const Truck& truck)")]]
     AliceTruck(){}  // これをプロブラマが直接呼ぶことは非推奨。コンパイラのために開けたもの。
@@ -186,7 +192,7 @@ class CheshireTruck final : public TDecorator {
     T base;
     CheshireTruck(){}
 public:
-    CheshireTruck(T& truck) {
+    CheshireTruck(T& truck) noexcept {
         base = truck;
     }
     ~CheshireTruck(){}
@@ -236,7 +242,7 @@ class JabberTruck final : public TDecorator {
 
     JabberTruck():base{nullptr} {}
 public:
-    JabberTruck(const TDecorator& truck) {
+    JabberTruck(const TDecorator& truck) noexcept {
         base = &truck;
     }
     ~JabberTruck() {
@@ -271,6 +277,46 @@ void test_Jabber_Truck() {
     jabber.side();
     jabber.rear();
     jabber.top();
+}
+
+class HumptyTruck final : public TDecorator {
+    const TDecorator* base;
+    HumptyTruck():base{nullptr} {}
+public:
+    HumptyTruck(const TDecorator& truck) noexcept {
+        base = &truck;
+    }
+    ~HumptyTruck() {}
+    virtual void front() const override {
+        base->front();
+        cout << "と、天使の羽をつけた巨大なEgg" << endl;
+    }
+    virtual void side() const override {
+        base->side();
+        cout << "と、白い羽が舞う" << endl;
+    }
+    virtual void rear() const override {
+        base->rear();
+        cout << "と、天使の羽をつけた巨大なEggの亀裂から光り" << endl;
+    }
+    virtual void top() const override {
+        base->top();
+        cout << "と、巨大なEggの大きな影" << endl;
+    }
+    virtual void info() const override {
+        base->info();
+    }
+};
+void test_Humpty_Truck() {
+    ptr_lambda_message<const char&,const int&,const string&>('-',10,"test_Humpty_Truck");
+    Truck base("Humptydumpty",630);
+    AliceTruck alice(base);
+    HumptyTruck humpt(alice);
+    humpt.info();
+    humpt.front();
+    humpt.side();
+    humpt.rear();
+    humpt.top();
 }
 
 /**
@@ -337,7 +383,7 @@ public:
     }
 };
 
-class AbstractBicycle {     // 状態は別クラスで管理したい。
+class AbstractBicycle {     // 状態は別クラスで管理したい。いや、やらないよそんなこと :)
 public:
     AbstractBicycle() {}
     virtual ~AbstractBicycle() {}
@@ -347,22 +393,6 @@ public:
     virtual void turnRight() const = 0;
     virtual void brake() const = 0;
     virtual void back() const = 0;
-
-    // virtual void ride() const {
-    //     cout << "自転車をこぐよ。" << endl;
-    // }
-    // virtual void accelerate() const {
-    //     cout << "自転車を加速させるよ。" << endl;
-    // }
-    // virtual void turnLeft() const {
-    //     cout << "自転車を左に曲げるよ。" << endl;
-    // }
-    // virtual void turnRight() const {
-    //     cout << "自転車を右に曲げるよ。" << endl;
-    // }
-    // virtual void brake() const {
-    //     cout << "ブレーキをかけるよ。" << endl;
-    // }
 };
 template<class T>
 class AbstractBicycleFactory {
@@ -375,7 +405,246 @@ public:
     virtual ~AbstractBicycleFactory() {}
 };
 
-class AliceHandle final : virtual public AbstractHandle {
+// なんでまた Abstract Factory にしたかな、もう懲りたよ。
+//
+// Cheshire Bicycle Parts
+//
+
+class CheshireHandle final : public AbstractHandle {
+public:
+    CheshireHandle(const int& w) {
+        weight = w;
+    }
+    ~CheshireHandle() {}
+};
+class CheshireFlame final : public AbstractFlame {
+public:
+    CheshireFlame(const int& w) {
+        weight = w;
+    }
+    ~CheshireFlame() {}
+};
+class CheshireWheel final : public AbstractWheel {
+public:
+    CheshireWheel(const int& w) {
+        weight = w;
+    }
+    ~CheshireWheel() {}
+};
+class CheshireBicycle final : public AbstractBicycle {
+    // 確認のため、コンテナ以外のメンバ変数は const をつけた。
+    const AbstractHandle* handle;
+    const AbstractFlame* flame;
+    std::array<AbstractWheel,1> wheels;     // 敢えて一輪車にしてみた。軽量化に勝るチューニングはないと誰かが言っていたから。
+    CheshireBicycle():handle{nullptr},flame{nullptr},wheels{} {}
+public:
+    CheshireBicycle(const AbstractHandle& h, const AbstractFlame& f, const AbstractWheel& w) {
+        handle = &h;
+        flame = &f;
+        wheels[0] = w;
+    }
+    void ride() const override {
+        cout << "チェシャ猫チャリをこぐよ。" << endl;
+    }
+    void accelerate() const override {
+        cout << "チェシャ猫チャリを加速させるよ。" << endl;
+    }
+    void turnLeft() const override {
+        cout << "チェシャ猫チャリを左に曲げるよ。" << endl;
+    }
+    void turnRight() const override {
+        cout << "チェシャ猫チャリを右に曲げるよ。" << endl;
+    }
+    void brake() const override {
+        cout << "チェシャ猫チャリ、ブレーキをかけるよ。" << endl;
+    }
+    void back() const override {
+        cout << "チェシャ猫チャリ、バックするよ。" << endl;
+    }
+};
+class CheshireBicycleFactory final : public AbstractBicycleFactory<CheshireBicycle> {
+public:
+    AbstractHandle createHandle() const override {
+        CheshireHandle handle(285);
+        return handle;
+    }
+    AbstractFlame createFlame() const override {
+        CheshireFlame flame(1495);
+        return flame;
+    }
+    optional<AbstractTransmission> createTransmission() const override {
+        optional<AbstractTransmission> optionTMission;
+        return optionTMission;
+    }
+    AbstractWheel createWheel() const override {
+        CheshireWheel wheel(745);
+        return wheel;
+    }
+    CheshireBicycle madeInFactory() const override {
+        AbstractHandle h = createHandle();
+        AbstractFlame f = createFlame();
+        AbstractWheel w = createWheel();
+        CheshireBicycle bicycle(h,f,w);
+        return bicycle;
+    }
+};
+void test_Cheshire_Bicycle_Factory() {
+    ptr_lambda_message<const char&,const int&,const string&>('-',10,"test_Cheshire_Bicycle_Factory");
+    CheshireBicycleFactory factory;
+    optional<AbstractTransmission> optionTMission = factory.createTransmission();
+    AbstractHandle handle = factory.createHandle();
+    AbstractFlame flame = factory.createFlame();
+    AbstractWheel wheel = factory.createWheel();
+
+    ptr_lambda_debug<const string&,const int&>("optionTMission.has_value() is ", optionTMission.has_value());
+    ptr_lambda_debug<const string&,const int&>("handle weight is ", handle.getWeight());
+    ptr_lambda_debug<const string&,const int&>("flame weight is ", flame.getWeight());
+    ptr_lambda_debug<const string&,const int&>("wheel weight is ", wheel.getWeight());
+
+    CheshireBicycle bicycle = factory.madeInFactory();
+    bicycle.ride();
+    bicycle.accelerate();
+    bicycle.turnLeft();
+    bicycle.turnRight();
+    bicycle.brake();
+    bicycle.back();
+}
+
+//
+// Queen Bicycle Parts
+//
+
+class QueenHandle final : public AbstractHandle {
+public:
+    QueenHandle(const int& w) {
+        weight = w;
+    }
+    ~QueenHandle() {}
+};
+class QueenFlame final : public AbstractFlame {
+public:
+    QueenFlame(const int& w) {
+        weight = w;
+    }
+    ~QueenFlame() {}
+};
+class QueenTransmission final : public AbstractTransmission {
+public:
+    QueenTransmission(const int& w) {
+        weight = w;
+    }
+    ~QueenTransmission() {}
+};
+class QueenWheel final : public AbstractWheel {
+public:
+    QueenWheel(const int& w) {
+        weight = w;
+    }
+    ~QueenWheel() {}
+};
+class QueenOfHeartsCycle final : public AbstractBicycle {
+    const AbstractHandle* handle;
+    const AbstractFlame* flame;
+    const AbstractTransmission* mission;
+    std::array<AbstractWheel,2> wheels;
+    QueenOfHeartsCycle():handle{nullptr},flame{nullptr},mission{nullptr},wheels{} {}
+public:
+    QueenOfHeartsCycle(const AbstractHandle& h, const AbstractFlame& f, const AbstractTransmission& m, const AbstractWheel& fw, const AbstractWheel& rw) {
+        handle = &h;
+        flame = &f;
+        mission = &m;
+        wheels[0] = fw;
+        wheels[1] = rw;
+    }
+    void ride() const override {
+        cout << "ハートの女王チャリをこぐよ。" << endl;
+    }
+    void accelerate() const override {
+        // TODO ここも詰めたら面白そうだよ。
+        cout << "ハートの女王チャリを加速させるよ。" << endl;
+        cout << "ハートの女王チャリを >> さらに加速させるよ。" << endl;
+        cout << "ハートの女王チャリ、 >> >> 音速を超えるよ。" << endl;     // これは人力ではないよな、誇大広告だよ。
+    }
+    void turnLeft() const override {
+        cout << "ハートの女王チャリを左に曲げるよ。" << endl;
+    }
+    void turnRight() const override {
+        cout << "ハートの女王チャリを右に曲げるよ。" << endl;
+    }
+    void brake() const override {
+        cout << "ハートの女王チャリ、ブレーキをかけるよ。" << endl;
+    }
+    void back() const override {
+        cout << "ハートの女王チャリ、バックするよ。" << endl;
+    }
+};
+class QueenBicycleFactory final : public AbstractBicycleFactory<QueenOfHeartsCycle> {
+public:
+    AbstractHandle createHandle() const override {
+        QueenHandle handle(600);
+        return handle;
+    }
+    AbstractFlame createFlame() const override {
+        QueenFlame flame(3000);
+        return flame;
+    }
+    optional<AbstractTransmission> createTransmission() const override {
+        optional<QueenTransmission> optionTMission;
+        QueenTransmission mission(1000);
+        optionTMission = mission;
+        return optionTMission;
+    }
+    AbstractWheel createWheel() const override {
+        QueenWheel wheel(1050);
+        return wheel;
+    }
+    QueenOfHeartsCycle madeInFactory() const override {
+        AbstractHandle h = createHandle();
+        AbstractFlame f = createFlame();
+        optional<AbstractTransmission> optionTMission = createTransmission();
+        AbstractWheel fw = createWheel();
+        AbstractWheel rw = createWheel();
+        assert(optionTMission.has_value() == true);
+        cout << "optionTMission.value().getWeight() is " << optionTMission.value().getWeight() << endl;
+        QueenOfHeartsCycle cycle(h,f,optionTMission.value(),fw,rw);
+        return cycle;
+    }
+};
+void test_Queen_Bicycle_Factory() {
+    ptr_lambda_message<const char&,const int&,const string&>('-',10,"test_Queen_Bicycle_Factor");
+    QueenBicycleFactory factory;
+    optional<AbstractTransmission> optionTMission = factory.createTransmission();
+    AbstractHandle handle = factory.createHandle();
+    AbstractFlame flame = factory.createFlame();
+    AbstractWheel wheel = factory.createWheel();
+
+    ptr_lambda_debug<const string&,const bool&>("optionTMission.has_value() is ",optionTMission.has_value());
+    assert(optionTMission.has_value() == true);
+    ptr_lambda_debug<const string&,const int&>("mission weight is ",optionTMission.value().getWeight());
+    ptr_lambda_debug<const string&,const int&>("handle weight is ",handle.getWeight());
+    ptr_lambda_debug<const string&,const int&>("flame weight is ",flame.getWeight());
+    ptr_lambda_debug<const string&,const int&>("wheel weight is ",wheel.getWeight());
+
+    QueenOfHeartsCycle cycle = factory.madeInFactory();
+    cycle.ride();
+    cycle.accelerate();
+    cycle.turnLeft();
+    cycle.turnRight();
+    cycle.brake();
+    cycle.back();
+}
+
+    // virtual AbstractHandle createHandle() const = 0;
+    // virtual AbstractFlame createFlame() const = 0;
+    // virtual optional<AbstractTransmission> createTransmission() const = 0;
+    // virtual AbstractWheel createWheel() const = 0;
+    // virtual T madeInFactory() const = 0;
+
+//
+// Alice Bicycle Parts
+//
+
+class AliceHandle final : public AbstractHandle {
 public:
     AliceHandle(const int& w) {
         weight = w;
@@ -384,7 +653,7 @@ public:
         weight = cpy.getWeight();
     }
     ~AliceHandle(){}
-    int getWeight() const {     // const cv 修飾、この場合、const AliceHandle ah; ah.getWeight(); を許可している。 
+    int getWeight() const {     // const cv修飾、この場合、const AliceHandle ah; ah.getWeight(); を許可している。 
         return weight;
     }
 };
@@ -416,7 +685,7 @@ public:
  * 
  * 状態の変化は別で考慮する。
 */
-class AliceSportBicycle final : public AbstractBicycle, JabberDecoAdapter {
+class AliceSportBicycle final : public AbstractBicycle, JabberDecoAdapter { // C++ は多重継承ができる。
     AbstractHandle* handle;
     AbstractFlame* flame;
     std::array<AbstractWheel,2> wheels;
@@ -514,7 +783,7 @@ void test_Alice_Bicycle_Factory() {
 
 int main() {
     // cout << format(":=^10","START") << endl;
-    // ザクとは違うのだよ、ザクとはっ。幸先のいい走り出しじゃないか :)
+    // ザクとは違うのだよ、ザクとはっ。幸先のいい走り出しじゃないか :) 皮肉だな :)
     ptr_lambda_message<const char&,const int&,const string&>('=',15,"コンテナとアルゴリズム START");
     test_Truck();
     test_Alice_Truck();
@@ -522,6 +791,9 @@ int main() {
     test_Cheshire_Truck_Base_Alice();
     test_Jabber_Truck();
     test_Alice_Bicycle_Factory();
+    test_Humpty_Truck();
+    test_Cheshire_Bicycle_Factory();
+    test_Queen_Bicycle_Factory();
     ptr_lambda_message<const char&,const int&,const string&>('=',15,"コンテナとアルゴリズム END");
     return 0;
 }
