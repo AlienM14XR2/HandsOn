@@ -383,6 +383,7 @@ public:
     }
 };
 
+// TODO これでダウンキャストの確認をやってみようよ。 予想だけど、多分できないかと。コンストラクタがデフォルトしかないし。
 class AbstractBicycle {     // 状態は別クラスで管理したい。いや、やらないよそんなこと :)
 public:
     AbstractBicycle() {}
@@ -393,6 +394,7 @@ public:
     virtual void turnRight() const = 0;
     virtual void brake() const = 0;
     virtual void back() const = 0;
+    virtual int totalWeight() const = 0;
 };
 template<class T>
 class AbstractBicycleFactory {
@@ -432,16 +434,21 @@ public:
     ~CheshireWheel() {}
 };
 class CheshireBicycle final : public AbstractBicycle {
-    // 確認のため、コンテナ以外のメンバ変数は const をつけた。
-    const AbstractHandle* handle;
-    const AbstractFlame* flame;
-    std::array<AbstractWheel,1> wheels;     // 敢えて一輪車にしてみた。軽量化に勝るチューニングはないと誰かが言っていたから。
+    // 確認のため、コンテナ以外のメンバ変数は const をつけた。そして、確認もままならないうちに取ったと。
+    CheshireHandle* handle;
+    CheshireFlame* flame;
+    std::array<CheshireWheel*,1> wheels;     // 敢えて一輪車にしてみた。軽量化に勝るチューニングはないと誰かが言っていたから。
     CheshireBicycle():handle{nullptr},flame{nullptr},wheels{} {}
 public:
-    CheshireBicycle(const AbstractHandle& h, const AbstractFlame& f, const AbstractWheel& w) {
-        handle = &h;
-        flame = &f;
-        wheels[0] = w;
+    CheshireBicycle(AbstractHandle& h, AbstractFlame& f, AbstractWheel& w) {
+        handle = new CheshireHandle(h.getWeight());
+        flame = new CheshireFlame(f.getWeight());
+        wheels[0] = new CheshireWheel(w.getWeight());
+    }
+    ~CheshireBicycle() {
+        delete handle;
+        delete flame;
+        delete wheels[0];
     }
     void ride() const override {
         cout << "チェシャ猫チャリをこぐよ。" << endl;
@@ -460,6 +467,14 @@ public:
     }
     void back() const override {
         cout << "チェシャ猫チャリ、バックするよ。" << endl;
+    }
+    // コンテナ処理の確認用に追加したメンバ関数。
+    // Handle, Flame, Wheel 各パーツの合計を返却する。
+    int totalWeight() const override {
+        int sum = handle->getWeight();
+        sum += flame->getWeight();
+        sum += wheels[0]->getWeight();
+        return sum;
     }
 };
 class CheshireBicycleFactory final : public AbstractBicycleFactory<CheshireBicycle> {
@@ -508,6 +523,8 @@ void test_Cheshire_Bicycle_Factory() {
     bicycle.turnRight();
     bicycle.brake();
     bicycle.back();
+
+    ptr_lambda_debug<const string&,const int&>("total weight is ",bicycle.totalWeight());
 }
 
 //
@@ -543,18 +560,25 @@ public:
     ~QueenWheel() {}
 };
 class QueenOfHeartsCycle final : public AbstractBicycle {
-    const AbstractHandle* handle;
-    const AbstractFlame* flame;
-    const AbstractTransmission* mission;
-    std::array<AbstractWheel,2> wheels;
-    QueenOfHeartsCycle():handle{nullptr},flame{nullptr},mission{nullptr},wheels{} {}
+    QueenHandle* handle;
+    QueenFlame* flame;
+    QueenTransmission* mission;
+    std::array<QueenWheel*,2> wheels;
+    QueenOfHeartsCycle():handle{nullptr},flame{},mission{nullptr},wheels{} {}
 public:
-    QueenOfHeartsCycle(const AbstractHandle& h, const AbstractFlame& f, const AbstractTransmission& m, const AbstractWheel& fw, const AbstractWheel& rw) {
-        handle = &h;
-        flame = &f;
-        mission = &m;
-        wheels[0] = fw;
-        wheels[1] = rw;
+    QueenOfHeartsCycle(AbstractHandle& h, AbstractFlame& f, AbstractTransmission& m, AbstractWheel& fw, AbstractWheel& rw) {
+        handle = new QueenHandle(h.getWeight());
+        flame = new QueenFlame(f.getWeight()); 
+        mission = new QueenTransmission(m.getWeight());
+        wheels[0] = new QueenWheel(fw.getWeight());
+        wheels[1] = new QueenWheel(rw.getWeight());
+    }
+    ~QueenOfHeartsCycle() {
+        delete handle;
+        delete flame;
+        delete mission;
+        delete wheels[0];
+        delete wheels[1];
     }
     void ride() const override {
         cout << "ハートの女王チャリをこぐよ。" << endl;
@@ -576,6 +600,14 @@ public:
     }
     void back() const override {
         cout << "ハートの女王チャリ、バックするよ。" << endl;
+    }
+    int totalWeight() const override {
+        int sum = handle->getWeight();
+        sum += flame->getWeight();
+        sum += mission->getWeight();
+        sum += wheels[0]->getWeight();
+        sum += wheels[1]->getWeight();
+        return sum;
     }
 };
 class QueenBicycleFactory final : public AbstractBicycleFactory<QueenOfHeartsCycle> {
@@ -611,7 +643,7 @@ public:
     }
 };
 void test_Queen_Bicycle_Factory() {
-    ptr_lambda_message<const char&,const int&,const string&>('-',10,"test_Queen_Bicycle_Factor");
+    ptr_lambda_message<const char&,const int&,const string&>('-',10,"test_Queen_Bicycle_Factory");
     QueenBicycleFactory factory;
     optional<AbstractTransmission> optionTMission = factory.createTransmission();
     AbstractHandle handle = factory.createHandle();
@@ -632,13 +664,11 @@ void test_Queen_Bicycle_Factory() {
     cycle.turnRight();
     cycle.brake();
     cycle.back();
-}
 
-    // virtual AbstractHandle createHandle() const = 0;
-    // virtual AbstractFlame createFlame() const = 0;
-    // virtual optional<AbstractTransmission> createTransmission() const = 0;
-    // virtual AbstractWheel createWheel() const = 0;
-    // virtual T madeInFactory() const = 0;
+    // cycle.totalWeight();
+   ptr_lambda_debug<const string&,const int&>("total weight is ",cycle.totalWeight());
+
+}
 
 //
 // Alice Bicycle Parts
@@ -686,16 +716,22 @@ public:
  * 状態の変化は別で考慮する。
 */
 class AliceSportBicycle final : public AbstractBicycle, JabberDecoAdapter { // C++ は多重継承ができる。
-    AbstractHandle* handle;
-    AbstractFlame* flame;
-    std::array<AbstractWheel,2> wheels;
+    AliceHandle* handle;
+    AliceFlame* flame;
+    std::array<AliceWheel*,2> wheels;
     AliceSportBicycle():handle{nullptr},flame{nullptr},wheels{} {}
 public:
     AliceSportBicycle(AbstractHandle& h, AbstractFlame& f, AbstractWheel& fw, AbstractWheel& rw) {
-        handle = &h;
-        flame = &f;
-        wheels[0] = fw;
-        wheels[1] = rw;
+        handle = new AliceHandle(h.getWeight());
+        flame = new AliceFlame(f.getWeight());
+        wheels[0] = new AliceWheel(fw.getWeight());
+        wheels[1] = new AliceWheel(rw.getWeight());
+    }
+    ~AliceSportBicycle() {
+        delete handle;
+        delete flame;
+        delete wheels[0];
+        delete wheels[1];
     }
     void ride() const override {
         cout << "アリススポーツをこぐよ。" << endl;
@@ -721,6 +757,13 @@ public:
     */
     void appearance() {
         decoration();
+    }
+    int totalWeight() const override {
+        int sum = handle->getWeight();
+        sum += flame->getWeight();
+        sum += wheels[0]->getWeight();
+        sum += wheels[1]->getWeight();
+        return sum;
     }
 };
 class AliceBicycleFactory final : public AbstractBicycleFactory<AliceSportBicycle> {
@@ -779,7 +822,28 @@ void test_Alice_Bicycle_Factory() {
     aliceSport.back();
     // adapter による機能拡張。
     aliceSport.appearance();
+    ptr_lambda_debug<const string&,const int&>("total weight is ",aliceSport.totalWeight());
 }
+
+/**
+ * いつものように、ザックリとしたイメージでここまできたが。
+ * ここからが、今回のメインですよ。
+ * Truck は decoLevel で普通のソートをやってみる。
+ * 
+ * AbstractBicycle の派生クラスは、各パーツの重量 weight の合計を計算して
+ * それをソートしてみたい。
+ * 
+ * 関数呼び出し演算子 operator() を実装する必要があることを改めて知る。
+ * もう忘れかけてる自分がこわい。truck はこれで行けそうだな。
+ * 
+ * Bicycle の weight 合計は一度別の何かで集計しておかないと無理っぽいな。
+ * AbstractBicycle のメンバ関数でPure Virtual なメンバ関数を宣言して、
+ * 派生クラスで定義してもらおうか、いや、基底クラスで一撃。。。
+ * にはできないのか。AbstractBicycleはインタフェースだったか。
+ * では、最初の案を採用しよう、そう仕様。（近年のおじさん化に歯止めが効かなくなってるな。
+ * 
+*/
+
 
 int main() {
     // cout << format(":=^10","START") << endl;
@@ -790,10 +854,10 @@ int main() {
     test_Cheshire_Truck_Base_Normal();
     test_Cheshire_Truck_Base_Alice();
     test_Jabber_Truck();
-    test_Alice_Bicycle_Factory();
     test_Humpty_Truck();
     test_Cheshire_Bicycle_Factory();
     test_Queen_Bicycle_Factory();
+    test_Alice_Bicycle_Factory();
     ptr_lambda_message<const char&,const int&,const string&>('=',15,"コンテナとアルゴリズム END");
     return 0;
 }
