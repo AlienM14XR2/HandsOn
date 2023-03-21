@@ -905,14 +905,20 @@ void test_Vector_Container() {
     humpty.rear();
     humpty.top();
 
-    // humpty,jabber,cheshire,normal,alice
-    std::vector<pair<string,int>> trucks {
-        base4Alice.type_decolevel(),
-        base4Jabber.type_decolevel(),
-        base4Cheshire.type_decolevel(),
-        base4Humpt.type_decolevel(),
-        normal.type_decolevel()
-    };
+    // std::vector<pair<string,int>> trucks {
+    //     base4Alice.type_decolevel(),
+    //     base4Jabber.type_decolevel(),
+    //     base4Cheshire.type_decolevel(),
+    //     base4Humpt.type_decolevel(),
+    //     normal.type_decolevel()
+    // };
+    std::vector<pair<string,int>> trucks;
+    trucks.emplace_back(base4Alice.type_decolevel());
+    trucks.emplace_back(base4Jabber.type_decolevel());
+    trucks.emplace_back(base4Cheshire.type_decolevel());
+    trucks.emplace_back(base4Humpt.type_decolevel());
+    trucks.emplace_back(normal.type_decolevel());
+
     ptr_lambda_debug<const string&,const int&>("Before sort...",0);
     std::for_each(trucks.begin(), trucks.end(), [](pair<string,int> x) {
         cout << x.first << '\t' << x.second << endl;
