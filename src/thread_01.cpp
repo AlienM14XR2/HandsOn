@@ -89,7 +89,6 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
     cout << "DEBUG: " << message << '\t' << debug << endl;
 };
 
-
 //
 // スレッドをまたいで、値や例外を受け渡す。（<future> C++11）
 // まずは、写経から。

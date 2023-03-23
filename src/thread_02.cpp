@@ -44,6 +44,8 @@ key word
 OK、今日はここまで。次は各スレッド毎にファイルにデータを書き込む。
 勿論、ファイルは個別に作成しよう。どうなるかな。
 
+ファイルは $HOME/dev/c++/HandsOn/bin/tmp/ に置く。
+
 */
 #include <iostream>
 #include <thread>
@@ -51,6 +53,11 @@ OK、今日はここまで。次は各スレッド毎にファイルにデータ
 #include <mutex>
 #include <vector>
 #include <iomanip>
+#include <random>
+#include <typeinfo>
+
+#define THREAD_COUNT 2
+#define LOOP         1000
 
 using namespace std;
 
@@ -58,6 +65,39 @@ template<class M, class D>
 void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
     cout << "DEBUG: " << message << '\t' << debug << endl;
 };
+template<class M>
+void (*ptr_lambda_K)(M) = [](auto message) -> void {
+    cout << "Kスケ: " << message << endl;
+};
+template<class M>
+void (*ptr_lambda_R)(M) = [](auto message) -> void {
+    cout << "Rスケ: " << message << endl;
+};
+template<class M>
+void (*ptr_lambda_M)(M) = [](auto message) -> void {
+    cout << "松本: " << message << endl;
+};
+//grim reaper
+template<class M>
+void (*ptr_lambda_Grim_Reaper)(M) = [](auto message) -> void {
+    cout << "死神: " << message << endl;
+};
+
+string random_ds() {
+    cout << "-------------------- random_ds " << endl;
+    // メルセンヌ・ツイスター法による擬似乱数生成器を、
+    // ハードウェア乱数をシードにして初期化
+    std::random_device seed_gen;
+    std::mt19937 engine(seed_gen());
+    // 一様実数分布
+    // [-1.0, 1.0)の値の範囲で、等確率に実数を生成する
+    std::uniform_real_distribution<> dist1(-1.0, 1.0);
+    double r1 = dist1(engine);
+    if(r1 < 0) {
+        r1 *= -1;
+    }
+    return std::to_string(r1);
+}
 
 string toStringDateTime() {
     time_t t = time(nullptr);
@@ -74,12 +114,168 @@ string toStringDateTime() {
     return s.str();
 }
 
+string getRandomFileName() {
+    string random = random_ds();
+    string version = toStringDateTime();
+    string fileName = version + random + ".txt";
+    return fileName;
+}
+
+// 興味がある、少し本題とは逸れるが、これも試したい。（お前なら分かるよな、俺 :)
+// 折角遠回りするのだ、ここから見える景色を楽しもう。
+// キャストだよ、兄貴、オレが再三、催促したのに無視（忘）しやがって。
+class IRepository {
+public:
+    // バッチ（笑　に見える、止めよう。
+    // virtual void batch_w() 
+    virtual void batchWrite() const = 0;
+    virtual ~IRepository() {}
+};
+
+// pure virtual も持つものをInterface （インタフェース）とここでは呼ぶことにする。
+// インタフェースへのアップキャストはできる、予想通り。しかし、ダウンキャストはできなかった。
+// そこで、pure virtual ではないRepository を作って、ダウンキャストを試してみたい。
+class Repository {
+public:
+    virtual void batchWrite() {
+        ptr_lambda_M<const string&>("本当にやるんですか、Rスケさん。");
+        ptr_lambda_R<const string&>("あぁ、これはプロジェクトとは関係ない、あくまで俺個人のことだからな。");
+    }
+};
+
+/**
+ * 大事な事を忘れるとこだった、動作確認をすれば、直ぐに気づくことだとは思うが。
+ * リマインドだ、インタフェースで操作する場合は、派生クラスのメンバ関数に 
+ * virtual 必須ですから。
+ * 派生クラスが final とか、そんなん関係ないからね。
+ * インタフェースで操作したいなら、派生クラスのメンバ関数は virtual に。
+ * 大事なことなので2回言いました。
+ * 
+ * ここから、Repository を使った、アップキャスト、ダウンキャスト
+ * の試行錯誤が続きますよ。（はい、本編関係なし。
+*/
+
+class TextRepo : public virtual IRepository  {
+public:
+    virtual void batchWrite() const override {
+        ptr_lambda_K<const string&>("インタフェースでの操作なんだろ、兄貴、そうだよな。");
+        ptr_lambda_R<const string&>("焦るな Kスケ。今、それを確認するところなんだ。");
+    }
+};
+
+class TextRepo_D : public virtual Repository {
+public:
+    virtual void batchWrite() {
+        ptr_lambda_K<const string&>("兄貴と連絡が取れない？");
+        ptr_lambda_K<const string&>("アニキには兄貴の考えがあってのことだろう。");
+        ptr_lambda_K<const string&>("オレは兄貴を信じる。");
+    }
+};
+
+class MySqlRepo final : public virtual IRepository {
+public:
+    virtual void batchWrite() const override {
+        ptr_lambda_K<const string&>("兄貴がやりたかったことはこれか。");
+    }
+};
+
+// これなら、コンパイラも理解してくれるはずだ。
+// コンパイラは許しても、実行は許されない。
+class MySqlRepo_B final : public virtual TextRepo {
+public:
+    virtual void batchWrite() {
+        ptr_lambda_K<const string&>("兄貴がやりたかったことはできたのか？");
+        ptr_lambda_R<const string&>("あぁ、どうやらそのようだな、だが、少し考えを改める必要がありそうだ。");
+        ptr_lambda_R<const string&>("今回は理想通りだったが、次も同じように行くとは限らないんだ。");
+        ptr_lambda_debug<const string&, const int&>("Rスケが言ったようにこれはオレの理想的な使い方で定義だ。だが、次のものはコンパイラには warning 警告が出る。実行確認してみるといい。",0);
+    }
+};
+
+class MySqlRepo_D final : public virtual TextRepo_D {
+public:
+    virtual void batchWrite() {
+        ptr_lambda_R<const string&>("俺は、また先輩と走れて、満足です。");
+        ptr_lambda_Grim_Reaper<const string&>("馬鹿かお前は、オレは本気でお前を... 。");
+        ptr_lambda_R<const string&>("感じませんでしたか、来てたんですよ、かおりさんが。");
+        ptr_lambda_Grim_Reaper<const string&>("... 。");
+    }
+};
+
+void test_Repository_Cast() {
+    cout << "--------------------------- test_Repository_Cast" << endl;
+    TextRepo text;
+    IRepository& interface = static_cast<IRepository&>(text);
+    interface.batchWrite();
+    ptr_lambda_R<const string&>("あぁ、これは確かに、インタフェースでの操作には違いない。");
+    ptr_lambda_R<const string&>("だが、アップキャストができることは、ある程度予想できたんだ、Kスケ。");
+    ptr_lambda_R<const string&>("今、俺達がやらなければいけないこと、それが何か分かるか？、Kスケ。");
+    ptr_lambda_K<const string&>("！？ なんなんだよ兄貴、それは！。");
+    ptr_lambda_R<const string&>("ダウンキャストさ（キリッ");
+    try {
+        MySqlRepo& mysql = dynamic_cast<MySqlRepo&>(interface);
+        mysql.batchWrite();
+    } catch(exception& e) {
+        cerr << e.what() << endl;
+        ptr_lambda_R<const string&>("こいつは、とんだ大誤算だったな。");
+        ptr_lambda_K<const string&>("！？ どうしたんだ兄貴。");
+        ptr_lambda_R<const string&>("できない、このままでは、ダウンキャストはできないんだ、Kスケ。");
+        ptr_lambda_R<const string&>("だが、俺のテクに乱れはないぜ（キリッ");
+        // さすがにこれは無理か、実体である、TextRepo と MySqlRepo にはなんの関係もないからな。
+        // なら、その関係があったらどうなのかな。
+    }
+    try {
+        MySqlRepo_B* mysql = dynamic_cast<MySqlRepo_B*>(&interface); 
+        mysql->batchWrite();
+        // コンパイルは通るが実行時エラーになる。
+        // オレはまだ諦めてないよ（飽きてないよ。
+        // それはポインタにしてなかったからだね。
+    } catch(exception& e) {
+        // これが出力されなければ、オレの勝ちだよ。
+        cerr << e.what() << endl;
+        ptr_lambda_R<const string&>("俺の負けだ、F原（GCC）、俺は手など抜いていない。");
+        ptr_lambda_R<const string&>("お前の勝ちだよ、F原。");
+    }
+}
+
+template <class T>
+void printType(const T& x) {
+    const type_info& type = typeid(x);
+    if(type == typeid(Repository)) {
+        ptr_lambda_debug<const string&,const int&>("type is Repository.",0);
+    } else if(type == typeid(TextRepo_D)) {
+        ptr_lambda_debug<const string&,const int&>("type is TextRepo_D.",0);
+    } else if(type == typeid(MySqlRepo_D)) {
+        ptr_lambda_debug<const string&,const int&>("type is MySqlRepo_D.",0);
+    } else {
+        ptr_lambda_debug<const string&,const int&>("type is unknown.",0);
+    }
+}
+
+void test_Repository_Cast_D() {
+    cout << "--------------------------- test_Repository_Cast_D" << endl;
+    Repository repo;
+    repo.batchWrite();
+
+    TextRepo_D text;
+    // text.batchWrite();
+    printType(text);
+    Repository& mock = static_cast<Repository&>(text);
+    mock.batchWrite();
+    printType(mock);
+
+    MySqlRepo_D* mysql = dynamic_cast<MySqlRepo_D*>(&text);
+    mysql->batchWrite();
+
+}
+
+
 int write() {
     // DBのコネクションを取得して次のループでレコードの書き込み。
+    string fileName = getRandomFileName();
+    cout << fileName << endl;
     int i = 0;
-    for(; i < 1000; i++) {
+    for(; i < LOOP; i++) {
     }
-    ptr_lambda_debug<const string&,const string&>("version is ", toStringDateTime());
     ptr_lambda_debug<const string&,const int&>("loop is ", i);
     return 0;
 }
@@ -116,15 +312,19 @@ void threads(const int& sum) {
 void threads_02(const int& sum) {
     cout << "---------------------------- threads_02 " << endl;
     mutex mutex_;
-    vector<thread> threads(sum);
-    for(thread& t: threads) {
-        promise<int> p;
-        future<int> f = p.get_future();
-        t = thread{worker,move(p)};
-    }
-    // これでイメージ通りのはず :)
-    for(thread& t: threads) {
-        t.join();
+    try {
+        vector<thread> threads(sum);
+        for(thread& t: threads) {
+            promise<int> p;
+            future<int> f = p.get_future();
+            t = thread{worker,move(p)};
+        }
+        // これでイメージ通りのはず :)
+        for(thread& t: threads) {
+            t.join();
+        }
+    } catch(exception& e) {
+        cerr << "exception is ... " << e.what() << endl;
     }
     size_t multi = thread::hardware_concurrency();
     ptr_lambda_debug<const string&, const size_t&>("can I use some threads ? \t",multi);
@@ -134,7 +334,11 @@ void threads_02(const int& sum) {
 int main() {
     cout << "START スレッド02 =============== " << endl;
     // threads(48);
-    threads_02(48);
+    threads_02(THREAD_COUNT);
+    cout << "THREAD_COUNT is \t" << THREAD_COUNT << endl;
+    cout << "LOOP is \t" << LOOP << endl;
+    test_Repository_Cast();
+    test_Repository_Cast_D();
     cout << "=============== スレッド02 END " << endl;
     return 0;
 }
