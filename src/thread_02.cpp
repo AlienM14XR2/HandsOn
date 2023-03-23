@@ -123,6 +123,13 @@ string getRandomFileName() {
     return fileName;
 }
 
+
+//
+// ここから、Repository を使った、アップキャスト、ダウンキャスト
+// の試行錯誤が続きますよ。（はい、本編関係なし。
+//
+
+
 // 興味がある、少し本題とは逸れるが、これも試したい。（お前なら分かるよな、俺 :)
 // 折角遠回りするのだ、ここから見える景色を楽しもう。
 // キャストだよ、兄貴、オレが再三、催促したのに無視（忘）しやがって。
@@ -157,9 +164,6 @@ public:
  * 派生クラスが final とか、そんなん関係ないからね。
  * インタフェースで操作したいなら、派生クラスのメンバ関数は virtual に。
  * 大事なことなので2回言いました。
- * 
- * ここから、Repository を使った、アップキャスト、ダウンキャスト
- * の試行錯誤が続きますよ。（はい、本編関係なし。
 */
 
 class TextRepo : public virtual IRepository  {      // ダウンキャストしたい場合は継承時、virtual を付ける。
@@ -335,8 +339,16 @@ int write() {
   48 スレッドだな。（ここまで、音楽も聞きながら非常にCPUも安定している。：）
 */  
     MockPerson data;
+    // これでフルでデータは埋めた。
+    data.address = "Tokyo Japan.";
     data.email = "alienm14xr2@loki.org";
+    data.entryAt = "2023-03-23 20:45:00";
+    data.memo = "オレだ。";
     data.name = "Alien M14xR2";
+    data.password = "alien5678";
+    data.phone = "090xxxxyyyy";
+    data.status = "1";
+    data.updateAt = "2023-03-23 20:45:00";
 
     string fileName = getRandomFileName();
     fileName = "./tmp/" + fileName;
@@ -346,7 +358,7 @@ int write() {
     try {
         int i = 0;
         for(; i < LOOP; i++) {
-            writer << i << '\t' << data.email << '\t' << data.name << endl;
+            writer << i << '\t' << data.email << '\t' << data.name << '\t' << data.address  << '\t' << data.entryAt << '\t' << data.memo << '\t' << data.password << '\t' << data.phone << '\t' << data.status << '\t' << data.updateAt <<  endl;
         }
         writer.close();
         ptr_lambda_debug<const string&,const int&>("loop is ", i);
@@ -389,13 +401,21 @@ void threads(const int& sum) {
 
 void threads_02(const int& sum) {
     cout << "---------------------------- threads_02 " << endl;
-    mutex mutex_;
+    // これは、何に使おうとしたのか、スマン忘れた。いらないはず。
+    // mutex mutex_;
     try {
         vector<thread> threads(sum);
         for(thread& t: threads) {
             promise<int> p;
             future<int> f = p.get_future();
             t = thread{worker,move(p)};
+            // future を使い忘れてた。まぁ、問題なかったんだけどね、これは、作法です。
+            // 問題がなければ 0 が出力される、あれば、それ以外、確か -1
+            //
+            // オレはこの記述を軽視していた、関係ないと、違った、これがないと実行ファイルになった後もCPUを消費する、確認した。
+            // Promise Future はここまでやってはじめて意味を持つ、決して忘れない。
+            // リファレンスやGoogleで得た知見ではない。自分が経験したことだ、それが、大切なことを教えてくれる。
+            ptr_lambda_debug<const string&,const int&>("worker ... write result is ",f.get()); 
         }
         // これでイメージ通りのはず :)
         for(thread& t: threads) {
@@ -409,13 +429,59 @@ void threads_02(const int& sum) {
     cout << "===== B =====" << endl;
 }
 
+
+//
+// 少し、悩んだが、threads_02() はそのまま残し、新たにMySQL用のテストを
+// 作ろうと思う。理由は単純だ、C++初心者かつ、C++のスレッドの扱いはこれが
+// 初めてだから。泥臭く、地を這い、飛ぶことは望まない。
+// 折角だから、02 の叩き出したレコードタイムを残しておこう。
+//
+// 48 threads 1000 loop.
+// 
+// passed 0.175387 sec.
+// 以下はオレが future を軽視していた時のものだ、上記が公式記録だろう。
+// 
+// データを全て詰め込んだもの
+// passed 0.244611 sec.
+//
+// データは email とname のみ
+// passed 0.237162 sec.
+//
+// 誤差だね。
+//
+
+
+int write_for_mysql() {
+    try {
+        return 0;
+    } catch(exception& e) {
+        cerr << e.what() << endl;
+        return -1;
+    }
+}
+
+void worker_for_mysql(promise<int> promise_) {
+    try {
+        promise_.set_value(write_for_mysql());
+    } catch(exception& e) {
+        promise_.set_exception(current_exception());
+    }
+}
+
+void threads_03() {
+    cout << "---------------------------- threads_03 " << endl;
+
+} 
+
+
+
 int main() {
     cout << "START スレッド02 =============== " << endl;
-    // threads(48);
     // test_Repository_Cast();
     // test_Repository_Cast_D();
     clock_t start = clock();
-    threads_02(THREAD_COUNT);
+    // threads_02(THREAD_COUNT);
+    threads_03();
     cout << "THREAD_COUNT is \t" << THREAD_COUNT << endl;
     cout << "LOOP is \t" << LOOP << endl;
     clock_t end = clock();
