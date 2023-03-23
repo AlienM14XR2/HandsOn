@@ -135,6 +135,11 @@ public:
 // pure virtual も持つものをInterface （インタフェース）とここでは呼ぶことにする。
 // インタフェースへのアップキャストはできる、予想通り。しかし、ダウンキャストはできなかった。
 // そこで、pure virtual ではないRepository を作って、ダウンキャストを試してみたい。
+//
+// ダウンキャストが出来なかったのは、単なる使い方が間違ってたから。
+// 考え方はあってたよ。寧ろ、pure virtual を持たない、インタフェースではない
+// こちらの方が、コンパイラに注意される、実行はできるけどね。
+// なので、インタフェースを推奨で問題ない。
 class Repository {
 public:
     virtual void batchWrite() {
@@ -155,7 +160,7 @@ public:
  * の試行錯誤が続きますよ。（はい、本編関係なし。
 */
 
-class TextRepo : public virtual IRepository  {
+class TextRepo : public virtual IRepository  {      // ダウンキャストしたい場合は継承時、virtual を付ける。
 public:
     virtual void batchWrite() const override {
         ptr_lambda_K<const string&>("インタフェースでの操作なんだろ、兄貴、そうだよな。");
@@ -180,7 +185,6 @@ public:
 };
 
 // これなら、コンパイラも理解してくれるはずだ。
-// コンパイラは許しても、実行は許されない。
 class MySqlRepo_B final : public virtual TextRepo {
 public:
     virtual void batchWrite() {
