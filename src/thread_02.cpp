@@ -55,8 +55,10 @@ OK、今日はここまで。次は各スレッド毎にファイルにデータ
 #include <iomanip>
 #include <random>
 #include <typeinfo>
+#include <fstream>
+#include <time.h>
 
-#define THREAD_COUNT 2
+#define THREAD_COUNT 48
 #define LOOP         1000
 
 using namespace std;
@@ -233,6 +235,7 @@ void test_Repository_Cast() {
         // コンパイルは通るが実行時エラーになる。
         // オレはまだ諦めてないよ（飽きてないよ。
         // それはポインタにしてなかったからだね。
+//        MySqlRepo_B& mysqlRef = dynamic_cast<MySqlRepo_B&>(interface);    // これは、NG。確かめたかったら、このコメントを外せば、確認できるよ。
     } catch(exception& e) {
         // これが出力されなければ、オレの勝ちだよ。
         cerr << e.what() << endl;
@@ -269,19 +272,92 @@ void test_Repository_Cast_D() {
 
     MySqlRepo_D* mysql = dynamic_cast<MySqlRepo_D*>(&text);
     mysql->batchWrite();
-
 }
 
 
+
+//
+// ここから、本編再開です。
+//
+
+
+/**
+ * これをファイルに書き込む。
+ * 既に、この時点でデータ量が M15 R7 より多いな。
+ * M15 R7 の MongoDB へは名前プラスアルファだったと記憶してる。
+ * DB ではないから、調節しようね。
+ * 
+ * email name これだけでいいでしょ。80 bytes 程度なら。
+*/
+struct MockPerson {
+// 型は厳密ではない。
+    long pid;           // Null NO  PRI    auto_increment
+    string address;     // Null YES
+    string email;       // Null YES UNI
+    string entryAt;     // Null NO  mysql datetime(6) C++ での正しい型がなんなのか知らない。
+    string memo;        // Null YES
+    string name;        // Null YES
+    string password;    // Null YES
+    string phone;       // Null YES
+    string status;      // Null NO
+    string updateAt;    // Null NO mysql datetime(6) C++ での正しい型がなんなのか知らない。
+};
+
+
 int write() {
-    // DBのコネクションを取得して次のループでレコードの書き込み。
+    // DBのコネクションを取得して次のループでレコードの書き込み。まだだよ、それはどうするかまだ決めてない。
+/*
+  A. オレの予想だが、この関数は、スレッドセーフではないと思っている。
+  複数のスレッドから、同時に書き込みに利用されたら、標準ライブラリのストリーム
+  では無理だろう。次のことがよくわかっていない。
+
+  B. スレッドは、独立してあり、各々メモリに乗る。別領域でこの関数が実行され
+  た場合はスタックとして扱われるのか、それであれば、関数内の変数はAuto変数と
+  して、安全に管理されているのか。独立して、すべてがメモリにのるのか。
+
+  オレはPromiseとFutureを利用して、worker を通してこの関数を利用している。
+  それは、B を期待しているからだ。この仕組みなしでは A だと思っている。
+
+  実際色々と疑心暗鬼なのだが、始めてのファイル書き込みは、上手くいったよう
+  に見える。まだ、スレッドは 2 だしな。
+  ここから、少しずつスレッド数を増やして、CPUの動向を見守るかな。
+  スレッド 8 も問題なかった、書き込みの件数もすべてあっていた（目視確認によるもの、ただし、ファイルのバイト数も全て同じなので、問題なしと判断した。
+
+  では、一気に上げて 16 だ。それらしくなってきたな、CPUコアの一つが頂点近くをついた。
+  32 ではどうなるのか。成功したぞ。次が最初の目標であった 48 スレッドだな。
+
+  find . -type f | wc -l
+  でファイル数
+
+  ls -al
+  でそのファイルサイズを確認しながらやっている。
+
+  48 スレッドだな。（ここまで、音楽も聞きながら非常にCPUも安定している。：）
+*/  
+    MockPerson data;
+    data.email = "alienm14xr2@loki.org";
+    data.name = "Alien M14xR2";
+
     string fileName = getRandomFileName();
+    fileName = "./tmp/" + fileName;
     cout << fileName << endl;
-    int i = 0;
-    for(; i < LOOP; i++) {
+    std::ofstream writer;
+    writer.open(fileName, std::ios::out);
+    try {
+        int i = 0;
+        for(; i < LOOP; i++) {
+            writer << i << '\t' << data.email << '\t' << data.name << endl;
+        }
+        writer.close();
+        ptr_lambda_debug<const string&,const int&>("loop is ", i);
+        return 0;
+    } catch(exception& e) {
+        cerr << e.what() << endl;
+        if(writer.is_open()) {
+            writer.close();
+        }
+        return -1;
     }
-    ptr_lambda_debug<const string&,const int&>("loop is ", i);
-    return 0;
 }
 
 void worker(promise<int> promise_) {
@@ -291,8 +367,6 @@ void worker(promise<int> promise_) {
         promise_.set_exception(current_exception());
     }
 }
-
-// void (*p_worker)(promise<int>) = worker;
 
 void threads(const int& sum) {
     cout << "---------------------------- threads " << endl;
@@ -338,11 +412,14 @@ void threads_02(const int& sum) {
 int main() {
     cout << "START スレッド02 =============== " << endl;
     // threads(48);
+    // test_Repository_Cast();
+    // test_Repository_Cast_D();
+    clock_t start = clock();
     threads_02(THREAD_COUNT);
     cout << "THREAD_COUNT is \t" << THREAD_COUNT << endl;
     cout << "LOOP is \t" << LOOP << endl;
-    test_Repository_Cast();
-    test_Repository_Cast_D();
+    clock_t end = clock();
+    cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << endl;
     cout << "=============== スレッド02 END " << endl;
     return 0;
 }
