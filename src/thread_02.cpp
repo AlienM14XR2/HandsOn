@@ -46,17 +46,29 @@ OK、今日はここまで。次は各スレッド毎にファイルにデータ
 
 ファイルは $HOME/dev/c++/HandsOn/bin/tmp/ に置く。
 
+備忘録、俺はGCCの最新で試している、つまり、それはコンパイルオプションに
+-std=c++20 をつけているという意味だ。それはこのソースに限ったことではない。
+
+g++ -std=c++20 -I/usr/include/mysql-cppconn-8/ -L/usr/lib/x86_64-linux-gnu thread_02.cpp -lmysqlcppconn8 -o ../bin/thread_02_conn_mysql
+
+MySQL Connector/C++ 
+https://dev.mysql.com/doc/dev/connector-cpp/8.0/classmysqlx_1_1abi2_1_1r0_1_1_session.html
+
 */
 #include <iostream>
-#include <thread>
-#include <future>
-#include <mutex>
+#include <thread>   // C++11
+#include <future>   // C++11
+#include <mutex>    // C++11
 #include <vector>
 #include <iomanip>
 #include <random>
 #include <typeinfo>
 #include <fstream>
 #include <time.h>
+
+#include "/usr/include/mysql-cppconn-8/mysqlx/xdevapi.h"
+#include "/usr/include/mysql-cppconn-8/mysqlx/devapi/collection_crud.h"
+#include "/usr/include/mysql-cppconn-8/mysqlx/devapi/result.h"
 
 #define THREAD_COUNT 48
 #define LOOP         1000
@@ -119,7 +131,7 @@ string toStringDateTime() {
 string getRandomFileName() {
     string random = random_ds();
     string version = toStringDateTime();
-    string fileName = version + random + ".txt";
+    string fileName = version + random;
     return fileName;
 }
 
@@ -322,7 +334,7 @@ int write() {
   オレはPromiseとFutureを利用して、worker を通してこの関数を利用している。
   それは、B を期待しているからだ。この仕組みなしでは A だと思っている。
 
-  実際色々と疑心暗鬼なのだが、始めてのファイル書き込みは、上手くいったよう
+  実際色々と疑心暗鬼なのだが、最初のファイル書き込みは、上手くいったよう
   に見える。まだ、スレッドは 2 だしな。
   ここから、少しずつスレッド数を増やして、CPUの動向を見守るかな。
   スレッド 8 も問題なかった、書き込みの件数もすべてあっていた（目視確認によるもの、ただし、ファイルのバイト数も全て同じなので、問題なしと判断した。
@@ -351,7 +363,7 @@ int write() {
     data.updateAt = "2023-03-23 20:45:00";
 
     string fileName = getRandomFileName();
-    fileName = "./tmp/" + fileName;
+    fileName = "./tmp/" + fileName + ".txt";
     cout << fileName << endl;
     std::ofstream writer;
     writer.open(fileName, std::ios::out);
@@ -440,6 +452,7 @@ void threads_02(const int& sum) {
 // 
 // passed 0.175387 sec.
 // 以下はオレが future を軽視していた時のものだ、上記が公式記録だろう。
+// 愚問、もちろん走ったマシンは M14xR2。
 // 
 // データを全て詰め込んだもの
 // passed 0.244611 sec.
@@ -450,30 +463,126 @@ void threads_02(const int& sum) {
 // 誤差だね。
 //
 
+/**
+ * db is spring_demo.
+ * 
+mysql> desc person;
++----------+--------------+------+-----+---------+----------------+
+| Field    | Type         | Null | Key | Default | Extra          |
++----------+--------------+------+-----+---------+----------------+
+| pid      | bigint       | NO   | PRI | NULL    | auto_increment |
+| address  | varchar(255) | YES  |     | NULL    |                |
+| email    | varchar(255) | YES  | UNI | NULL    |                |
+| entryAt  | datetime(6)  | NO   |     | NULL    |                |
+| memo     | varchar(255) | YES  |     | NULL    |                |
+| name     | varchar(255) | YES  |     | NULL    |                |
+| password | varchar(255) | YES  |     | NULL    |                |
+| phone    | varchar(255) | YES  |     | NULL    |                |
+| status   | varchar(255) | NO   |     | NULL    |                |
+| updateAt | datetime(6)  | NO   |     | NULL    |                |
++----------+--------------+------+-----+---------+----------------+
+10 rows in set (0.00 sec)
+*/
 
-int write_for_mysql() {
+int write_for_mysql(int& pid_offset) {
+    mysqlx::Session sess("mysqlx://user:password@%2Ftmp%2Fubuntu-mysql-2%2Fdata%2Fmysqlx.sock");
     try {
+        sess.startTransaction();
+
+        // データ作成（email は UK 制約がある、ランダムに。
+        // これは、一歩間違えたら、偉いタイムロスになるよね。
+        // ファイル名（現状すでにランダムで作成してるよね） + i、ではどうかな。
+        // これを一先ず採用してみる。
+        string random = getRandomFileName();
+        MockPerson data;
+        data.address = "Tokyo Japan.";
+        data.email = "alienm14xr2@loki-" + random;
+        data.entryAt = "2023-03-23 20:45:00";
+        data.memo = "It's me.";
+        data.name = "Alien M14xR2";
+        data.password = "alien5678";
+        data.phone = "090xxxxyyyy";
+        data.status = "1";
+        data.updateAt = "2023-03-23 20:45:00";
+
+        mysqlx::Schema schema = sess.getSchema("spring_demo");
+        string schemaName = schema.getName();
+        ptr_lambda_debug<const string&,const string&>("your schema is ",schemaName);
+        
+        string email;
+        int i = 0;
+        // このコレクションを使ったパターンでは明らかに遅かった、MySQL 側でロックしていると思われる。
+        // マルチスレッドの動きでは明らかになかった。俺は同期、ロックの制御はしていない。
+        // mysqlx::Collection person_a = schema.getCollection("person_a");
+        mysqlx::Table person = schema.getTable("person");
+        for(; i < LOOP; i++) {
+            email = data.email + std::to_string(i) + ".org";
+            // person_a.add(R"({"email": ")" + data.email + R"(", "name":)" + '"' + data.name + R"("})").execute();    // この書き方なんだろ、うん、見づらい。
+            long pid(pid_offset+i);
+            mysqlx::Result result = person.insert().values(
+                pid,
+                data.address,
+                email,
+                data.entryAt,
+                data.memo,
+                data.name,
+                data.password,
+                data.phone,
+                data.status,
+                data.updateAt
+                ).execute();
+        }
+        sess.commit();
+        sess.close();
+        ptr_lambda_debug<const string&,const int&>("loop is ", i);
         return 0;
     } catch(exception& e) {
         cerr << e.what() << endl;
+        try {
+            sess.rollback();
+        } catch(exception& emy_t) {
+            cerr << emy_t.what() << endl;
+        }
+        try {
+            sess.close();
+        } catch(exception& emy_c) {
+            cerr << emy_c.what() << endl;
+        }
         return -1;
     }
 }
 
-void worker_for_mysql(promise<int> promise_) {
+void worker_for_mysql(promise<int> promise_, int offset) {
     try {
-        promise_.set_value(write_for_mysql());
+        promise_.set_value(write_for_mysql(offset));
     } catch(exception& e) {
         promise_.set_exception(current_exception());
     }
 }
 
-void threads_03() {
+void threads_03(const int& sum) {
     cout << "---------------------------- threads_03 " << endl;
-
+    try {
+        vector<thread> threads(sum);
+        int offset = 1000;
+        for(thread& t: threads) {
+            promise<int> p;
+            future<int> f = p.get_future();
+            t = thread{worker_for_mysql,move(p),move(offset)};
+            offset += 1000;
+            // 成功時 0
+            ptr_lambda_debug<const string&,const int&>("future.get()... worker_for_mysql ... write_for_mysql result is ",f.get()); 
+        }
+        for(thread& t: threads) {
+            t.join();
+        }
+    } catch(exception& e) {
+        cerr << "exception is ... " << e.what() << endl;
+    }
+    size_t multi = thread::hardware_concurrency();
+    ptr_lambda_debug<const string&, const size_t&>("can I use some threads ? \t",multi);
+    cout << "===== 03 MySQL =====" << endl;
 } 
-
-
 
 int main() {
     cout << "START スレッド02 =============== " << endl;
@@ -481,7 +590,7 @@ int main() {
     // test_Repository_Cast_D();
     clock_t start = clock();
     // threads_02(THREAD_COUNT);
-    threads_03();
+    threads_03(THREAD_COUNT);
     cout << "THREAD_COUNT is \t" << THREAD_COUNT << endl;
     cout << "LOOP is \t" << LOOP << endl;
     clock_t end = clock();
