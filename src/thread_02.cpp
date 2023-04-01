@@ -66,9 +66,14 @@ https://dev.mysql.com/doc/dev/connector-cpp/8.0/classmysqlx_1_1abi2_1_1r0_1_1_se
 #include <fstream>
 #include <time.h>
 
-#include "/usr/include/mysql-cppconn-8/mysqlx/xdevapi.h"
-#include "/usr/include/mysql-cppconn-8/mysqlx/devapi/collection_crud.h"
-#include "/usr/include/mysql-cppconn-8/mysqlx/devapi/result.h"
+// フルパスだとVS CODEでサジェストがでるから、開発時便利なんだよね、だから、コメントアウトと併記させて。
+// VS CODE にパス通せばいいんじゃないのかな、後で調べてみる。
+// #include "/usr/include/mysql-cppconn-8/mysqlx/xdevapi.h"
+// #include "/usr/include/mysql-cppconn-8/mysqlx/devapi/collection_crud.h"
+#include "mysqlx/devapi/result.h"
+#include "mysqlx/xdevapi.h"
+#include "mysqlx/devapi/collection_crud.h"
+#include "mysql-cppconn-8/mysqlx/devapi/result.h"
 
 #define THREAD_COUNT 48
 #define LOOP         1000
@@ -589,8 +594,8 @@ int main() {
     // test_Repository_Cast();
     // test_Repository_Cast_D();
     clock_t start = clock();
-    // threads_02(THREAD_COUNT);
-    threads_03(THREAD_COUNT);
+    threads_02(THREAD_COUNT);
+    // threads_03(THREAD_COUNT);
     cout << "THREAD_COUNT is \t" << THREAD_COUNT << endl;
     cout << "LOOP is \t" << LOOP << endl;
     clock_t end = clock();
