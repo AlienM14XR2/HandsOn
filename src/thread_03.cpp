@@ -46,6 +46,8 @@
 #include <typeinfo>
 #include <fstream>
 #include <time.h>
+#include <string>
+#include <cstring>
 
 #define THREAD_COUNT 48
 #define LOOP         1000
@@ -66,8 +68,12 @@ void (*ptr_lambda_K)(M,D) = [](auto message, auto debug) -> void {
     cout << "Kスケ: " << message << '\t' << debug << endl;
 };
 
+void println(const string& message) {
+    cout << message << endl;
+}
+
 string random_ds() {
-    cout << "-------------------- random_ds " << endl;
+    // cout << "-------------------- random_ds " << endl;
     // メルセンヌ・ツイスター法による擬似乱数生成器を、
     // ハードウェア乱数をシードにして初期化
     std::random_device seed_gen;
@@ -141,7 +147,7 @@ int write() {
 
     string fileName = getRandomFileName();
     fileName = "./tmp/" + fileName + ".txt";
-    cout << fileName << endl;
+    // cout << fileName << endl;
     std::ofstream writer;
     writer.open(fileName, std::ios::out);
     try {
@@ -150,7 +156,7 @@ int write() {
             writer << i << '\t' << data.email << '\t' << data.name << '\t' << data.address  << '\t' << data.entryAt << '\t' << data.memo << '\t' << data.password << '\t' << data.phone << '\t' << data.status << '\t' << data.updateAt <<  endl;
         }
         writer.close();
-        ptr_lambda_debug<const string&,const int&>("loop is ", i);
+        // ptr_lambda_debug<const string&,const int&>("loop is ", i);
         return 0;
     } catch(exception& e) {
         cerr << e.what() << endl;
@@ -180,7 +186,8 @@ void threads(const int& sum) {
             // オレはこの記述を軽視していた、関係ないと、違った、これがないと実行ファイルになった後もCPUを消費する、確認した。
             // Promise Future はここまでやってはじめて意味を持つ、決して忘れない。
             // リファレンスやGoogleで得た知見ではない。自分が経験したことだ、それが、大切なことを教えてくれる。
-            ptr_lambda_debug<const string&,const int&>("worker ... write result is ",f.get()); 
+            int result = f.get();
+            // ptr_lambda_debug<const string&,const int&>("worker ... write result is ",result); 
         }
         // これでイメージ通りのはず :)
         for(thread& t: threads) {
@@ -214,12 +221,61 @@ class Leaf final : public Component {
 public:
     Leaf(const string& path) {
         name = path;
+        // outputMerge にマージしたファイル名を保存して。
+        outputMerge = "initial_C++_fin.txt";
     }
     Leaf(const Leaf& own) {
         name = own.name;
+        outputMerge = own.outputMerge;
     }
     virtual void merge() const override {
-        // outputMerge にマージしたファイル名を保存して。
+        // ファイルストリームを作成してワンファイルに出力する。
+        // ここは淡々と二重ループかな。
+        //
+        // 1. initial_C++.txt からファイル名を取得する。(read)
+        // 2. 1 で取得したファイル名から実際のデータが存在するファイルストリームを作成する。(read)
+        // 3. スレッドで書き込んだデータの読み込み。
+        // 4. スレッドで書き込んだデータの書き込み。
+        // こんな手順を考えてる。
+        ifstream reader;
+        reader.open(name,std::ios::in);
+        string line;
+        ofstream writer;
+        writer.open(outputMerge,std::ios::out);
+        int i = 0;
+        try {
+            while(getline(reader,line)) {
+                // ptr_lambda_debug<const string&,const string&>("line is ",line);
+                ifstream reader_td;
+                string td_fileName = "./tmp/" + line;
+                reader_td.open(td_fileName,std::ios::in);
+                string data;
+                try {
+                    while(getline(reader_td,data)) {
+                        writer << data << endl;
+                    }
+                    reader_td.close();
+                } catch(exception& e) {
+                    cerr << e.what() << endl;
+                    if( reader_td.is_open() ) {
+                        reader_td.close();
+                    }
+                }
+            }
+            writer.close();
+            reader.close();
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            if( writer.is_open() ) {
+                writer.close();
+            }
+            if( reader.is_open() ) {
+                reader.close();
+            }
+        }
+    }
+    string getName() noexcept {
+        return name;
     }
     string getOutputMerge() noexcept {
         return outputMerge;
@@ -262,6 +318,37 @@ public:
 // 別の言い方をすれば、C 言語の延長でやってると意味がない、C++ の半分を
 // 理解しているに過ぎないとすら思う。C/C++ おもしろいね。
 // とっても、対象的な親子だ。
+// 
+// こんなクラス群は本当はいらないけど、復習だから。：）
+
+void test_Leaf(const char* cmd,const char* fileName) {
+    println("---------------------------------- test_Leaf");
+    auto ret = system(nullptr);
+    if (ret != 0) {
+        println("shell is available on the system!");
+        ptr_lambda_debug<const string&,const char*>("cmd is",cmd);
+        ptr_lambda_debug<const string&,const char*>("fileName is ",fileName);
+        // ls ./tmp/ >> initial_C++.txt
+        // 実行
+        ret = system(cmd);
+
+        // ワンファイルにまとめる。
+        Leaf leaf(fileName);
+        leaf.merge();
+        ptr_lambda_debug<const string&,const string&>("merge file is ",leaf.getOutputMerge());
+
+        char buf[256] = {'r','m',' ','\0'};
+        strcat(buf,fileName);
+        ptr_lambda_debug<const string&,const char*>("buf is ",buf);
+        // rm initial_C++.txt
+        // 実行
+        ret = system(buf);
+        ptr_lambda_debug<const string&,const int&>("ret is ", ret);
+    }
+    else {
+        println("shell is not available on the system!");
+    }
+}
 
 int main() {
     cout << "START C VS C++ Rd.1 ===============" << endl;
@@ -275,11 +362,22 @@ int main() {
     // 48 回ファイルの開閉を行う必要があるから。
     // まぁ後は以前のコピペか、ワンファイルの合成までは。
     clock_t start = clock();
-    // threads(THREAD_COUNT);
+    threads(THREAD_COUNT);
     cout << "THREAD_COUNT is \t" << THREAD_COUNT << endl;
     cout << "LOOP is \t" << LOOP << endl;
+    test_Leaf("ls ./tmp/ >> initial_C++.txt","initial_C++.txt");
     clock_t end = clock();
     cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << endl;
+
+    // 感想
+    ptr_lambda_debug<const string&, const int&>("これがオレのやり方だ",0);
+    ptr_lambda_K<const string&,const int&>("兄貴、それで今度の改造で FC は何馬力ぐらいになったんだ？",0);
+    ptr_lambda_R<const string&,const int&>("そうだな、だいたい 300 馬力ってとこだろう。",0);
+    ptr_lambda_K<const string&,const int&>("！？ 兄貴、それじゃ前よりパワーダウン（C++ 速度低下）してんじゃんかよっ",0);
+    ptr_lambda_R<const string&,const int&>("あぁ、走り（プログラム）っていうのは不思議なもので、時には馬力（C++ 速度）を落とした方がいいこともあるんだ（w",0);
+    ptr_lambda_debug<const string&, const int&>("走りではそうかも知れんが、プログラムは速い方がいいよ、きっと。：）",0);
+    ptr_lambda_debug<const string&, const int&>("うん、48 スレッド、48 のファイルを一つにまとめる処理を追加したから、以前より速くなることは決してないのだよ。スマンな Rスケ ：）",0);
+    ptr_lambda_debug<const string&, const int&>("これでC++ の計測結果は出た、次はF原、天然ボケの C 言語。：）",0);
     cout << "=============== C VS C++ Rd.1 END" << endl;
     return 0;
 }
