@@ -1,4 +1,4 @@
-/** 
+/* * 
  * =======================================================================
  * thread_03.cpp
  * 
@@ -10,7 +10,32 @@
  * 
  * やばい、本気で忘れてるかも、ゴメンね。
  * 少し、記憶の整理も兼ねてオレの暖気運転をしてみるか。
-*/
+ * 
+ * find . -type f | wc -l
+ * でファイル数
+ * 
+ * ls -al
+ * でそのファイルサイズを確認しながらやっている。
+ * 
+ * クラスを使おうか、学習の一環なのだし。
+ * 全てのスレッドが完了した後はクラスでワンファイルにマージしてみよう。
+ * そのクラスをコンポジットにしよう。絶対に派生クラスでディレクトリ階層を
+ * 操作することはないんだけどさ。こっちは無駄を楽しもう、ある意味、勝負を
+ * 投げたような発言に聞こえるかもしれないが。OOPは捨てたくないよね、実務
+ * に影響でそうだし。
+ * 
+ * 軽量化に勝るチューニングなし。
+ * 
+ * これをコーディングに照らし合わせたら、コード量を減らし、演算を減らした
+ * 徹底的な処理の最適化が必要なのだとは思う。それはさ、C でやろうよ。：）
+ * 
+ * ここで、おそらく同期が必要かなと思う、別のやり方もありそうだが、ここは
+ * 無駄を省いて。。。同期の方が無駄なのか。
+ * OK、前言撤回、ファイル名の取得は system 関数で ”ls” を試してみよう。
+ * 後は、まぁいいか。
+ * 
+ * 
+ * */
 
 #include <iostream>
 #include <thread>   // C++11
@@ -146,8 +171,6 @@ void worker(promise<int> promise_) {
 
 void threads(const int& sum) {
     cout << "---------------------------- threads " << endl;
-    // これは、何に使おうとしたのか、スマン忘れた。いらないはず。
-    // mutex mutex_;
     try {
         vector<thread> threads(sum);
         for(thread& t: threads) {
@@ -171,6 +194,75 @@ void threads(const int& sum) {
     cout << "===== Lambda Rスケ =====" << endl;
 }
 
+//
+// C++ らしくここからはクラスの定義。
+//
+
+// GoF Composite
+class Component {
+public:
+    virtual void merge() const = 0;
+//    virtual string merge(const string& baseDir) const = 0;
+    virtual ~Component() {
+        ptr_lambda_debug<const string&,const int&>("DONE Component Destructor.",0);
+    }
+};
+class Leaf final : public Component {
+    string name;
+    string outputMerge;
+    Leaf():name{"-1"},outputMerge{"-1"} {}
+public:
+    Leaf(const string& path) {
+        name = path;
+    }
+    Leaf(const Leaf& own) {
+        name = own.name;
+    }
+    virtual void merge() const override {
+        // outputMerge にマージしたファイル名を保存して。
+    }
+    string getOutputMerge() noexcept {
+        return outputMerge;
+    }
+    ~Leaf() {
+        ptr_lambda_debug<const string&,const int&>("DONE Leaf Destructor.",0);
+    }
+};
+class Composite final : public Component {
+    vector<Leaf> leaves;
+    Composite() {}
+public:
+    Composite(vector<Leaf>& chirdren) {
+        leaves = chirdren;
+    }
+    virtual void merge() const override {
+        for(Leaf lf: leaves) {
+            lf.merge();
+        }
+    }
+    ~Composite(){
+        ptr_lambda_debug<const string&,const int&>("DONE Composite Destructor.",0);
+    }
+};
+// 一週間程度しか経ってないのに、C++ は難しいと思うね。
+// 型に対して厳格だし、コンパイラも厳しい。でも、設計楽しい。
+// OOP で色々考えを巡らす面白さなんだよね。でもね、C 言語、MOTHERの良さも
+// 少しは分かってるつもりなんだ。OOP は自由に設計できるけど、コンパイルを
+// 通過させるには、C++ の規格を理解してないといけない。GoF フォーマットから
+// 更に厳格なフォーマットに落とし込む難しさを感じる。
+//
+// 対してMOTHER 彼女はね、プログラムの安全性なんて見てないんだ：）
+// ただ眼の前にあるものを最適化、翻訳してるだけ。
+// 実行時に何が起ころうが知ったこっちゃないんだよ。自由なんだよ彼女もそして
+// プログラマもね。法、規律を作るも守るもプログラマに一任されている。
+// そして、実行可能なものなのかも：）
+//
+// 趣味でやるなら、圧倒的に C 言語なんじゃないのかな。今はそう思ってる。
+// C++ はOOP を理解してからの方が絶対に勉強効率はいいと感じてる。
+// 別の言い方をすれば、C 言語の延長でやってると意味がない、C++ の半分を
+// 理解しているに過ぎないとすら思う。C/C++ おもしろいね。
+// とっても、対象的な親子だ。
+
 int main() {
     cout << "START C VS C++ Rd.1 ===============" << endl;
     ptr_lambda_debug<const string&, const int&>("これがオレのデバッグだ",0);
@@ -183,7 +275,7 @@ int main() {
     // 48 回ファイルの開閉を行う必要があるから。
     // まぁ後は以前のコピペか、ワンファイルの合成までは。
     clock_t start = clock();
-    threads(THREAD_COUNT);
+    // threads(THREAD_COUNT);
     cout << "THREAD_COUNT is \t" << THREAD_COUNT << endl;
     cout << "LOOP is \t" << LOOP << endl;
     clock_t end = clock();
