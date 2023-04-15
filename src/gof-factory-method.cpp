@@ -10,6 +10,7 @@
  * まずは、やはり暖機運転からかな。
  * */
 #include <iostream>
+#include <cassert>
 
 using namespace std;
 
@@ -20,7 +21,7 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
 
 class IProduct {
 public:
-	virtual void draw() const = 0;
+	virtual int draw() const = 0;
 	virtual ~IProduct() {
 	    ptr_lambda_debug<const char*,const int&>("Called IProduct Destructor.",0);
 	}
@@ -36,11 +37,24 @@ class RedPen final : public virtual IProduct {
 public:
 	RedPen(){}
 	RedPen(const RedPen& copy){}
-	virtual void draw() const override {
+	virtual int draw() const override {
 	    cout << "draw red line." << endl;
+		return 0;
 	}
 	~RedPen() {
 	    ptr_lambda_debug<const char*,const int&>("Called RedPen Destructor.",0);
+	}
+};
+class BluePen final : public virtual IProduct {
+public:
+	BluePen(){}
+	BluePen(const BluePen& copy){}
+	virtual int draw() const override {
+	    cout << "draw blue line." << endl;
+		return 0;
+	}
+	~BluePen() {
+	    ptr_lambda_debug<const char*,const int&>("Called BluePen Destructor.",0);
 	}
 };
 class RedPenFactory final : public IFactory {
@@ -54,16 +68,43 @@ public:
 	    ptr_lambda_debug<const char*,const int&>("Called RedPenFactory Destructor.",0);
 	}
 };
+class BluePenFactory final : public IFactory {
+public:
+	BluePenFactory(){}
+	BluePenFactory(const BluePenFactory& copy){}
+	virtual IProduct* factoryMethod() const override {
+	    return new BluePen();
+	}
+	~BluePenFactory() {
+	    ptr_lambda_debug<const char*,const int&>("Called BluePenFactory Destructor.",0);
+	}
+};
 
+//
+// ここまでのテストね。
+//
 int testFactoryMethod() {
 	cout << "------------------- testFactoryMethod" << endl;
+	// インタフェースで操作できるか確認している。
+	IProduct* pen = nullptr;
 	try {
-		RedPenFactory factory;
-		IProduct* pen = factory.factoryMethod();
-		pen->draw();
+		RedPenFactory redPenFactory;
+		// これは意味合いととしては、new RedPen() を行っていることと同じ。
+		// つまり、それを利用したものがメモリ解放する責務を負う。
+		pen = redPenFactory.factoryMethod();
+		assert(pen->draw() == 0);
 		delete pen;
+
+		BluePenFactory bluePenFactory;
+		pen = bluePenFactory.factoryMethod();
+		assert(pen->draw() == 0);
+		delete pen;
+		
 	} catch(exception& e) {
 		cerr << e.what() << endl;
+		if(pen != nullptr) {
+			delete pen;
+		}
 		return 1;
 	}
 	return 0;
