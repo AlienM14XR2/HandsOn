@@ -57,7 +57,7 @@ public:
 	    ptr_lambda_debug<const char*,const int&>("Called BluePen Destructor.",0);
 	}
 };
-class RedPenFactory final : public IFactory {
+class RedPenFactory final : public virtual IFactory {
 public:
 	RedPenFactory(){}
 	RedPenFactory(const RedPenFactory& copy){}
@@ -68,7 +68,7 @@ public:
 	    ptr_lambda_debug<const char*,const int&>("Called RedPenFactory Destructor.",0);
 	}
 };
-class BluePenFactory final : public IFactory {
+class BluePenFactory final : public virtual IFactory {
 public:
 	BluePenFactory(){}
 	BluePenFactory(const BluePenFactory& copy){}
@@ -81,7 +81,7 @@ public:
 };
 
 //
-// ここまでのテストね。
+// Factory Method ここまでのテストね。
 //
 int testFactoryMethod() {
 	cout << "------------------- testFactoryMethod" << endl;
@@ -110,6 +110,82 @@ int testFactoryMethod() {
 	return 0;
 }
 
+/**
+ ここからの展開。
+ 次のような課題を考えてみる。
+ Template Methodのような固定されたテンプレートの 一部を、どうしたら
+ 調和の取れた動的置き換えができるのか。
+
+ そのために、そのテンプレートを作る必要がある。
+ 関数ポインタを利用したいと思っているがどうかな：）　上手くいくだろうか。
+
+ 本来はここに、Point(int& x, int& y)
+ みたいな、座標管理するクラスが必要なはずだけど、本題から逸れるので端折った：）
+ まぁ気になるのであれば次に実装してみたらいいよね。
+
+*/
+class DragAndDropEvent {
+public:
+	int mouseDown() {
+		cout << "start drag." << endl;
+		return 0;
+	}
+	int mouseMove() {
+		cout << "start move" << endl;
+		return 0;
+	}
+	int mouseUp() {
+		cout << "start drop." << endl;
+		draw();
+		return 0;
+	}
+	virtual int draw() const = 0;
+};
+class CircleEvent final : public virtual DragAndDropEvent {
+public:
+	virtual int draw() const override {
+		cout << "\tCircle === " << endl;
+		return 0;
+	}
+};
+class SquareEvent final : public virtual DragAndDropEvent {
+public:
+	virtual int draw() const override {
+		cout << "\tSquare === " << endl;
+		return 0;
+	}
+};
+//
+// Template Method ここまでのテストね。
+//
+int test_CircleEvent() {
+	cout << "--------------- test_CircleEvent" << endl;
+	try {
+		// 細かいことを言ったらきりがないが、EventHandler が必要なんだろうね。
+		// やはり、本題から逸れるが。
+		CircleEvent circleEvent;
+		circleEvent.mouseDown();
+		circleEvent.mouseMove();
+		circleEvent.mouseUp();
+	} catch(exception& e) {
+		cerr << e.what() << endl;
+		return 1;
+	}
+	return 0;
+}
+int test_SquareEvent() {
+	cout << "--------------- test_SquareEvent" << endl;
+	try {
+		SquareEvent square;
+		square.mouseDown();
+		square.mouseMove();
+		square.mouseUp();
+	} catch(exception& e) {
+		cerr << e.what() << endl;
+		return 1;
+	}
+	return 0;
+}
 
 int main() {
     cout << "START FactoryMethod ===============" << endl;
@@ -117,6 +193,10 @@ int main() {
         ptr_lambda_debug<const char*,const int&>("It's my way :)",0);
 		ptr_lambda_debug<const char*,const int&>("Play and Result ... ",testFactoryMethod());
     }
+	if(2) {
+		ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_CircleEvent());
+		ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_SquareEvent());
+	}
     cout << "=============== FactoryMethod END" << endl;
     return 0;
 }
