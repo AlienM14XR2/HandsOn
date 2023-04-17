@@ -36,7 +36,7 @@ public:
 class RedPen final : public virtual IProduct {
 public:
 	RedPen(){}
-	RedPen(const RedPen& copy){}
+	RedPen(const RedPen& own){}
 	virtual int draw() const override {
 	    cout << "draw red line." << endl;
 		return 0;
@@ -48,7 +48,7 @@ public:
 class BluePen final : public virtual IProduct {
 public:
 	BluePen(){}
-	BluePen(const BluePen& copy){}
+	BluePen(const BluePen& own){}
 	virtual int draw() const override {
 	    cout << "draw blue line." << endl;
 		return 0;
@@ -60,7 +60,7 @@ public:
 class RedPenFactory final : public virtual IFactory {
 public:
 	RedPenFactory(){}
-	RedPenFactory(const RedPenFactory& copy){}
+	RedPenFactory(const RedPenFactory& own){}
 	virtual IProduct* factoryMethod() const override {
 	    return new RedPen();
 	}
@@ -71,7 +71,7 @@ public:
 class BluePenFactory final : public virtual IFactory {
 public:
 	BluePenFactory(){}
-	BluePenFactory(const BluePenFactory& copy){}
+	BluePenFactory(const BluePenFactory& own){}
 	virtual IProduct* factoryMethod() const override {
 	    return new BluePen();
 	}
@@ -119,9 +119,13 @@ int testFactoryMethod() {
  そのために、そのテンプレートを作る必要がある。
  関数ポインタを利用したいと思っているがどうかな：）　上手くいくだろうか。
 
- 本来はここに、Point(int& x, int& y)
+ 本来はここに、Point(const int& x, const int& y)
  みたいな、座標管理するクラスが必要なはずだけど、本題から逸れるので端折った：）
  まぁ気になるのであれば次に実装してみたらいいよね。
+
+ IProduct の派生クラスである、RedPen BluePen を上手く適用させたい。
+ どうする、オレ：）理想とするものが、浮かんでくるな。
+ 疑似描画ツールは IProduct のみを操作する、その中身を知る必要はない。 
 
 */
 
@@ -158,6 +162,11 @@ int test_Point() {
 }
 class DragAndDropEvent {
 public:
+	//
+	// Point を作って、以下のような管理の仕方にすると
+	// 各メンバ関数は Point のファクトリという見方もできるね。
+	// 勿論、FactoryMethod パターンではない。
+	//
 	Point mouseDown(const int& x, const int& y) {
 		cout << "start drag." << endl;
 		return Point(x,y);
@@ -171,7 +180,14 @@ public:
 		draw();
 		return Point(x,y);
 	}
+	Point mouseUp(const int& x, const int& y, const IProduct& pen) {
+		cout << "start drop, append pen." << endl;
+		draw(pen);
+		return Point(x,y);
+
+	}
 	virtual int draw() const = 0;
+	virtual int draw(const IProduct& pen) const = 0;
 };
 class CircleEvent final : public virtual DragAndDropEvent {
 public:
@@ -179,11 +195,21 @@ public:
 		cout << "\tCircle === " << endl;
 		return 0;
 	}
+	virtual int draw(const IProduct& pen) const override {
+		cout << "\tCircle with pen === " << endl;
+		pen.draw();
+		return 0;
+	}
 };
 class SquareEvent final : public virtual DragAndDropEvent {
 public:
 	virtual int draw() const override {
 		cout << "\tSquare === " << endl;
+		return 0;
+	}
+	virtual int draw(const IProduct& pen) const override {
+		cout << "\tSquare with pen ===" << endl;
+		pen.draw();
 		return 0;
 	}
 };
@@ -219,6 +245,111 @@ int test_SquareEvent() {
 	return 0;
 }
 
+//
+// IProduct の派生クラス、RedPen BluePen を利用した、疑似描画ツールのテスト。
+//
+int test_CircleEvent_With_Pen() {
+	cout << "----------------------------- test_CircleEvent_With_Pen" << endl;
+	IProduct* pen = nullptr;
+	try {
+		RedPenFactory redPenFac;
+		pen = redPenFac.factoryMethod();
+		CircleEvent event;
+		event.mouseDown(3,9);
+		event.mouseMove(9,9);
+		event.mouseUp(9,9,*pen);
+		delete pen;
+	} catch(exception& e) {
+		if(pen != nullptr) {
+			delete pen;
+		}
+		cerr << e.what() << endl;
+		return 1;
+	}
+	return 0;
+}
+int test_SquareEvent_With_Pen() {
+	cout << "----------------------------- test_SquareEvent_With_Pen" << endl;
+	IProduct* pen = nullptr;
+	try {
+		BluePenFactory bluePenFac;
+		pen = bluePenFac.factoryMethod();
+		SquareEvent event;
+		event.mouseDown(10,10);
+		event.mouseMove(40,40);
+		event.mouseUp(40,40,*pen);
+		delete pen;
+	} catch(exception& e) {
+		if(pen != nullptr) {
+			delete pen;
+		}
+		cerr << e.what() << endl;
+		return 1;
+	}
+	return 0;
+}
+/**
+ 至って、ここまでは素直な設計をしたつもり。でも最初に言ったように関数ポインタでもできないのかと、
+ 少し、思考を巡らし遊んでみたい。IProduct の派生クラス、そのオブジェクトのメンバ関数を複数利用するなら
+ 絶対にオブジェクトのポインタや参照を渡すべき、そうじゃない場合でも上記のような戦略をとるべきだと思う。
+ 上記の一文は大切なこと。以下、行うことはあくまで自分の学習の一環であり、邪道だと考えてはいる。
+
+ 現状だけを眺めるとオブジェクトをもらう必要はないよねって理由だけ。（便利だから、結局オブジェクトはもらう形にはした：）
+
+*/
+class DragAndDropEvent_Sandbox : public virtual DragAndDropEvent {
+public:
+	virtual int draw(const IProduct& pen) const override {
+		cout << "\tDragAndDropEvent_Sandbox with pen ===" << endl;
+		pen.draw();
+		return 0;
+	}
+};
+// とってもイレギュラーなケースを想定してみる。
+int oepn_draw(const IProduct& pen1, const IProduct& pen2) {
+	cout << "---------------------- oepn_draw" << endl;
+	pen1.draw();
+	pen2.draw();
+	return 0;
+}
+int (*ptr_draw)(const IProduct&,const IProduct&) = oepn_draw;
+
+/**
+ 三角形を描画するクラス。
+
+ このクラスで少し邪道なコーディングを試してみる。
+
+ この場合だと、基底クラスに純粋仮想関数の定義を増やすことなく、実装できるよね。
+ いままでのは、全ての派生クラスにその影響が及ぶ。
+*/
+class TryangleEvent final : public virtual DragAndDropEvent_Sandbox {
+public:
+	virtual int draw() const override {
+		cout << "\tTryangle === " << endl;
+		RedPenFactory rfactory;
+		BluePenFactory bfactory;
+		IProduct* redPen = rfactory.factoryMethod();
+		IProduct* bluePen = bfactory.factoryMethod();
+		ptr_draw(*redPen,*bluePen);
+		delete redPen;
+		delete bluePen;
+		return 0;
+	}
+};
+int test_TryangleEvent() {
+	cout << "---------------------------- test_TryangleEvent" << endl;
+	try {
+		TryangleEvent event;
+		event.mouseDown(0,0);
+		event.mouseMove(33,33);
+		event.mouseUp(33,33);
+	} catch(exception& e) {
+		cerr << e.what() << endl;
+		return 1;
+	}
+	return 0;
+}
+
 int main() {
     cout << "START FactoryMethod ===============" << endl;
     if(1) {
@@ -230,6 +361,16 @@ int main() {
 		ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_CircleEvent());
 		ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_SquareEvent());
 	}
+	if(3) {
+		ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_CircleEvent_With_Pen());
+		ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_SquareEvent_With_Pen());
+	}
+	if(4) {
+		ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_TryangleEvent());
+	}
+	// なるほど、面白い。FactoryMethod の使い方はこのぐらいでいいかな。
+	// さっき、うちのリファレンス先生を読み返してたら、ムーブセマンティクスをちゃんとやったか不安になってきた
+	// なので、それを次はやるかな。今日はこの後はJavaかな：）
     cout << "=============== FactoryMethod END" << endl;
     return 0;
 }
