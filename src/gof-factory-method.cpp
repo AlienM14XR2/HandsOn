@@ -124,20 +124,52 @@ int testFactoryMethod() {
  まぁ気になるのであれば次に実装してみたらいいよね。
 
 */
+
+// typedef unsigned int UINT;
+class Point final {
+	int x,y;
+	Point():x{-1},y{-1}{}
+public:
+	Point(const int& x_, const int& y_) noexcept {
+		x = x_;
+		y = y_;
+	}
+	Point(const Point& own) noexcept {
+		x = own.x;
+		y = own.y;
+	}
+	~Point(){}
+	int getX() noexcept {return x;}
+	int getY() noexcept {return y;}
+};
+int test_Point() {
+	cout << "------------------------- test_Point" << endl;
+	try {
+		Point point(100,20);
+		ptr_lambda_debug<const char*,const int&>("x is ",point.getX());
+		ptr_lambda_debug<const char*,const int&>("y is ",point.getY());
+		assert(point.getX() == 100);
+		assert(point.getY() == 20);
+	} catch(exception& e) {
+		cerr << e.what() << endl;
+		return 1;
+	}
+	return 0;
+}
 class DragAndDropEvent {
 public:
-	int mouseDown() {
+	Point mouseDown(const int& x, const int& y) {
 		cout << "start drag." << endl;
-		return 0;
+		return Point(x,y);
 	}
-	int mouseMove() {
+	Point mouseMove(const int& x, const int& y) {
 		cout << "start move" << endl;
-		return 0;
+		return Point(x,y);
 	}
-	int mouseUp() {
+	Point mouseUp(const int& x, const int& y) {
 		cout << "start drop." << endl;
 		draw();
-		return 0;
+		return Point(x,y);
 	}
 	virtual int draw() const = 0;
 };
@@ -164,9 +196,9 @@ int test_CircleEvent() {
 		// 細かいことを言ったらきりがないが、EventHandler が必要なんだろうね。
 		// やはり、本題から逸れるが。
 		CircleEvent circleEvent;
-		circleEvent.mouseDown();
-		circleEvent.mouseMove();
-		circleEvent.mouseUp();
+		circleEvent.mouseDown(0,0);
+		circleEvent.mouseMove(10,30);
+		circleEvent.mouseUp(10,30);
 	} catch(exception& e) {
 		cerr << e.what() << endl;
 		return 1;
@@ -177,9 +209,9 @@ int test_SquareEvent() {
 	cout << "--------------- test_SquareEvent" << endl;
 	try {
 		SquareEvent square;
-		square.mouseDown();
-		square.mouseMove();
-		square.mouseUp();
+		square.mouseDown(300,333);
+		square.mouseMove(330,363);
+		square.mouseUp(330,363);
 	} catch(exception& e) {
 		cerr << e.what() << endl;
 		return 1;
@@ -194,6 +226,7 @@ int main() {
 		ptr_lambda_debug<const char*,const int&>("Play and Result ... ",testFactoryMethod());
     }
 	if(2) {
+		ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Point());
 		ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_CircleEvent());
 		ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_SquareEvent());
 	}
