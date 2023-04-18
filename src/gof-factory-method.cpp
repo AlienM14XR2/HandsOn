@@ -162,6 +162,7 @@ int test_Point() {
 }
 class DragAndDropEvent {
 public:
+	virtual ~DragAndDropEvent() {}
 	//
 	// Point を作って、以下のような管理の仕方にすると
 	// 各メンバ関数は Point のファクトリという見方もできるね。
@@ -191,6 +192,7 @@ public:
 };
 class CircleEvent final : public virtual DragAndDropEvent {
 public:
+	~CircleEvent() {}
 	virtual int draw() const override {
 		cout << "\tCircle === " << endl;
 		return 0;
@@ -203,6 +205,7 @@ public:
 };
 class SquareEvent final : public virtual DragAndDropEvent {
 public:
+	~SquareEvent() {}
 	virtual int draw() const override {
 		cout << "\tSquare === " << endl;
 		return 0;
@@ -299,6 +302,7 @@ int test_SquareEvent_With_Pen() {
 */
 class DragAndDropEvent_Sandbox : public virtual DragAndDropEvent {
 public:
+	virtual ~DragAndDropEvent_Sandbox() {}
 	virtual int draw(const IProduct& pen) const override {
 		cout << "\tDragAndDropEvent_Sandbox with pen ===" << endl;
 		pen.draw();
@@ -324,6 +328,7 @@ int (*ptr_draw)(const IProduct&,const IProduct&) = oepn_draw;
 */
 class TryangleEvent final : public virtual DragAndDropEvent_Sandbox {
 public:
+	~TryangleEvent(){}
 	virtual int draw() const override {
 		cout << "\tTryangle === " << endl;
 		RedPenFactory rfactory;
