@@ -40,7 +40,9 @@ template<class T>
 class IBuilder {
 public:
     IBuilder() {}
-    IBuilder(const IBuilder& own) {}
+    IBuilder(const IBuilder& own) {
+        *this = own;
+    }
     virtual ~IBuilder() {}
     virtual void id(const int& id_) const = 0;
     virtual void email(const string& email_) const = 0;
@@ -144,11 +146,162 @@ int test_Basic_Builder() {
     「結局、コンストラクタか」とか言わない：）
 */
 
+struct DataSourceProperties {
+    string url;
+    string user;
+    string password;
+    int maxPoolSize;
+    int minPoolSize;
+    int maxLifeTime;
+    DataSourceProperties() {}
+    DataSourceProperties(const DataSourceProperties& own) {
+        *this = own;
+    }
+};
+
+// このインタフェースはこのケースでは冗長かとも思う。
+// これも学習の一環ぐらいに考えておこう。
+// 理想を求めてみよう。たまに、仕事の頭になるのだね。
+//
+// 少し、脱線するが、C++20 からだったか、判然としないが、デフォルトコピーコンストラクタ等が
+// 自動で作られる。しかし、学習を始めて思うことは、定義をして、しっかりと
+// 実装まで考えておく方がいいということ。
+// デフォルトコンストラクタ、デストラクタ、コピーコンストラクタの実装は必須だと考える。
+// 少し躊躇、面倒だと思っているのが operator のオーバーライドかな。プロの現場ではやはり
+// そこまで、考慮するのだろうか。三項演算のオーバーライドで全て兼ねることは知識としては
+// 知っている、実践していないのだ。時間を見てやってみるか。
+// 
+// ついでだ、次のことも個人的なルールになっている。（現状ね、今後変更することもあるかも。）
+// - インタフェース、あるいは基底クラスのデストラクタは仮想関数にする。
+// - 派生クラスのオーバーライドした関数はインタフェースの利用の有無に関係なく仮想関数にする。
+// - アップキャスト、ダウンキャストの使用の有無に関係なく、派生クラスは基底クラスの public virtual とする。
+// どれも万が一の保険という意味あいが強いものばかりな気はするが、以上だ。
+
+template<class P>
+class IDataSourceBuilder {
+public:
+    IDataSourceBuilder() {}
+    IDataSourceBuilder(const IDataSourceBuilder& own) {
+        *this = own;
+    }
+    virtual ~IDataSourceBuilder() {}
+    /*
+    string url;
+    string user;
+    string password;
+    int maxPoolSize;
+    int minPoolSize;
+    int maxLifeTime;
+    */
+    virtual void url(const string& url_) const = 0;
+    virtual void user(const string& user_) const = 0;
+    virtual void password(const string& password_) const = 0;
+    virtual void maxPoolSize(const int& max_) const = 0;
+    virtual void minPoolSize(const int& min_) const = 0;
+    virtual void maxLifeTime(const int& lifeTime_) const = 0;
+    virtual P make() const = 0;    
+};
+class DataSourceBuilder final : public virtual IDataSourceBuilder<DataSourceProperties> {
+    DataSourceProperties* dataSource = nullptr;
+public:
+    DataSourceBuilder() {
+        dataSource = new DataSourceProperties();
+    }
+    DataSourceBuilder(const DataSourceBuilder& own) {
+        dataSource = own.dataSource;
+    }
+    virtual ~DataSourceBuilder() {
+        ptr_lambda_debug<const string&,const int&>("called DataSourceBuilder's Destructor ... ",0);
+        delete dataSource;
+    }
+    virtual void url(const string& url_) const override {
+        dataSource->url = url_;
+    }
+    virtual void user(const string& user_) const override {
+        dataSource->user = user_;
+    }
+    virtual void password(const string& password_) const override {
+        dataSource->password = password_;
+    }
+    virtual void maxPoolSize(const int& max_) const override {
+        dataSource->maxPoolSize = max_;
+    }
+    virtual void minPoolSize(const int& min_) const override {
+        dataSource->minPoolSize = min_;
+    }
+    virtual void maxLifeTime(const int& lifeTime_) const override {
+        dataSource->maxLifeTime = lifeTime_;
+    }
+    virtual DataSourceProperties make() const override {
+        return *dataSource;
+    }
+};
+template<class P>
+class DataSourceDirector final {
+    IDataSourceBuilder<P>* interface;
+    DataSourceDirector():interface{nullptr} {}
+public:
+    DataSourceDirector(IDataSourceBuilder<P>& builder) {
+        interface = &builder;
+    }
+    DataSourceDirector(const DataSourceDirector& own) {
+        *this = own;
+    }
+    ~DataSourceDirector() {}
+    P constructLocalMySQL() {
+        interface->url("jdbc:mysql://localhost:3306/spring_local");
+        interface->user("root");
+        interface->password("foo5678");
+        interface->maxPoolSize(10);
+        interface->minPoolSize(1);
+        interface->maxLifeTime(300000);
+        return interface->make();
+    }
+    P constructStageMySQL() {
+        interface->url("jdbc:mysql://stagehost:3306/spring_stage");
+        interface->user("root");
+        interface->password("bar5678");
+        interface->maxPoolSize(20);
+        interface->minPoolSize(10);
+        interface->maxLifeTime(300000);
+        return interface->make();
+    }
+    P constructProductMySQL() {
+        interface->url("jdbc:mysql://producthost:3306/spring_product");
+        interface->user("root");
+        interface->password("bar5678");
+        interface->maxPoolSize(100);
+        interface->minPoolSize(50);
+        interface->maxLifeTime(-1);
+        return interface->make();
+    }
+};
+int test_DataSourceBuilder() {
+    cout << "--------------------------------- test_DataSourceBuilder" << endl;
+    try {
+        DataSourceBuilder builder;
+        IDataSourceBuilder<DataSourceProperties>& interface = static_cast<IDataSourceBuilder<DataSourceProperties>&>(builder);
+        DataSourceDirector director(interface);
+        DataSourceProperties local = director.constructLocalMySQL();
+        assert(local.url == "jdbc:mysql://localhost:3306/spring_local");
+        DataSourceProperties stage = director.constructStageMySQL();
+        assert(stage.url == "jdbc:mysql://stagehost:3306/spring_stage");
+        DataSourceProperties product = director.constructProductMySQL();
+        assert(product.url == "jdbc:mysql://producthost:3306/spring_product");
+    } catch(exception& e) {
+        cerr << e.what() << endl;
+        return -1;
+    }
+    return 0;
+}
+
 int main() {
     cout << "START Builder ===============" << endl;
     ptr_lambda_debug<const string&,const int&>("Here we go :)",0);
     if(1) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_Basic_Builder());
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_DataSourceBuilder());
+        // うん、似たようなものなので飽きたね。
     }
     cout << "=============== Builder END" << endl;
     return 0;
