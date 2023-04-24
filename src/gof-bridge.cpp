@@ -146,7 +146,7 @@ int test_Pow() {
     この時の 3 を指数という。
 
     https://juken-mikata.net/how-to/mathematics/taisuukansuu.html
-    対数とは、上の例でいうと、指数3を導き出すための公式、それが対数だと。
+    対数とは、上の例でいうと、指数3 から2 を導き出すための公式、それが対数だと。
     △ の3 乗が 8 だということが分かれば、△を導きだせる。
     うん、これだけ頭に入れといたらたぶん平気だろう：）
 
@@ -225,18 +225,28 @@ public:
     ~ToString() {}
     virtual string operation(ArgTypes...x) const override {
         double ans = this->implementer->compute(x...);
-        ptr_lambda_debug<const string&,const int&>("this->implementer->compute(x) is ",ans);
+        ptr_lambda_debug<const string&,const int&>("this->implementer->compute(x...) is ",ans);
         return to_string(ans);
     } 
 };
-int test_ToString() {
-    cout << "----------------------------------------- test_ToString" << endl;
+int test_ToString_Sqrt_Pow() {
+    cout << "----------------------------------------- test_ToString_Sqrt_Pow" << endl;
     Sqrt sqrt;
     Implementer<double,const double&>& interface = static_cast<Implementer<double,const double&>&>(sqrt);
     ToString<double,const double&> dtos(interface);
     ptr_lambda_debug<const string&,const int&>("interface is Sqrt.",0);
     string result = dtos.operation(4.0);
+    ptr_lambda_debug<const string&,const int&>("dtos.operation(4.0)",0);
     ptr_lambda_debug<const string&,const string&>("result is",result);
+
+    Pow pow;
+    Implementer<long double,const long double&,const long double&>& interface_2 = static_cast<Implementer<long double,const long double&,const long double&>&>(pow);
+    ToString<long double,const long double&,const long double&> dtos_2(interface_2);
+    ptr_lambda_debug<const string&,const int&>("interface is Pow.",0);
+    result = dtos_2.operation(2,8);
+    ptr_lambda_debug<const string&,const int&>("dtos_2.operation(2,8)",0);
+    ptr_lambda_debug<const string&,const string&>("result is",result);
+
     return 0;
 }
 int main() {
@@ -248,7 +258,7 @@ int main() {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_Exp_Log());
     }
     if(2) {
-        ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_ToString());
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_ToString_Sqrt_Pow());
     }
     cout << "=============== Bridge END" << endl;
 }
