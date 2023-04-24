@@ -89,7 +89,7 @@ int testFactoryMethod() {
 	IProduct* pen = nullptr;
 	try {
 		RedPenFactory redPenFactory;
-		// これは意味合いととしては、new RedPen() を行っていることと同じ。
+		// これは意味合いとしては、new RedPen() を行っていることと同じ。
 		// つまり、それを利用したものがメモリ解放する責務を負う。
 		pen = redPenFactory.factoryMethod();
 		assert(pen->draw() == 0);
