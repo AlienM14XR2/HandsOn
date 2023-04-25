@@ -27,6 +27,7 @@ Implementer を利用できるし、自身の拡張性も犠牲にしない。�
 #include <cmath>
 #include <string>
 #include <cassert>
+#include <functional>
 #include "stdio.h"
 
 using namespace std;
@@ -52,15 +53,21 @@ void (*ptr_lambda_debug)(M,D) = [](auto message,auto debug) -> void {
 template<class T,class... ArgTypes>
 class Implementer {
 public:
-    Implementer() {}
-    Implementer(const Implementer<T,ArgTypes...>& own) {
-        *this = own;
-    }
     virtual ~Implementer() {
         ptr_lambda_debug<const string&,const int&>("called Implementer Destructor ... ",0);
     }
     virtual T compute(ArgTypes...) const = 0;
 };
+int test_Implementer() {
+    cout << "-------------------------------- test_Implementer" << endl;
+    // 純粋仮想関数を持つクラスは、直接オブジェクト化できないと思っているが。うん、正解。
+    // では、コンストラクタ、コピーコンストラクタは不要なのではないのか？
+    // それを、各関数をコメントアウトして確認してみたい。うん、これも正解。
+    // つまり、インタフェースにコンストラクタとコピーコンストラクタはいらない。
+    // OK. 内部的に利用しているとばかり思っていたがこの場合は問題なしと。
+    // Implementer<double,const double&> impl;     // pure virtual function があるから、コンパイルエラー。
+    return 0;
+}
 class Sqrt final : public virtual Implementer<double,const double&> {
 public:
     Sqrt(){}
@@ -107,8 +114,9 @@ int test_Sqrt() {
     // そこで、やはり、テストにおいてはその動作確認を行うべきではないのか、ということが少し気になった。
     // これは、実際の現場を経験していないから、どうあるべきかといことが明確に言えないが、実装したものに対するテストが
     // 一対存在するのが当然な気はしている。無論、これを続けるかと問われれば、No なのだけど。
-    // 学習段階をもう一段上げた場合はおそらくUnit Test を導入し、行うと思う、コピーコンストラクタは実はC++ の裏側で非常に
-    // 利用されているのではないか、あるいは未熟なコーディングでは発生しうるものだと考えるからだ。
+    // 学習段階をもう一段上げた場合はおそらくUnit Test を導入し、行うと思う、コピーコンストラクタは意識しづらいく、内部の
+    // 処理もオレには分かりづらい、特にインタフェースであった場合、その挙動がどういったものなのか把握できていない。
+    // うん、ここに課題が見つかった。次はこれをほり下げてみるか。
     // C++ におけるOOPはこれらと密接に関係した上に成り立っている、したがって、カプセル化、継承、ポリモーフィズムよりも
     // 遥かに重要なのが、コンストラクタ、コピーコンストラクタ、デストラクタだとオレは思う。
 }
@@ -146,9 +154,11 @@ int test_Pow() {
     この時の 3 を指数という。
 
     https://juken-mikata.net/how-to/mathematics/taisuukansuu.html
-    対数とは、上の例でいうと、指数3 から2 を導き出すための公式、それが対数だと。
+    対数とは、上の例でいうと、指数3 = 2（底）とその結果 8 を用いて表現される公式、それが対数だと。
+    指数を表現した公式という解釈だけど、無論、自信はない：）
     △ の3 乗が 8 だということが分かれば、△を導きだせる。
     うん、これだけ頭に入れといたらたぶん平気だろう：）
+    なので、この２つを切り離して語るのは止めたい。
 
     では、指数関数（exp）と対数関数（log）だ。
 */
@@ -185,7 +195,7 @@ int test_Exp_Log() {
         printf("%f = exp.compute(%f)\t",e,i);
         double logVal = log.compute(e);
         printf("%f = log.compute(%f)\n",logVal,e);
-        // 流石 printf お前は凄いな：）
+        // 流石 printf お前は凄いな、C の中でピカイチの関数だ：）
     }
     return 0;
 }
@@ -199,23 +209,31 @@ class Abstraction {
 protected:
     Implementer<T,ArgTypes...>* implementer;
 public:
-    // 良かれと思ったことが今回全て余計なことだったと。
-    // Abstraction(Implementer<double,const double&>& impl){
-    //     implementer = &impl;
-    // }
-    // Abstraction(const Abstraction& own) {
-    //     implementer = own.implementer;
-    // }
     virtual ~Abstraction() {}
     // これが上手くいったら以前試した関数による置き換えを発展させたものにしたい。
     // 関数オブジェクトを変数に持つというものだが、果たして期待通りにいくのか。
     // 逆に不透明な感じになるのかもね。
     virtual string operation(ArgTypes...) const = 0;
 };
+
+// 関数オブジェクトを利用してみる。
+// まずは、普通に関数宣言とその定義（相変わらずプロトタイプ宣言は使わないのね：）
+double exp_operation(const double& x) {
+    return exp(x);
+}
+double log_operation(const double& x ) {
+    return log(x);
+}
+// 関数オブジェクトの指定を行う。（C++11、<functional> ヘッダ）
+function<double(const double&)> func_obj_exp = exp_operation;
+function<double(const double&)> func_obj_log = log_operation;
+
 template<class T,class ... ArgTypes>
 class ToString final : public virtual Abstraction<T,ArgTypes ... > {
 public:
-    // ToString() {}
+    ToString(void) {
+        this->implementer = nullptr;
+    }
     ToString(Implementer<T,ArgTypes ... >& impl) {
         this->implementer = &impl;
     }
@@ -227,7 +245,17 @@ public:
         double ans = this->implementer->compute(x...);
         ptr_lambda_debug<const string&,const int&>("this->implementer->compute(x...) is ",ans);
         return to_string(ans);
-    } 
+    }
+    // 指数関数と対数関数の結果を文字列として返却すること。
+    // left が指数関数の結果で right が対数関数の結果にしようか。
+    pair<string,string> operationByFuncObj(const double& x) {
+        string left,right;
+        double exp = func_obj_exp(x);
+        double log = func_obj_log(exp);
+        left = to_string(exp);
+        right = to_string(log);
+        return {left,right};
+    }
 };
 int test_ToString_Sqrt_Pow() {
     cout << "----------------------------------------- test_ToString_Sqrt_Pow" << endl;
@@ -249,6 +277,28 @@ int test_ToString_Sqrt_Pow() {
 
     return 0;
 }
+/**
+    ここからは、自分が気になってる事柄を確認してみる。
+    関数オブジェクトを変数に持つものから。
+    たぶんもうBridge パターンは関係なくなるはず：）ゴメンねGoF Bridge。
+
+    Abstraction の派生クラス（ToString）に別な関数を一個追加して、それで動作確認してみる。
+    段階的に実装していこうね。
+*/
+int test_ToString_OperationByFuncObj() {
+    cout << "----------------------------------- test_ToString_OperationByFuncObj" << endl;
+    Sqrt sqrt;
+    Implementer<double,const double&>& interface = static_cast<Implementer<double,const double&>&>(sqrt);
+    ToString<double,const double&> dtos(interface);
+    pair<string,string> result = dtos.operationByFuncObj(9.0);
+    ptr_lambda_debug<const string&,const int&>("dtos.operationByFuncObj(9.0)",0);
+    ptr_lambda_debug<const string&,const string&>("result.first(exp) is",result.first);
+    ptr_lambda_debug<const string&,const string&>("result.second(log) is",result.second);
+    // こんな使い方するなら、そもそも基底クラスのメンバ変数用意する必要がないね。
+    // でも、これはこれでありな気もする。
+    // Abstraction の派生クラスがImplementer に引っ張られ過ぎてるから。一晩たつと見え方も変わるな：）
+    return 0;
+}
 int main() {
     cout << "START Bridge ===============" << endl;
     ptr_lambda_debug<const string&,const int&>("It's my life :)",0);
@@ -259,6 +309,9 @@ int main() {
     }
     if(2) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_ToString_Sqrt_Pow());
+    }
+    if(3) {
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_ToString_OperationByFuncObj());
     }
     cout << "=============== Bridge END" << endl;
 }
