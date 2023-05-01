@@ -38,7 +38,7 @@
   直近の2つにした。
 
   【気付き】
-  this とはコンストのポインタである。
+  this とはその型のコンストのポインタである。
 
 */
 #include <iostream>
@@ -124,12 +124,136 @@ int test_visitor_step_2() {
     interface->accept(pvis);
     return 0;
 }
+
+class Handler {
+protected:
+    const Handler* next = nullptr;
+public:
+    virtual ~Handler() {}
+    virtual int request() const = 0;
+};
+class ProcA final : public virtual Handler {
+public:
+    ProcA() {
+        this->next = nullptr;
+    }
+    ProcA(const Handler& handler) {
+        this->next = &handler;
+    }
+    ProcA(const ProcA& own) {
+        *this = own;
+        this->next = own.next;
+    }
+    ~ProcA() {}
+    virtual int request() const override {
+        cout << "called request of ProcA ... " << endl;
+        if(this->next == nullptr) {
+            return -1;
+        } else {
+            return 0;
+        }
+    }
+};
+class ProcB final : public virtual Handler {
+public:
+    ProcB() {
+        this->next = nullptr;
+    }
+    ProcB(const Handler& handler) {
+        this->next = &handler;
+    }
+    ProcB(const ProcB& own) {
+        *this = own;
+        this->next = own.next;
+    }
+    ~ProcB() {}
+    virtual int request() const override {
+        cout << "called request of ProcB ... " << endl;
+        if(this->next == nullptr) {
+            return -1;
+        } else {
+            return 0;
+        }
+    }
+};
+class ProcC final : public virtual Handler {
+public:
+    ProcC() {
+        this->next = nullptr;
+    }
+    ProcC(const Handler& handler) {
+        this->next = &handler;
+    }
+    ProcC(const ProcC& own) {
+        *this = own;
+        this->next = own.next;
+    }
+    ~ProcC() {}
+    virtual int request() const override {
+        cout << "called request of ProcC ... " << endl;
+        if(this->next == nullptr) {
+            return -1;
+        } else {
+            return 0;
+        }
+    }
+};
+class ProcD final : public virtual Handler {
+public:
+    ProcD() {
+        this->next = nullptr;
+    }
+    ProcD(const Handler& handler) {
+        this->next = &handler;
+    }
+    ProcD(const ProcD& own) {
+        *this = own;
+        this->next = own.next;
+    }
+    ~ProcD() {}
+    virtual int request() const override {
+        cout << "called request of ProcD ... " << endl;
+        if(this->next == nullptr) {
+            return -1;
+        } else {
+            return 0;
+        }
+    }
+};
+int test_chain_of_responsibility() {
+    cout << "------------------------------- test_chain_of_responsibility" << endl;
+    ProcD d;
+    ProcC c(d);
+    ProcB b(c);
+    ProcA a(b);
+    Handler* interface = static_cast<Handler*>(&a);
+    int i = 1;
+    while( interface->request() == 0 ) {
+        switch(i) {
+            case 1:
+                interface = static_cast<Handler*>(&b);
+                break;
+            case 2:
+                interface = static_cast<Handler*>(&c);
+                break;
+            case 3:
+                interface = static_cast<Handler*>(&d);
+                break;            
+        }
+        i++;
+    }
+    return 0;
+}
+
 int main() {
     cout << "START GoF Facade ===============" << endl;
     ptr_lambda_debug<const string&,const int&>("Yeah Here we go.",0);
     if(1) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_visitor_step_1());
         ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_visitor_step_2());
+    }
+    if(2) {
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_chain_of_responsibility());
     }
     cout << "=============== GoF Facade END" << endl;
     return 0;
