@@ -88,12 +88,40 @@ public:
         cout << "do something ... AcceptorA." << endl;
     }
 };
+class AcceptorB final : public virtual Acceptor<const ConcreteVisitor*> {
+public:
+    AcceptorB(){}
+    AcceptorB(const AcceptorB& own) {
+        *this = own;
+    }
+    ~AcceptorB() {}
+    virtual void accept(const ConcreteVisitor* visitor) const override {
+        visitor->visit(this);
+    }
+    virtual void doSomething() const override {
+        cout << "do something ... AcceptorB." << endl;
+    }
+};
 int test_visitor_step_1() {
     cout << "------------------------------------- test_visitor_step_1" << endl;
     ConcreteVisitor visitor;
     const ConcreteVisitor* pvis = &visitor;
     AcceptorA acceptorA;
     acceptorA.accept(pvis);
+    AcceptorB acceptorB;
+    acceptorB.accept(pvis);
+    return 0;
+}
+int test_visitor_step_2() {
+    cout << "------------------------------------- test_visitor_step_2" << endl;
+    AcceptorA a;
+    Acceptor<const ConcreteVisitor*>* interface = static_cast<Acceptor<const ConcreteVisitor*>*>(&a);
+    ConcreteVisitor visitor;
+    const ConcreteVisitor* pvis = &visitor;
+    interface->accept(pvis);
+    AcceptorB b;
+    interface = static_cast<Acceptor<const ConcreteVisitor*>*>(&b);
+    interface->accept(pvis);
     return 0;
 }
 int main() {
@@ -101,6 +129,7 @@ int main() {
     ptr_lambda_debug<const string&,const int&>("Yeah Here we go.",0);
     if(1) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_visitor_step_1());
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_visitor_step_2());
     }
     cout << "=============== GoF Facade END" << endl;
     return 0;
