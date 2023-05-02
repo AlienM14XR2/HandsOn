@@ -44,6 +44,7 @@
 #include <iostream>
 #include <algorithm>
 #include <cassert>
+#include "stdio.h"
 
 using namespace std;
 
@@ -269,6 +270,7 @@ class Implementer {
 public:
     virtual ~Implementer() {}
     virtual T compute(ArgTypes...) const = 0;
+    virtual T reverseCompute(ArgTypes...) const = 0;
 };
 class CompTwoDigit final : public virtual Implementer<int,const int&,const int&> {
 public:
@@ -279,6 +281,9 @@ public:
     ~CompTwoDigit() noexcept {}
     virtual int compute(const int& a,const int& b) const override {
         return max(a,b);
+    }
+    virtual int reverseCompute(const int& a,const int& b) const override {
+        return max(a,b,std::greater{});
     }
 };
 class CompThreeDigit final : public virtual Implementer<int,const int&,const int&,const int&> {
@@ -291,6 +296,9 @@ public:
     virtual int compute(const int& a,const int& b,const int& c) const override {
         return max({a,b,c});
     }
+    virtual int reverseCompute(const int& a,const int& b,const int& c) const override {
+        return max({a,b,c},std::greater{});
+    }
 };
 int test_Implementer_Comps() {
     cout << "----------------------------------------- test_Implementer_Comps" << endl;
@@ -299,12 +307,18 @@ int test_Implementer_Comps() {
     int ret = interface->compute(6,3);
     ptr_lambda_debug<const string&,const int&>("ret is ",ret);
     assert(ret == 6);
+    ret = interface->reverseCompute(6,3);
+    ptr_lambda_debug<const string&,const int&>("ret is ",ret);
+    assert(ret == 3);
     CompThreeDigit comp3;
     // これは、インタフェースの意味なくなっちゃうのか orz
     Implementer<int,const int&,const int&,const int&>* if3 = static_cast<Implementer<int,const int&,const int&,const int&>*>(&comp3);
     ret = if3->compute(6,3,9);
     ptr_lambda_debug<const string&,const int&>("ret is ",ret);
     assert(ret == 9);
+    ret = if3->reverseCompute(6,3,9);
+    ptr_lambda_debug<const string&,const int&>("ret is ",ret);
+    assert(ret == 3);
     return 0;
 }
 
