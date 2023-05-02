@@ -34,8 +34,9 @@
 
   - visitor pattern
   - chain of responsibility
+  - bridge
 
-  直近の2つにした。
+  直近の3つにした。
 
   【気付き】
   this とはその型のコンストのポインタである。
@@ -347,6 +348,8 @@ public:
         try {
             int ret = implementer->compute(a,b);
             printf("a is %d and b is %d\tmax is %d\n",a,b,ret);
+            ret = implementer->reverseCompute(a,b);
+            printf("a is %d and b is %d\tmin is %d\n",a,b,ret);
             return 0;
         } catch(exception& e) {
             cerr << e.what() << endl;
@@ -378,6 +381,8 @@ public:
         try {
             int ret = implementer->compute(a,b,c);
             printf("a is %d ,b is %d and c is %d\tmax is %d\n",a,b,c,ret);
+            ret = implementer->reverseCompute(a,b,c);
+            printf("a is %d ,b is %d and c is %d\tmin is %d\n",a,b,c,ret);
             return 0;
         } catch(exception& e) {
             cerr << e.what() << endl;
