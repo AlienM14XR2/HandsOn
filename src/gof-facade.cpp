@@ -42,6 +42,8 @@
 
 */
 #include <iostream>
+#include <algorithm>
+#include <cassert>
 
 using namespace std;
 
@@ -49,6 +51,10 @@ template<class M,class D>
 void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
     cout << message << '\t' << debug << endl;
 };
+
+//
+// GoF Visitor
+//
 
 template<class V>
 class Acceptor {
@@ -124,6 +130,10 @@ int test_visitor_step_2() {
     interface->accept(pvis);
     return 0;
 }
+
+//
+// GoF Chain of Responsibility
+//
 
 class Handler {
 protected:
@@ -245,6 +255,59 @@ int test_chain_of_responsibility() {
     return 0;
 }
 
+//
+// GoF Bridge
+//
+
+/**
+  Implementer の派生クラスはリファレンスの「ユーティリティ」から数値の比較、max() 関数をラップしたクラスにして、
+  Abstraction の派生クラスはやはり、リファレンスの「文字列」から何かを使う：）
+*/
+
+template<class T,class... ArgTypes>
+class Implementer {
+public:
+    virtual ~Implementer() {}
+    virtual T compute(ArgTypes...) const = 0;
+};
+class CompTwoDigit final : public virtual Implementer<int,const int&,const int&> {
+public:
+    CompTwoDigit() noexcept {}
+    CompTwoDigit(const CompTwoDigit& own) noexcept {
+        *this = own;
+    }
+    ~CompTwoDigit() noexcept {}
+    virtual int compute(const int& a,const int& b) const override {
+        return max(a,b);
+    }
+};
+class CompThreeDigit final : public virtual Implementer<int,const int&,const int&,const int&> {
+public:
+    CompThreeDigit() noexcept {}
+    CompThreeDigit(const CompThreeDigit& own) noexcept {
+        *this = own;
+    }
+    ~CompThreeDigit() noexcept {}
+    virtual int compute(const int& a,const int& b,const int& c) const override {
+        return max({a,b,c});
+    }
+};
+int test_Implementer_Comps() {
+    cout << "----------------------------------------- test_Implementer_Comps" << endl;
+    CompTwoDigit comp2;
+    Implementer<int,const int&,const int&>* interface = static_cast<Implementer<int,const int&,const int&>*>(&comp2);
+    int ret = interface->compute(6,3);
+    ptr_lambda_debug<const string&,const int&>("ret is ",ret);
+    assert(ret == 6);
+    CompThreeDigit comp3;
+    // これは、インタフェースの意味なくなっちゃうのか orz
+    Implementer<int,const int&,const int&,const int&>* if3 = static_cast<Implementer<int,const int&,const int&,const int&>*>(&comp3);
+    ret = if3->compute(6,3,9);
+    ptr_lambda_debug<const string&,const int&>("ret is ",ret);
+    assert(ret == 9);
+    return 0;
+}
+
 int main() {
     cout << "START GoF Facade ===============" << endl;
     ptr_lambda_debug<const string&,const int&>("Yeah Here we go.",0);
@@ -254,6 +317,9 @@ int main() {
     }
     if(2) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_chain_of_responsibility());
+    }
+    if(3) {
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_Implementer_Comps());
     }
     cout << "=============== GoF Facade END" << endl;
     return 0;
