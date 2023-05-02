@@ -44,6 +44,7 @@
 #include <iostream>
 #include <algorithm>
 #include <cassert>
+#include <string>
 #include "stdio.h"
 
 using namespace std;
@@ -321,6 +322,76 @@ int test_Implementer_Comps() {
     assert(ret == 3);
     return 0;
 }
+template<class... ArgTypes>
+class Abstraction {
+protected:
+    Implementer<int,ArgTypes...>* implementer;
+public:
+    virtual ~Abstraction() {}
+    virtual int format(ArgTypes...) const = 0;
+};
+class StringFormatterType2 final : public virtual Abstraction<const int&,const int&> {
+    StringFormatterType2() noexcept {
+        implementer = nullptr;
+    }
+public:
+    StringFormatterType2(Implementer<int,const int&,const int&>* imple) noexcept {
+        implementer = imple;
+    }
+    StringFormatterType2(const StringFormatterType2& own) noexcept {
+        *this = own;
+        implementer = own.implementer;
+    }
+    ~StringFormatterType2() noexcept {}
+    virtual int format(const int& a,const int& b) const override {
+        try {
+            int ret = implementer->compute(a,b);
+            printf("a is %d and b is %d\tmax is %d\n",a,b,ret);
+            return 0;
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+    }
+};
+int test_StringFormatterType2() {
+    cout << "---------------------------------------- test_StringFormatterType2" << endl;
+    CompTwoDigit comp2;
+    Implementer<int,const int&,const int&>* if2 = static_cast<Implementer<int,const int&,const int&>*>(&comp2);
+    StringFormatterType2 type2(if2);
+    return type2.format(8,4);
+}
+class StringFormatterType3 final : public virtual Abstraction<const int&,const int&,const int&> {
+    StringFormatterType3() noexcept {
+        implementer = nullptr;
+    }
+public:
+    StringFormatterType3(Implementer<int,const int&,const int&,const int&>* imple) noexcept {
+        implementer = imple;
+    }
+    StringFormatterType3(const StringFormatterType3& own) noexcept {
+        *this = own;
+        implementer = own.implementer;
+    }
+    ~StringFormatterType3() noexcept {}
+    virtual int format(const int& a,const int& b,const int& c) const override {
+        try {
+            int ret = implementer->compute(a,b,c);
+            printf("a is %d ,b is %d and c is %d\tmax is %d\n",a,b,c,ret);
+            return 0;
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+    }
+};
+int test_StringFormatterType3() {
+    cout << "---------------------------------------- test_StringFormatterType3" << endl;
+    CompThreeDigit comp3;
+    Implementer<int,const int&,const int&,const int&>* if3 = static_cast<Implementer<int,const int&,const int&,const int&>*>(&comp3);
+    StringFormatterType3 type3(if3);
+    return type3.format(8,16,4);
+}
 
 int main() {
     cout << "START GoF Facade ===============" << endl;
@@ -334,6 +405,8 @@ int main() {
     }
     if(3) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_Implementer_Comps());
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_StringFormatterType2());
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_StringFormatterType3());
     }
     cout << "=============== GoF Facade END" << endl;
     return 0;
