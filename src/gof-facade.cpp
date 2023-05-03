@@ -398,6 +398,96 @@ int test_StringFormatterType3() {
     return type3.format(8,16,4);
 }
 
+/**
+  Facade
+  - 抽象化はしない、意味ない。
+  - ほとんど答えがでているが、テスト関数がFacade のやるべきことに近い。
+  - chain of responsibility はそのパターンが複数あるので、それをFacade で表現してみる。
+  - Bridge に関してもImplementer 単体での利用とAbstraction の派生クラスである文字フォーマットクラス
+    の併用等、少しだけその使い方を変えてみたり。
+
+*/
+class Facade final {
+public:
+    int visitA(ConcreteVisitor& vis) noexcept {
+        AcceptorA a;
+        const ConcreteVisitor* pvis = &vis;
+        a.accept(pvis);
+        return 0;
+    }
+    // visitB は仲間外れ：）
+    int visitAll(ConcreteVisitor& vis) {
+        try {
+            AcceptorA a;
+            // これは冗長な使い方だけど、忘れないために、復習を兼ねてのもの。
+            Acceptor<const ConcreteVisitor*>* interface = static_cast<Acceptor<const ConcreteVisitor*>*>(&a);
+            const ConcreteVisitor* pvis = &vis;
+            interface->accept(pvis);
+            AcceptorB b;
+            interface = static_cast<Acceptor<const ConcreteVisitor*>*>(&b);
+            interface->accept(pvis);
+            return 0;
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+    }
+    int procAD() noexcept {
+        ProcD d;
+        ProcA a(d);
+        if(a.request() == 0) {
+            d.request();
+        }
+        return 0;
+    }
+    int procBCD() noexcept {
+        ProcD d;
+        ProcC c(d);
+        ProcB b(c);
+        if(b.request() == 0) {
+            if(c.request() == 0) {
+                d.request();
+            }
+        }
+        return 0;
+    }
+    // ごめんよ、飽きてきた：）次で終わりにする。
+    int formatThreeData(const int& a,const int& b,const int& c) noexcept {
+        CompThreeDigit comp3;
+        Implementer<int,const int&,const int&,const int&>* if3 = static_cast<Implementer<int,const int&,const int&,const int&>*>(&comp3);
+        StringFormatterType3 type3(if3);
+        return type3.format(a,b,c);
+    }
+};
+int test_Facade_VisitAll() {
+    cout << "---------------------------------------------- test_Facade_VisitAll" << endl;
+    Facade facade;
+    ConcreteVisitor vis;
+    ptr_lambda_debug<const string&,const int&>("visit result is ",facade.visitAll(vis));
+    return 0;
+}
+int test_Facade_VisitA() {
+    cout << "---------------------------------------------- test_Facade_VisitA" << endl;
+    Facade facade;
+    ConcreteVisitor vis;
+    return facade.visitA(vis);
+}
+int test_Facade_ProcAD() {
+    cout << "---------------------------------------------- test_Facade_ProcAD" << endl;
+    Facade facade;
+    return facade.procAD();
+}
+int test_Facade_ProcBCD() {
+    cout << "---------------------------------------------- test_Facade_ProcBCD" << endl;
+    Facade facade;
+    return facade.procBCD();
+}
+int test_Facade_FormatThreeData() {
+    cout << "---------------------------------------------- test_Facade_FormatThreeData" << endl;
+    Facade facade;
+    return facade.formatThreeData(3,6,9);
+}
+
 int main() {
     cout << "START GoF Facade ===============" << endl;
     ptr_lambda_debug<const string&,const int&>("Yeah Here we go.",0);
@@ -412,6 +502,13 @@ int main() {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_Implementer_Comps());
         ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_StringFormatterType2());
         ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_StringFormatterType3());
+    }
+    if(4) {
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_Facade_VisitAll());
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_Facade_VisitA());
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_Facade_ProcAD());
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_Facade_ProcBCD());
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_Facade_FormatThreeData());
     }
     cout << "=============== GoF Facade END" << endl;
     return 0;
