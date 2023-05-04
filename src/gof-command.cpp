@@ -19,6 +19,10 @@
   イメージがわかないな。
   ベースをそのまま書き起こしてみようか。
   なんか、眠くなってきた：）今日は５時起きだったか。
+
+  うん、Receiver がパラメータであり、それらをカプセル化している。
+  ConcreteCommand がそのパラメータの値を操作し実行する。
+  今はそんな解釈かな。
 */
 #include <iostream>
 
@@ -29,9 +33,54 @@ void (*ptr_lambda_debug)(M,D) = [](auto message,auto debug) -> void {
     cout << message << '\t' << debug << endl;
 };
 
+class Invoker {
+public:
+    virtual ~Invoker() {}
+};
+class Receiver final {
+public:
+    ~Receiver() {}
+    void action() {
+        cout << "action ... " << endl;
+    }
+};
+class Command : public virtual Invoker {
+protected:
+    Receiver* receiver;
+public:
+    virtual void execute() const = 0;
+};
+class ConcreteCommand final : public virtual Command {
+    ConcreteCommand() {
+        receiver = nullptr;
+    }
+public:
+    ConcreteCommand(Receiver* rece) {
+        receiver = rece;
+    }
+    ConcreteCommand(const ConcreteCommand& own) {
+        *this = own;
+        this->receiver = own.receiver;
+    }
+    ~ConcreteCommand() {}
+    virtual void execute() const override {
+        receiver->action();
+    }
+};
+int test_basic_command() {
+    cout << "------------------------------ test_basic_command" << endl;
+    Receiver receiver;
+    // Receiver* precei = &receiver;
+    ConcreteCommand command(&receiver);
+    command.execute();    
+    return 0;
+}
 int main() {
     cout << "START GoF Command ===============" << endl;
     ptr_lambda_debug<const string&,const int&>("Here we go.",0);
+    if(1) {
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... ", test_basic_command());
+    }
     cout << "=============== GoF Command END" << endl;
     return 0;
 }
