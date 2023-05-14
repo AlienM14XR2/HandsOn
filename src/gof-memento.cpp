@@ -28,6 +28,11 @@
 
 using namespace std;
 
+template<class M,class D>
+void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
+    cout << message << '\t' << debug << endl;
+};
+
 // UML クラス図の「集約」これにはクラスの依存関係はない。まずい、こいつはミスったな：）少なくとも、Mediator は見直す必要がある。
 
 class Memento {
@@ -72,24 +77,43 @@ public:
         this->state = own.state;
     }
     ~Originator() {}
-    void setMemento(Memento& m) {
+    void setMemento(Memento& m) noexcept {
         state = m.getState();
     }
-    Memento* createMemento() {
-        return new Memento(3);
+    Memento* createMemento(const int& num) {
+        return new Memento(num);
+    }
+    int getState() noexcept {
+        return state;
     }
 };
-
-template<class M,class D>
-void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
-    cout << message << '\t' << debug << endl;
-};
+int test_Basic_Memento() {
+    cout << "--------------------------------------- test_Basic_Memento" << endl;
+    Originator origin;
+    Memento* pm_1 = origin.createMemento(20230515);
+    origin.setMemento(*pm_1);
+    ptr_lambda_debug<const string&,const int&>("Memento state is ", pm_1->getState());
+    ptr_lambda_debug<const string&,const int&>("Originator state is ", origin.getState());
+    Caretaker care;
+    care.add(*pm_1);
+    Memento* pm_2 = origin.createMemento(20230516);
+    origin.setMemento(*pm_2);
+    ptr_lambda_debug<const string&,const int&>("Memento state is ", pm_2->getState());
+    ptr_lambda_debug<const string&,const int&>("Originator state is ", origin.getState());
+    care.add(*pm_2);
+    vector<Memento> snaps = care.getSnaps();
+    for(Memento m: snaps) {
+        ptr_lambda_debug<const string&,const int&>("snap shot is ", m.getState());
+    }
+    // うん、これは理解したよ：）オレのなかでは、完全にスナップショットだな、ログであり、履歴。
+    return 0;
+}
 
 int main() {
     cout << "START GoF Memento ===============" << endl;
     ptr_lambda_debug<const string&,const int&>("Here we go.",0);
-    if(0) {
-
+    if(1) {
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... ", test_Basic_Memento());
     }
     cout << "=============== GoF Memento END" << endl;
     return 0;
