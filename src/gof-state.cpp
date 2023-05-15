@@ -21,8 +21,76 @@
 
 using namespace std;
 
+template<class M, class D>
+void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
+    cout << message << '\t' << debug << endl;
+};
+
+class State {
+public:
+    virtual ~State() {}
+    virtual int handle() const = 0;
+};
+class Context final {
+    int state;
+public:
+    Context():state{-1} {}
+    Context(const Context& own) {
+        *this = own;
+        this->state = own.state;
+    }
+    ~Context() {}
+    int request(State* ps) {
+        state = ps->handle();
+        return state; 
+    }
+    int getState() noexcept {
+        return state;
+    }
+};
+class ConcreteStateA final : public virtual State {
+public:
+    virtual int handle() const override {
+        return 0;
+    }
+};
+class ConcreteStateB final : public virtual State {
+public:
+    virtual int handle() const override {
+        return 1;
+    }
+};
+class ConcreteStateC final : public virtual State {
+public:
+    virtual int handle() const override {
+        return 2;
+    }
+};
+int test_Basic_State() {
+    cout << "--------------------------- test_Basic_State" << endl;
+    Context context;
+    ptr_lambda_debug<const string&,const int&>("state of context is ",context.getState());
+    ConcreteStateA stateA;
+    State* interface = static_cast<State*>(&stateA);
+    context.request(interface);
+    ptr_lambda_debug<const string&,const int&>("state of context is ",context.getState());
+    ConcreteStateB stateB;
+    interface = static_cast<State*>(&stateB);
+    context.request(interface);
+    ptr_lambda_debug<const string&,const int&>("state of context is ",context.getState());
+    ConcreteStateC stateC;
+    interface = static_cast<State*>(&stateC);
+    context.request(interface);
+    ptr_lambda_debug<const string&,const int&>("state of context is ",context.getState());
+    return 0;
+}
+
 int main() {
     cout << "START GoF State ===============" << endl;
+    ptr_lambda_debug<const string&,const int&>("Here we go.",0);
+    if(1) {
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_Basic_State());
+    }
     cout << "=============== GoF State END" << endl;
     return 0;
 }
