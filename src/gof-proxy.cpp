@@ -22,9 +22,11 @@
     - doAction() をメンバ関数で宣言。
   
   RealSubject クラス「本件」はSubject の具象化クラス、派生クラス。
+    RealSubject でしかできないことがある。
     - doAction() をメンバ関数で定義。
 
-  Proxy クラス「本件」はSubject の具象化クラス、派生クラス。
+  Proxy クラス「代理人」はSubject の具象化クラス、派生クラス。
+    RealSubject でも、できることを行う。
     - RealSubject をコンテナにメンバ変数として持つ。
     - doAction() をメンバ関数で定義。
   
@@ -36,8 +38,46 @@
 
 using namespace std;
 
+template<class M,class D>
+void (*ptr_lambda_debug)(M,D) = [](auto message,auto debug) -> void {
+  cout << message << '\t' << debug <<  endl;
+};
+
+class Subject {
+public:
+  virtual ~Subject() {}
+  virtual void doAction() const = 0;
+};
+class RealSubject final : public virtual Subject {
+public:
+  RealSubject() {}
+  RealSubject(const RealSubject& own) {
+    *this = own;
+  }
+  ~RealSubject() {}
+  virtual void doAction() const override {
+    cout << "doAction ... RealSubject." << endl;
+  }
+};
+class Proxy final : public virtual Subject {
+  vector<RealSubject*> subjects;
+public:
+  Proxy() {}
+  Proxy(const Proxy& own) {
+    *this = own;
+    this->subjects = own.subjects;
+  }
+  ~Proxy() {}
+  virtual void doAction() const override {
+    for(RealSubject* s: subjects) {
+      s->doAction();
+    }
+  }
+};
+
 int main() {
     cout << "START GoF Proxy ===============" << endl;
+    ptr_lambda_debug<const string&,const int&>("Here we go :)",0);
     cout << "=============== GoF Proxy END" << endl;
     return 0;
 }
