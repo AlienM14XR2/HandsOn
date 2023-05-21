@@ -8,7 +8,7 @@
   https://ja.wikipedia.org/wiki/Proxy_%E3%83%91%E3%82%BF%E3%83%BC%E3%83%B3#/media/%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB:Proxy_pattern_diagram.svg
 
   GoF にフォーカスして気付いたことだが、意外と統一された定義ではないのかと思った。
-  無論、書籍から得た情報ではなく全てネット情報なので鵜呑みはできないのだが：）
+  無論、書籍から得た情報ではなく全てネット情報なので鵜呑みにはできないのだが：）
   今回でいえば、Proxy クラスにRealSubject クラスが集約されていたり、いなかったりだ。
   あるクラスが集約されているとは、依存関係はなく、集約している側にされている側のオブジェクトがコンテナ管理になっていることを指す。
 
@@ -55,6 +55,9 @@ public:
     *this = own;
   }
   ~RealSubject() {}
+  virtual void originalAction() {   // これは、ダウンキャストしてもダメかな。気になる、試してみたい：）
+    cout << "originalAction ... RealSubject." << endl;
+  }
   virtual void doAction() const override {
     cout << "doAction ... RealSubject." << endl;
   }
@@ -68,16 +71,54 @@ public:
     this->subjects = own.subjects;
   }
   ~Proxy() {}
+  void addSubject(RealSubject* preal) {
+    subjects.push_back(preal);
+  }
   virtual void doAction() const override {
     for(RealSubject* s: subjects) {
       s->doAction();
     }
   }
 };
+// うん、Client 作ってないんだよね：）いらねっ
+int test_Basic_Proxy() {
+  cout << "------------------------------------- test_Basic_Proxy" << endl;
+  RealSubject real;
+  real.originalAction();
+  Proxy proxy;
+  proxy.addSubject(&real);
+  proxy.doAction();
+  // ここから、実験、本来はインタフェースで操作するんだよね。
+  Subject* interface = static_cast<Subject*>(&real);
+  cout << "interface->doAction() is " << endl;
+  interface->doAction();
+  interface = static_cast<Subject*>(&proxy);
+  cout << "interface->doAction() is ... proxy" << endl;
+  interface->doAction();
+  // interface->originalAction(); アップキャストなので、流石にこれはコンパイルエラー。
+  RealSubject* ptrReal = dynamic_cast<RealSubject*>(interface);
+  cout << "ptrReal->doAction() is " << endl;
+  ptrReal->doAction();  // Yes ダウンキャスト成功：）
+  cout << "ptrReal->originalAction() is " << endl;
+  ptrReal->originalAction();  // Yes 無論できる：）
+
+  /*
+    うん、やっぱり、インタフェースとポインタすげ。
+    アップキャストとダウンキャストを使い分ければ、インタフェースポインタで何でも出来ちゃう：）
+    Client を作らなかったのはここでテストしたことが即ち、Client だと思ったから：）
+    少し、ちがうか：）
+    うん、時間だ、今日はここまで。
+  */
+
+  return 0;
+}
 
 int main() {
     cout << "START GoF Proxy ===============" << endl;
     ptr_lambda_debug<const string&,const int&>("Here we go :)",0);
+    if(1) {
+      ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_Basic_Proxy());
+    }
     cout << "=============== GoF Proxy END" << endl;
     return 0;
 }
