@@ -43,6 +43,20 @@ void ptr_str_debug(const char* message, char* debug) {
 void ptr_cstr_debug(const char* message, const char* debug) {
     printf("%s\tvalue=%s\taddr=%p\n",message,debug,debug);
 }
+/**
+    任意の文字列から、"" で囲まれた間の X や Y といった特定の文字を読み飛ばす、本来の制御処理の対象外とする。
+    抽象的に言うと以上の事柄。
+    具体的に示すと下記になる。
+    Values ("半角スペース","エスケープ文字+ダブルクォート");
+    e.g. Values ("I'm Jack.","\"What's up ?\"");
+    CommandAnalyzer
+*/
+class ICommandAnalyzer {
+public:
+    virtual int validation() const = 0;
+    virtual int analyze() const = 0;
+    virtual ~ICommandAnalyzer() {}
+};
 
 int monitoring();
 int main(void) {
@@ -59,7 +73,7 @@ int main(void) {
         const char cstr[] = {"It's my PRIDE."};
         ptr_cstr_debug("const char cstr is ",cstr);
     }
-    if(10) {
+    if(0) {
         monitoring();
     }
     cout << "=============== CLI END" << endl;
