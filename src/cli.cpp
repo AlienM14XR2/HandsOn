@@ -60,11 +60,16 @@ public:
 };
 class CommandInsert final : public virtual ICommandAnalyzer {
 private:
+    string orgCmd;
     vector<string> splitCmd;
-public:
     CommandInsert() {}
+public:
+    CommandInsert(const string& originalCommnad) {
+        orgCmd = originalCommnad;
+    }
     CommandInsert(const CommandInsert& own) {
         *this = own;
+        this->orgCmd = own.orgCmd;
         this->splitCmd = own.splitCmd;
     }
     ~CommandInsert() {}
@@ -77,7 +82,10 @@ public:
 };
 int test_Command_Insert() {
     cout << "------------------------------------ test_Command_Insert" << endl;
-    CommandInsert cmdIns;
+    const string cmd = "insert into file_name(col_1,col_2) values (\"I'm Jack.\", \"\\\"What's up ?\\\"\");";
+//    const string cmd = "insert into file_name(col_1,col_2) values ('I\\'m Jack.', '\\'What\\'s up ?\\'');";
+    ptr_lambda_debug<const string&,const string&>("cmd is ",cmd);
+    CommandInsert cmdIns(cmd);
     ptr_lambda_debug<const string&,const int&>("validation ... ",cmdIns.validation());
     ptr_lambda_debug<const string&,const int&>("analyze ... ",cmdIns.analyze());
     return 0;
