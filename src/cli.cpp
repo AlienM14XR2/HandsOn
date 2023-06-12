@@ -77,6 +77,8 @@ public:
         return 1;   // 未実装なので 0 ではなく 1 を返却している。
     }
     virtual int analyze() const override {
+        // https://marycore.jp/prog/cpp/convert-string-to-char/
+        // これからやることに、少し参考になったぞ：）ありがたい。結局調べるだけに留まったな、図書館に行ってから野暮用をすませて来たのだ、しかたない。
         return 0;
     }
 };
