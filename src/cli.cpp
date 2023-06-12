@@ -8,6 +8,7 @@
     @Author Jack
 */
 #include <iostream>
+#include <vector>
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
@@ -57,6 +58,30 @@ public:
     virtual int analyze() const = 0;
     virtual ~ICommandAnalyzer() {}
 };
+class CommandInsert final : public virtual ICommandAnalyzer {
+private:
+    vector<string> splitCmd;
+public:
+    CommandInsert() {}
+    CommandInsert(const CommandInsert& own) {
+        *this = own;
+        this->splitCmd = own.splitCmd;
+    }
+    ~CommandInsert() {}
+    virtual int validation() const override {
+        return 1;   // 未実装なので 0 ではなく 1 を返却している。
+    }
+    virtual int analyze() const override {
+        return 0;
+    }
+};
+int test_Command_Insert() {
+    cout << "------------------------------------ test_Command_Insert" << endl;
+    CommandInsert cmdIns;
+    ptr_lambda_debug<const string&,const int&>("validation ... ",cmdIns.validation());
+    ptr_lambda_debug<const string&,const int&>("analyze ... ",cmdIns.analyze());
+    return 0;
+}
 
 int monitoring();
 int main(void) {
@@ -72,6 +97,9 @@ int main(void) {
         ptr_str_debug("char str[] is",str);
         const char cstr[] = {"It's my PRIDE."};
         ptr_cstr_debug("const char cstr is ",cstr);
+    }
+    if(1.10) {
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_Command_Insert());
     }
     if(0) {
         monitoring();
