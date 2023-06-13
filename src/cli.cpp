@@ -76,6 +76,15 @@ public:
     virtual int validation() const override {
         return 1;   // 未実装なので 0 ではなく 1 を返却している。
     }
+    /**
+        Insert 構文の解析をする。
+        - Upper するものしないもの。        
+            - 半角スペースで分割。
+            - Values を検知。
+            - Values より後はUpper しない。
+            - Values 以前はUpper する。
+        - Debug Upper されたものを再度半角スペースで結合する。（これが正しくできていれば、次に進めるはず：）
+    */
     virtual int analyze() const override {
         // https://marycore.jp/prog/cpp/convert-string-to-char/
         // これからやることに、少し参考になったぞ：）ありがたい。結局調べるだけに留まったな、図書館に行ってから野暮用をすませて来たのだ、しかたない。
