@@ -88,6 +88,7 @@ public:
     virtual int analyze() const override {
         // https://marycore.jp/prog/cpp/convert-string-to-char/
         // これからやることに、少し参考になったぞ：）ありがたい。結局調べるだけに留まったな、図書館に行ってから野暮用をすませて来たのだ、しかたない。
+        // git の確認をする。
         return 0;
     }
 };
