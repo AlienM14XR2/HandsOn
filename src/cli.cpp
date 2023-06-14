@@ -15,8 +15,9 @@
 #include "ctype.h"
 using namespace std;
 
-#define CMD_SIZE       1024
-#define CMD_SPLIT_SIZE   32
+#define CMD_SIZE                1024
+#define CMD_SPLIT_SIZE            32
+#define CMD_DATA_MAX_INDEX       512
 
 typedef struct {
     int no;
@@ -60,25 +61,64 @@ public:
 };
 class CommandInsert final : public virtual ICommandAnalyzer {
 private:
-    string orgCmd;
+    string orgCmd;          // この値は変更してはいけない。
     vector<string> splitCmd;
+    char* ptrOrgCmd = nullptr;
+    char* ptrUpCmd = nullptr;
+    int cdMaxIndex;         // CMD_DATA のMax Index 数
+
     CommandInsert() {}
+    // string から char 配列への変換を行う。
+    int toArray(const string& str) {
+        int size = str.size()+1;
+        ptrOrgCmd = new char[size];
+        std::char_traits<char>::copy(ptrOrgCmd,str.c_str(),size);
+        return 0;
+    }
+    void debugArray() {
+        printf("--- debugArray\n");
+        for(int i = 0;;i++) {
+            if(ptrOrgCmd[i] == '\0') {
+                break;
+            }
+            printf("%c",ptrOrgCmd[i]);
+        }
+        printf("\n");
+    }
+
+    int computeCmdDataMaxIndex() {
+        try {
+
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+        return 0;
+    }
 public:
     CommandInsert(const string& originalCommnad) {
         orgCmd = originalCommnad;
+        cdMaxIndex = -1;
+        toArray(originalCommnad);
+        debugArray();
     }
     CommandInsert(const CommandInsert& own) {
         *this = own;
         this->orgCmd = own.orgCmd;
         this->splitCmd = own.splitCmd;
     }
-    ~CommandInsert() {}
+    ~CommandInsert() {
+        ptr_lambda_debug<const string&,const int&>("CommandInsert Destructor ...",0);
+        delete [] ptrOrgCmd;
+        delete [] ptrUpCmd;
+    }
     virtual int validation() const override {
         return 1;   // 未実装なので 0 ではなく 1 を返却している。
     }
     /**
         Insert 構文の解析をする。
-        - Upper するものしないもの。        
+        - Upper するものしないもの。
+            - CMD_DATA がいくつ必要か知る必要がある（システムで予め保持することもできるが：）        
             - 半角スペースで分割。
             - Values を検知。
             - Values より後はUpper しない。
