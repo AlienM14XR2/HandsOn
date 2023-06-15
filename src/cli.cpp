@@ -54,6 +54,19 @@ void ptr_cstr_debug(const char* message, const char* debug) {
     CommandAnalyzer
 */
 class ICommandAnalyzer {
+protected:
+    /**
+        is End of Command.
+        入力されたコマンドの終端を検知する。
+        0 is no hit.
+        1 is hit.
+    */
+    int isEOC(const char* c) {
+        if(*c == ';' || *c == '\0') {
+            return 1;
+        }
+        return 0;
+    }
 public:
     virtual int validation() const = 0;
     virtual int analyze() const = 0;
@@ -61,11 +74,11 @@ public:
 };
 class CommandInsert final : public virtual ICommandAnalyzer {
 private:
-    string orgCmd;          // この値は変更してはいけない。
+    string orgCmd = "";          // 値を代入後、この値は変更してはいけない。
     vector<string> splitCmd;
-    char* ptrOrgCmd = nullptr;
-    char* ptrUpCmd = nullptr;
-    int cdMaxIndex;         // CMD_DATA のMax Index 数
+    char* ptrOrgCmd = nullptr;  // この値は変更しない（orgCmdのchar 配列版だと考えてほしい）。
+    char* ptrUpCmd = nullptr;   // ユーザ入力されたコマンドを大文字変換したもの。
+    int cmdMaxIndex = -1;         // CMD_DATA のMax Index 数
 
     CommandInsert() {}
     // string から char 配列への変換を行う。
@@ -85,10 +98,22 @@ private:
         }
         printf("\n");
     }
-
+    /**
+        前提条件として、ptrOrgCmd がユーザ入力されたコマンドで初期化されているものとする。
+        半角スペースをカウントして、いくつに分割できるのか予め見積もる。
+    */
     int computeCmdDataMaxIndex() {
         try {
-
+            if(ptrOrgCmd != nullptr) {
+                cmdMaxIndex = 1;
+                for(int i = 0;;i++) {
+                    if( ptrOrgCmd[i] == ' ' ) {
+                        cmdMaxIndex += 1;
+                    } else if(isEOC(&ptrOrgCmd[i])) {
+                        break;
+                    }
+                }
+            }
         } catch(exception& e) {
             cerr << e.what() << endl;
             return -1;
@@ -98,9 +123,11 @@ private:
 public:
     CommandInsert(const string& originalCommnad) {
         orgCmd = originalCommnad;
-        cdMaxIndex = -1;
+        cmdMaxIndex = -1;
         toArray(originalCommnad);
         debugArray();
+        computeCmdDataMaxIndex();
+        ptr_lambda_debug<const string&,const int&>("cmdMaxIndex is ",cmdMaxIndex);
     }
     CommandInsert(const CommandInsert& own) {
         *this = own;
