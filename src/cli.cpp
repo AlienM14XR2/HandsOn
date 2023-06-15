@@ -55,6 +55,9 @@ void ptr_cstr_debug(const char* message, const char* debug) {
 */
 class ICommandAnalyzer {
 protected:
+    int cmdMaxIndex = -1;           // CMD_DATA のMax Index 数
+    CMD_DATA* cmdData = nullptr;    // CMD_DATA スプリットしたコマンドを格納する配列。 
+
     /**
         is End of Command.
         入力されたコマンドの終端を検知する。
@@ -67,6 +70,39 @@ protected:
         }
         return 0;
     }
+    /**
+        コマンドのコピーを行う。
+    */
+    int copyCmd(char* dest, const char* src, const int len) {
+        int i = 0;
+        for(;i < len; i++) {
+            dest[i] = src[i];
+        }
+        dest[i] = '\0';
+        return 0;
+    }
+    /**
+        コマンドの初期化を行う。
+    */
+    int initCmd(char* cmd) {
+        for(int i = 0; i < sizeof(cmd)/sizeof(cmd[0]); i++) {
+            cmd[i] = '\0';
+        }
+        return 0;
+    }
+    /**
+        メンバ変数 cmdData の初期化を行う。
+    */
+    int initCmdData() {
+        cmdData = new CMD_DATA[cmdMaxIndex];
+        for(int i=0; i<cmdMaxIndex ; i++) {
+            cmdData[i].no = -1;
+            initCmd(cmdData[i].data);
+        }
+        return 0;
+    }
+
+
 public:
     virtual int validation() const = 0;
     virtual int analyze() const = 0;
@@ -74,11 +110,10 @@ public:
 };
 class CommandInsert final : public virtual ICommandAnalyzer {
 private:
-    string orgCmd = "";          // 値を代入後、この値は変更してはいけない。
+    string orgCmd = "";         // 値を代入後、この値は変更してはいけない。
     vector<string> splitCmd;
     char* ptrOrgCmd = nullptr;  // この値は変更しない（orgCmdのchar 配列版だと考えてほしい）。
     char* ptrUpCmd = nullptr;   // ユーザ入力されたコマンドを大文字変換したもの。
-    int cmdMaxIndex = -1;         // CMD_DATA のMax Index 数
 
     CommandInsert() {}
     // string から char 配列への変換を行う。
@@ -120,6 +155,42 @@ private:
         }
         return 0;
     }
+    int segmentCmd() {
+        char tmp[CMD_SPLIT_SIZE] = {'\0'};
+        int j = 0;
+        int k = 0;
+        int limit = strlen(ptrOrgCmd);
+        try {
+            for(int i=0; i<limit ; i++) {
+                if(ptrOrgCmd[i] != ' ' && ptrOrgCmd[i] != ';') {
+                    tmp[j] = ptrOrgCmd[i];
+                    j++;
+                } else {
+                    tmp[j] = '\0';
+                    // デバッグ
+                    ptr_str_debug("tmp is ",tmp);
+                    int len = strlen(tmp);
+                    ptr_d_debug("\tlen is ",&len);
+                    if( len > 0 ) {
+                        cmdData[k].no = k;
+                        copyCmd(cmdData[k].data,tmp,len);
+                        k++;
+                    }
+                    // tmp に関するデータのリセット
+                    j = 0;
+                    initCmd(tmp);
+                }
+                if(isEOC(&ptrOrgCmd[i])) {
+                    break;
+                }
+            }
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+        return 0;
+    }
+
 public:
     CommandInsert(const string& originalCommnad) {
         orgCmd = originalCommnad;
@@ -128,6 +199,8 @@ public:
         debugArray();
         computeCmdDataMaxIndex();
         ptr_lambda_debug<const string&,const int&>("cmdMaxIndex is ",cmdMaxIndex);
+        initCmdData();      // @see 基底クラス
+        segmentCmd();       // このメンバ関数の所在も要検討の必要あり
     }
     CommandInsert(const CommandInsert& own) {
         *this = own;
@@ -138,6 +211,7 @@ public:
         ptr_lambda_debug<const string&,const int&>("CommandInsert Destructor ...",0);
         delete [] ptrOrgCmd;
         delete [] ptrUpCmd;
+        delete [] cmdData;
     }
     virtual int validation() const override {
         return 1;   // 未実装なので 0 ではなく 1 を返却している。
