@@ -57,6 +57,8 @@ class ICommandAnalyzer {
 protected:
     int cmdMaxIndex = -1;           // CMD_DATA のMax Index 数
     CMD_DATA* cmdData = nullptr;    // CMD_DATA スプリットしたコマンドを格納する配列。 
+    char* ptrOrgCmd = nullptr;      // この値は変更しない（orgCmdのchar 配列版だと考えてほしい）。
+    char* ptrUpCmd = nullptr;       // ユーザ入力されたコマンドを大文字変換したもの。
 
     /**
         is End of Command.
@@ -101,21 +103,6 @@ protected:
         }
         return 0;
     }
-
-
-public:
-    virtual int validation() const = 0;
-    virtual int analyze() const = 0;
-    virtual ~ICommandAnalyzer() {}
-};
-class CommandInsert final : public virtual ICommandAnalyzer {
-private:
-    string orgCmd = "";         // 値を代入後、この値は変更してはいけない。
-    vector<string> splitCmd;
-    char* ptrOrgCmd = nullptr;  // この値は変更しない（orgCmdのchar 配列版だと考えてほしい）。
-    char* ptrUpCmd = nullptr;   // ユーザ入力されたコマンドを大文字変換したもの。
-
-    CommandInsert() {}
     // string から char 配列への変換を行う。
     int toArray(const string& str) {
         int size = str.size()+1;
@@ -155,6 +142,9 @@ private:
         }
         return 0;
     }
+    /**
+        半角スペースでコマンドを分割して、CMD_DATA 型の cmdData に値を代入する。
+    */
     int segmentCmd() {
         char tmp[CMD_SPLIT_SIZE] = {'\0'};
         int j = 0;
@@ -192,15 +182,25 @@ private:
     }
 
 public:
+    virtual int validation() const = 0;
+    virtual int analyze() const = 0;
+    virtual ~ICommandAnalyzer() {}
+};
+class CommandInsert final : public virtual ICommandAnalyzer {
+private:
+    string orgCmd = "";         // 値を代入後、この値は変更してはいけない。
+    vector<string> splitCmd;
+    CommandInsert() {}
+public:
     CommandInsert(const string& originalCommnad) {
         orgCmd = originalCommnad;
         cmdMaxIndex = -1;
-        toArray(originalCommnad);
-        debugArray();
-        computeCmdDataMaxIndex();
+        toArray(originalCommnad);   // @see 基底クラス
+        debugArray();               // @see 基底クラス
+        computeCmdDataMaxIndex();   // @see 基底クラス
         ptr_lambda_debug<const string&,const int&>("cmdMaxIndex is ",cmdMaxIndex);
         initCmdData();      // @see 基底クラス
-        segmentCmd();       // このメンバ関数の所在も要検討の必要あり
+        segmentCmd();       // @see 基底クラス
     }
     CommandInsert(const CommandInsert& own) {
         *this = own;
