@@ -15,8 +15,9 @@
 #include "ctype.h"
 using namespace std;
 
-#define CMD_SIZE       1024
-#define CMD_SPLIT_SIZE   32
+#define CMD_SIZE                1024
+#define CMD_SPLIT_SIZE            32
+#define CMD_DATA_MAX_INDEX       512
 
 typedef struct {
     int no;
@@ -53,32 +54,186 @@ void ptr_cstr_debug(const char* message, const char* debug) {
     CommandAnalyzer
 */
 class ICommandAnalyzer {
+protected:
+    int cmdMaxIndex = -1;           // CMD_DATA のMax Index 数
+    CMD_DATA* cmdData = nullptr;    // CMD_DATA スプリットしたコマンドを格納する配列。 
+    char* ptrOrgCmd = nullptr;      // この値は変更しない（orgCmdのchar 配列版だと考えてほしい）。
+    char* ptrUpCmd = nullptr;       // ユーザ入力されたコマンドを大文字変換したもの。
+
+    /**
+        is End of Command.
+        入力されたコマンドの終端を検知する。
+        0 is no hit.
+        1 is hit.
+    */
+    int isEOC(const char* c) {
+        if(*c == ';' || *c == '\0') {
+            return 1;
+        }
+        return 0;
+    }
+    /**
+        コマンドのコピーを行う。
+    */
+    int copyCmd(char* dest, const char* src, const int len) {
+        int i = 0;
+        for(;i < len; i++) {
+            dest[i] = src[i];
+        }
+        dest[i] = '\0';
+        return 0;
+    }
+    /**
+        コマンドの初期化を行う。
+    */
+    int initCmd(char* cmd) {
+        for(int i = 0; i < sizeof(cmd)/sizeof(cmd[0]); i++) {
+            cmd[i] = '\0';
+        }
+        return 0;
+    }
+    /**
+        メンバ変数 cmdData の初期化を行う。
+    */
+    int initCmdData() {
+        cmdData = new CMD_DATA[cmdMaxIndex];
+        for(int i=0; i<cmdMaxIndex ; i++) {
+            cmdData[i].no = -1;
+            initCmd(cmdData[i].data);
+        }
+        return 0;
+    }
+    // string から char 配列への変換を行う。
+    int toArray(const string& str) {
+        int size = str.size()+1;
+        ptrOrgCmd = new char[size];
+        std::char_traits<char>::copy(ptrOrgCmd,str.c_str(),size);
+        return 0;
+    }
+    void debugArray() {
+        printf("--- debugArray\n");
+        for(int i = 0;;i++) {
+            if(ptrOrgCmd[i] == '\0') {
+                break;
+            }
+            printf("%c",ptrOrgCmd[i]);
+        }
+        printf("\n");
+    }
+    /**
+        前提条件として、ptrOrgCmd がユーザ入力されたコマンドで初期化されているものとする。
+        半角スペースをカウントして、いくつに分割できるのか予め見積もる。
+    */
+    int computeCmdDataMaxIndex() {
+        try {
+            if(ptrOrgCmd != nullptr) {
+                cmdMaxIndex = 1;
+                for(int i = 0;;i++) {
+                    if( ptrOrgCmd[i] == ' ' ) {
+                        cmdMaxIndex += 1;
+                    } else if(isEOC(&ptrOrgCmd[i])) {
+                        break;
+                    }
+                }
+            }
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+        return 0;
+    }
+    /**
+        半角スペースでコマンドを分割して、CMD_DATA 型の cmdData に値を代入する。
+    */
+    int segmentCmd() {
+        char tmp[CMD_SPLIT_SIZE] = {'\0'};
+        int j = 0;
+        int k = 0;
+        int limit = strlen(ptrOrgCmd);
+        try {
+            for(int i=0; i<limit ; i++) {
+                if(ptrOrgCmd[i] != ' ' && ptrOrgCmd[i] != ';') {
+                    tmp[j] = ptrOrgCmd[i];
+                    j++;
+                } else {
+                    tmp[j] = '\0';
+                    // デバッグ
+                    ptr_str_debug("tmp is ",tmp);
+                    int len = strlen(tmp);
+                    ptr_d_debug("\tlen is ",&len);
+                    if( len > 0 ) {
+                        cmdData[k].no = k;
+                        copyCmd(cmdData[k].data,tmp,len);
+                        k++;
+                    }
+                    // tmp に関するデータのリセット
+                    j = 0;
+                    initCmd(tmp);
+                }
+                if(isEOC(&ptrOrgCmd[i])) {
+                    break;
+                }
+            }
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+        return 0;
+    }
+    /**
+        in の値、文字を大文字に変換し out に代入する。
+        これはそのまま利用することはできないのではないか？
+    */
+    int upperStr(const char* in, char* out) {
+        int i = 0;
+        while(in[i] != '\0') {
+            out[i] = toupper(in[i]);
+            i++;
+        }
+        return 0;
+    }
+
 public:
     virtual int validation() const = 0;
     virtual int analyze() const = 0;
+    virtual int toUpper() const = 0;      // 少し迷ったが、結局Public の純粋仮想関数にした。ここで各コマンドの揺らぎを吸収してくれ。
     virtual ~ICommandAnalyzer() {}
 };
 class CommandInsert final : public virtual ICommandAnalyzer {
 private:
-    string orgCmd;
+    string orgCmd = "";         // 値を代入後、この値は変更してはいけない。
     vector<string> splitCmd;
     CommandInsert() {}
 public:
     CommandInsert(const string& originalCommnad) {
         orgCmd = originalCommnad;
+        cmdMaxIndex = -1;
+        toArray(originalCommnad);   // @see 基底クラス
+        debugArray();               // @see 基底クラス
+        computeCmdDataMaxIndex();   // @see 基底クラス
+        ptr_lambda_debug<const string&,const int&>("cmdMaxIndex is ",cmdMaxIndex);
+        initCmdData();      // @see 基底クラス
+        segmentCmd();       // @see 基底クラス
+        // Values までをtoUpper する。
     }
     CommandInsert(const CommandInsert& own) {
         *this = own;
         this->orgCmd = own.orgCmd;
         this->splitCmd = own.splitCmd;
     }
-    ~CommandInsert() {}
+    ~CommandInsert() {
+        ptr_lambda_debug<const string&,const int&>("CommandInsert Destructor ...",0);
+        delete [] ptrOrgCmd;
+        delete [] ptrUpCmd;
+        delete [] cmdData;
+    }
     virtual int validation() const override {
         return 1;   // 未実装なので 0 ではなく 1 を返却している。
     }
     /**
         Insert 構文の解析をする。
-        - Upper するものしないもの。        
+        - Upper するものしないもの。
+            - CMD_DATA がいくつ必要か知る必要がある（システムで予め保持することもできるが：）        
             - 半角スペースで分割。
             - Values を検知。
             - Values より後はUpper しない。
@@ -88,6 +243,14 @@ public:
     virtual int analyze() const override {
         // https://marycore.jp/prog/cpp/convert-string-to-char/
         // これからやることに、少し参考になったぞ：）ありがたい。結局調べるだけに留まったな、図書館に行ってから野暮用をすませて来たのだ、しかたない。
+        // git の確認をする。
+        return 0;
+    }
+    /**
+        ダメだ、眠すぎて何も考えられなくなってきた。
+        ここまでだな、今日は：）
+    */
+    virtual int toUpper() const override {
         return 0;
     }
 };
