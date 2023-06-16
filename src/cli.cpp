@@ -180,10 +180,23 @@ protected:
         }
         return 0;
     }
+    /**
+        in の値、文字を大文字に変換し out に代入する。
+        これはそのまま利用することはできないのではないか？
+    */
+    int upperStr(const char* in, char* out) {
+        int i = 0;
+        while(in[i] != '\0') {
+            out[i] = toupper(in[i]);
+            i++;
+        }
+        return 0;
+    }
 
 public:
     virtual int validation() const = 0;
     virtual int analyze() const = 0;
+    virtual int toUpper() const = 0;      // 少し迷ったが、結局Public の純粋仮想関数にした。ここで各コマンドの揺らぎを吸収してくれ。
     virtual ~ICommandAnalyzer() {}
 };
 class CommandInsert final : public virtual ICommandAnalyzer {
@@ -201,6 +214,7 @@ public:
         ptr_lambda_debug<const string&,const int&>("cmdMaxIndex is ",cmdMaxIndex);
         initCmdData();      // @see 基底クラス
         segmentCmd();       // @see 基底クラス
+        // Values までをtoUpper する。
     }
     CommandInsert(const CommandInsert& own) {
         *this = own;
@@ -230,6 +244,13 @@ public:
         // https://marycore.jp/prog/cpp/convert-string-to-char/
         // これからやることに、少し参考になったぞ：）ありがたい。結局調べるだけに留まったな、図書館に行ってから野暮用をすませて来たのだ、しかたない。
         // git の確認をする。
+        return 0;
+    }
+    /**
+        ダメだ、眠すぎて何も考えられなくなってきた。
+        ここまでだな、今日は：）
+    */
+    virtual int toUpper() const override {
         return 0;
     }
 };
