@@ -64,8 +64,8 @@ class ICommandAnalyzer {
 protected:
     int cmdMaxIndex = -1;           // CMD_DATA のMax Index 数
     CMD_DATA* cmdData = nullptr;    // CMD_DATA スプリットしたコマンドを格納する配列。 
+    CMD_DATA* cmdUpData = nullptr;  // CMD_DATA スプリットしたコマンドを格納する配列でシステムコマンドのみ大文字変換したもの。
     char* ptrOrgCmd = nullptr;      // この値は変更しない（orgCmdのchar 配列版だと考えてほしい）。
-    char* ptrUpCmd = nullptr;       // ユーザ入力されたコマンドを大文字変換したもの。
 
     /**
         is End of Command.
@@ -199,11 +199,11 @@ protected:
         }
         return 0;
     }
+    virtual int toUpper() const = 0;        // 少し迷ったが、結局Protected の純粋仮想関数にした。ここで各コマンドの揺らぎを吸収してくれ。コンストラクタ内で利用してね。
 
 public:
     virtual int validation() const = 0;
     virtual int analyze() const = 0;
-    virtual int toUpper() const = 0;      // 少し迷ったが、結局Public の純粋仮想関数にした。ここで各コマンドの揺らぎを吸収してくれ。
     virtual ~ICommandAnalyzer() {}
 };
 class CommandInsert final : public virtual ICommandAnalyzer {
@@ -211,6 +211,15 @@ private:
     string orgCmd = "";         // 値を代入後、この値は変更してはいけない。
     vector<string> splitCmd;
     CommandInsert() {}
+protected:
+    /**
+        ダメだ、眠すぎて何も考えられなくなってきた。
+        ここまでだな、今日は：）
+    */
+    virtual int toUpper() const override {
+        return 0;
+    }
+
 public:
     CommandInsert(const string& originalCommnad) {
         orgCmd = originalCommnad;
@@ -225,14 +234,12 @@ public:
     }
     CommandInsert(const CommandInsert& own) {
         *this = own;
-        this->orgCmd = own.orgCmd;
-        this->splitCmd = own.splitCmd;
     }
     ~CommandInsert() {
         ptr_lambda_debug<const string&,const int&>("CommandInsert Destructor ...",0);
         delete [] ptrOrgCmd;
-        delete [] ptrUpCmd;
         delete [] cmdData;
+        delete [] cmdUpData;
     }
     virtual int validation() const override {
         return 1;   // 未実装なので 0 ではなく 1 を返却している。
@@ -251,13 +258,6 @@ public:
         // https://marycore.jp/prog/cpp/convert-string-to-char/
         // これからやることに、少し参考になったぞ：）ありがたい。結局調べるだけに留まったな、図書館に行ってから野暮用をすませて来たのだ、しかたない。
         // git の確認をする。
-        return 0;
-    }
-    /**
-        ダメだ、眠すぎて何も考えられなくなってきた。
-        ここまでだな、今日は：）
-    */
-    virtual int toUpper() const override {
         return 0;
     }
 };
