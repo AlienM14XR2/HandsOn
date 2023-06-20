@@ -11,6 +11,7 @@
     別ファイルでもOK。
 
     基底クラスに再利用可能な関数はまとめること、都度リファクタを考慮して進めること。（焦る必要は一個もない：）
+    念のため、各関数はその殆どが戻り値（int）を持つ、それはエラーハンドリングに利用する予定、そう予定だから未定だ。
 
     @Author Jack
 */
@@ -23,7 +24,7 @@
 using namespace std;
 
 #define CMD_SIZE                1024
-#define CMD_SPLIT_SIZE            32
+#define CMD_SPLIT_SIZE            64
 #define CMD_DATA_MAX_INDEX       512
 
 typedef struct {
@@ -52,6 +53,32 @@ void ptr_str_debug(const char* message, char* debug) {
 void ptr_cstr_debug(const char* message, const char* debug) {
     printf("%s\tvalue=%s\taddr=%p\n",message,debug,debug);
 }
+
+/**
+     コマンドのコピーを行う。
+*/
+int copyCmd(char* dest, const char* src, const int len) {
+    int i = 0;
+    for(;i < len; i++) {
+        dest[i] = src[i];
+    }
+    dest[i] = '\0';
+   return 0;
+}
+
+/**
+    in の値、文字を大文字に変換し out に代入する。
+*/
+int upperStr(const char* in, char* out) {
+    int i = 0;
+    while(in[i] != '\0') {
+          out[i] = toupper(in[i]);
+        i++;
+    }
+    out[i] = '\0';
+    return 0;
+}
+
 /**
     任意の文字列から、"" で囲まれた間の X や Y といった特定の文字を読み飛ばす、本来の制御処理の対象外とする。
     抽象的に言うと以上の事柄。
@@ -80,17 +107,6 @@ protected:
         return 0;
     }
     /**
-        コマンドのコピーを行う。
-    */
-    int copyCmd(char* dest, const char* src, const int len) {
-        int i = 0;
-        for(;i < len; i++) {
-            dest[i] = src[i];
-        }
-        dest[i] = '\0';
-        return 0;
-    }
-    /**
         コマンドの初期化を行う。
     */
     int initCmd(char* cmd) {
@@ -110,6 +126,17 @@ protected:
         }
         return 0;
     }
+    /**
+        メンバ変数 cmdUpData の初期化を行う。
+    */
+    int initCmdUpData() {
+        cmdUpData = new CMD_DATA[cmdMaxIndex];
+        for(int i=0; i<cmdMaxIndex; i++) {
+            cmdUpData[i].no = -1;
+            initCmd(cmdUpData[i].data);
+        }
+        return 0;
+    }
     // string から char 配列への変換を行う。
     int toArray(const string& str) {
         int size = str.size()+1;
@@ -126,6 +153,13 @@ protected:
             printf("%c",ptrOrgCmd[i]);
         }
         printf("\n");
+    }
+    void debugCmdData(const CMD_DATA* cmdd) {
+        printf("--- debugCmdData\n");
+        for(int i=0 ;i < cmdMaxIndex; i++) {
+            ptr_lambda_debug<const string&,const int&>("no is ",cmdd[i].no);
+            ptr_lambda_debug<const string&,const char*>("data is ",cmdd[i].data);
+        }
     }
     /**
         前提条件として、ptrOrgCmd がユーザ入力されたコマンドで初期化されているものとする。
@@ -187,18 +221,6 @@ protected:
         }
         return 0;
     }
-    /**
-        in の値、文字を大文字に変換し out に代入する。
-        これはそのまま利用することはできないのではないか？
-    */
-    int upperStr(const char* in, char* out) {
-        int i = 0;
-        while(in[i] != '\0') {
-            out[i] = toupper(in[i]);
-            i++;
-        }
-        return 0;
-    }
     virtual int toUpper() const = 0;        // 少し迷ったが、結局Protected の純粋仮想関数にした。ここで各コマンドの揺らぎを吸収してくれ。コンストラクタ内で利用してね。
 
 public:
@@ -213,10 +235,24 @@ private:
     CommandInsert() {}
 protected:
     /**
-        ダメだ、眠すぎて何も考えられなくなってきた。
-        ここまでだな、今日は：）
+        Values までをtoUpper する。
+        values がシステムの予約語になったということでいいのか。
+        insert もそうなるのか。
     */
     virtual int toUpper() const override {
+        int ignore = 0;
+        for(int i=0;i < cmdMaxIndex; i++) {
+            cmdUpData[i].no = cmdData[i].no;
+            if(ignore == 0) {
+                upperStr(cmdData[i].data,cmdUpData[i].data);
+                if(strcmp("VALUES",cmdUpData[i].data) == 0) {
+                    ignore = 1;
+                }
+            } else {
+                int len = strlen(cmdData[i].data);
+                copyCmd(cmdUpData[i].data, cmdData[i].data, len);
+            }
+        }
         return 0;
     }
 
@@ -229,8 +265,11 @@ public:
         computeCmdDataMaxIndex();   // @see 基底クラス
         ptr_lambda_debug<const string&,const int&>("cmdMaxIndex is ",cmdMaxIndex);
         initCmdData();      // @see 基底クラス
+        initCmdUpData();    // @see 基底クラス 中身はinitCmdData() と同じ、ループが増える分処理の無駄とも言えるが、あえて分けた。
         segmentCmd();       // @see 基底クラス
         // Values までをtoUpper する。
+        toUpper();
+        debugCmdData(cmdUpData);
     }
     CommandInsert(const CommandInsert& own) {
         *this = own;
