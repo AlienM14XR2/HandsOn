@@ -12,6 +12,7 @@
 
     基底クラスに再利用可能な関数はまとめること、都度リファクタを考慮して進めること。（焦る必要は一個もない：）
     念のため、各関数はその殆どが戻り値（int）を持つ、それはエラーハンドリングに利用する予定、そう予定だから未定だ。
+    未定なので、現状考慮はされていない。
 
     @Author Jack
 */
@@ -85,7 +86,8 @@ int upperStr(const char* in, char* out) {
     具体的に示すと下記になる。
     Values ("半角スペース","エスケープ文字+ダブルクォート");
     e.g. Values ("I'm Jack.","\"What's up ?\"");
-    CommandAnalyzer
+
+    ICommandAnalyzer
 */
 class ICommandAnalyzer {
 protected:
@@ -228,6 +230,20 @@ public:
     virtual int analyze() const = 0;
     virtual ~ICommandAnalyzer() {}
 };
+/**
+    CommandInsert クラス
+    インサートコマンドの解析を行う。
+
+    e.g. insert into file_name(col_1,col_2) values ("I'm Jack.", "\"What's up ?\"");
+
+    '(' から ')' 一回目はCols
+    二回目はVals、Vals は""の中身のみを取得すること。
+
+    現状、cmdUpData に半角スペースで分割されたデータはある。
+    それを再加工（半角スペース）で連結し直す。
+    連結後、上記の処理を行う。
+
+*/
 class CommandInsert final : public virtual ICommandAnalyzer {
 private:
     string orgCmd = "";         // 値を代入後、この値は変更してはいけない。
@@ -261,15 +277,15 @@ public:
         orgCmd = originalCommnad;
         cmdMaxIndex = -1;
         toArray(originalCommnad);   // @see 基底クラス
-        debugArray();               // @see 基底クラス
+    debugArray();               // @see 基底クラス
         computeCmdDataMaxIndex();   // @see 基底クラス
-        ptr_lambda_debug<const string&,const int&>("cmdMaxIndex is ",cmdMaxIndex);
+    ptr_lambda_debug<const string&,const int&>("cmdMaxIndex is ",cmdMaxIndex);
         initCmdData();      // @see 基底クラス
         initCmdUpData();    // @see 基底クラス 中身はinitCmdData() と同じ、ループが増える分処理の無駄とも言えるが、あえて分けた。
         segmentCmd();       // @see 基底クラス
         // Values までをtoUpper する。
         toUpper();
-        debugCmdData(cmdUpData);
+    debugCmdData(cmdUpData);
     }
     CommandInsert(const CommandInsert& own) {
         *this = own;
