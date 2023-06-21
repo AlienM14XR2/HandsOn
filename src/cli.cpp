@@ -250,7 +250,7 @@ class CommandInsert final : public virtual ICommandAnalyzer {
 private:
     string orgCmd = "";                     // 値を代入後、この値は変更してはいけない。
     vector<string> splitCmd;                // 最初に用意したけど、このまま利用しない可能性が高くなったぞ：）考えとけ：）
-    char reconcCmd[CMD_SIZE] = {"\0"};      // re concatenation command. 再連結されたコマンド。 
+    mutable char reconcCmd[CMD_SIZE] = {"\0"};      // re concatenation command. 再連結されたコマンド。 
 
     /**
         デフォルトコンストラクタ
@@ -284,7 +284,30 @@ protected:
     */
     int reconcate() const override {
         ptr_lambda_debug<const string&,const int&>("--- reconcate",0);
-        try {} 
+        try {
+            int k = 0;
+            int l = 0;
+            for(int i=0; i < cmdMaxIndex; i++) {
+                for(int j=0;; j++) {
+                    if( cmdUpData[i].data[j] == '\0' ) {
+                        k+=1;
+                        if(k < cmdMaxIndex) {
+                            reconcCmd[l] = ' ';
+                        } else {
+                            reconcCmd[l] = '\0';
+                        }
+                        l+=1;
+                        break;
+                    } else {
+                        reconcCmd[l] = cmdUpData[i].data[j];
+                        l+=1;
+                    }
+                }
+            }
+            ptr_lambda_debug<const string&,const int&>("k is ",k);
+            ptr_lambda_debug<const string&,const char*>("reconcCmd is ",reconcCmd);
+            // パッと見よさそうな気がするのだがな：）
+        } 
         catch(exception& e) {
             cerr << e.what() << endl;
             return -1;
