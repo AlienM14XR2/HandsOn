@@ -220,8 +220,10 @@ protected:
         }
         return 0;
     }
-    virtual int toUpper() const = 0;        // 少し迷ったが、結局Protected の純粋仮想関数にした。ここで各コマンドの揺らぎを吸収してくれ。コンストラクタ内で利用してね。
 
+    virtual int toUpper() const = 0;        // 少し迷ったが、結局Protected の純粋仮想関数にした。ここで各コマンドの揺らぎを吸収してくれ。コンストラクタ内で利用してね。
+    virtual int reconcate() const = 0;      // C++ まだまだ理解が足りない部分が多い、この方法以外で派生クラスで実装及び呼び出す術を知らない（現状できない：）。analyze()で呼び出す。
+    
 public:
     virtual int validation() const = 0;
     virtual int analyze() const = 0;
@@ -249,15 +251,11 @@ private:
     string orgCmd = "";                     // 値を代入後、この値は変更してはいけない。
     vector<string> splitCmd;                // 最初に用意したけど、このまま利用しない可能性が高くなったぞ：）考えとけ：）
     char reconcCmd[CMD_SIZE] = {"\0"};      // re concatenation command. 再連結されたコマンド。 
-    CommandInsert() {}                      // デフォルトコンストラクタ
 
     /**
-        半角スペースで分割されたコマンドを再連結する。
-        cmdUpData の data を連結して reconcCmd に保存する。
+        デフォルトコンストラクタ
     */
-    int reconcate() {
-        return 0;
-    }
+    CommandInsert() {} 
 protected:
     /**
         Values までをtoUpper する。
@@ -280,6 +278,20 @@ protected:
         }
         return 0;
     }
+    /**
+        半角スペースで分割されたコマンドを再連結する。
+        cmdUpData の data を連結して reconcCmd に保存する。
+    */
+    int reconcate() const override {
+        ptr_lambda_debug<const string&,const int&>("--- reconcate",0);
+        try {} 
+        catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+        return 0;
+    }
+
 
 public:
     CommandInsert(const string& originalCommnad) {
@@ -323,8 +335,8 @@ public:
         // これからやることに、少し参考になったぞ：）ありがたい。結局調べるだけに留まったな、図書館に行ってから野暮用をすませて来たのだ、しかたない。
         // git の確認をする。
         // 20230621 やっとここの実装まで漕ぎつけたと思うのだが、どうだ？
-
         // cmdUpData を再連結し、reconcCmd に代入する。
+        reconcate();
         return 0;
     }
 };
@@ -334,8 +346,8 @@ int test_Command_Insert() {
 //    const string cmd = "insert into file_name(col_1,col_2) values ('I\\'m Jack.', '\\'What\\'s up ?\\'');";
     ptr_lambda_debug<const string&,const string&>("cmd is ",cmd);
     CommandInsert cmdIns(cmd);
-    ptr_lambda_debug<const string&,const int&>("validation ... ",cmdIns.validation());
-    ptr_lambda_debug<const string&,const int&>("analyze ... ",cmdIns.analyze());
+    ptr_lambda_debug<const string&,const int&>("Play and Result validation ... ",cmdIns.validation());
+    ptr_lambda_debug<const string&,const int&>("Play and Result analyze ... ",cmdIns.analyze());
     return 0;
 }
 
