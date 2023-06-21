@@ -24,9 +24,9 @@
 #include "ctype.h"
 using namespace std;
 
-#define CMD_SIZE                1024
-#define CMD_SPLIT_SIZE            64
-#define CMD_DATA_MAX_INDEX       512
+#define CMD_SIZE                2048
+#define CMD_SPLIT_SIZE           512
+#define CMD_DATA_MAX_INDEX      1024
 
 typedef struct {
     int no;
@@ -190,8 +190,7 @@ protected:
     */
     int segmentCmd() {
         char tmp[CMD_SPLIT_SIZE] = {'\0'};
-        int j = 0;
-        int k = 0;
+        int j = 0, k = 0;
         int limit = strlen(ptrOrgCmd);
         try {
             for(int i=0; i<limit ; i++) {
@@ -201,9 +200,7 @@ protected:
                 } else {
                     tmp[j] = '\0';
                     // デバッグ
-                    ptr_str_debug("tmp is ",tmp);
-                    int len = strlen(tmp);
-                    ptr_d_debug("\tlen is ",&len);
+                    ptr_str_debug("tmp is ",tmp);int len = strlen(tmp);ptr_d_debug("\tlen is ",&len);
                     if( len > 0 ) {
                         cmdData[k].no = k;
                         copyCmd(cmdData[k].data,tmp,len);
@@ -238,22 +235,26 @@ public:
 
     '(' から ')' 一回目はCols
     二回目はVals、Vals は""の中身のみを取得すること。
+    cmdUpData を利用する。
 
     現状、cmdUpData に半角スペースで分割されたデータはある。
     それを再加工（半角スペース）で連結し直す。
     連結後、上記の処理を行う。
+    再加工、連結したデータを保存する変数（文字列）と
+    多重ポインタ、その内訳はシステム定義のCols、ユーザ入力されたCols、ユーザ入力されたVals。
 
 */
 class CommandInsert final : public virtual ICommandAnalyzer {
 private:
-    string orgCmd = "";         // 値を代入後、この値は変更してはいけない。
-    vector<string> splitCmd;
+    string orgCmd = "";                     // 値を代入後、この値は変更してはいけない。
+    vector<string> splitCmd;                // 最初に用意したけど、このまま利用しない可能性が高くなったぞ：）考えとけ：）
+    char reconcCmd[CMD_SIZE] = {"\0"};      // re concatenation command. 再連結されたコマンド。 
     CommandInsert() {}
 protected:
     /**
         Values までをtoUpper する。
-        values がシステムの予約語になったということでいいのか。
-        insert もそうなるのか。
+        values がシステムの予約語になったということでいいのか。（Yes そうなる。
+        insert もそうなるのか。（Yes そうなる。
     */
     virtual int toUpper() const override {
         int ignore = 0;
@@ -313,6 +314,7 @@ public:
         // https://marycore.jp/prog/cpp/convert-string-to-char/
         // これからやることに、少し参考になったぞ：）ありがたい。結局調べるだけに留まったな、図書館に行ってから野暮用をすませて来たのだ、しかたない。
         // git の確認をする。
+        // 20230621 やっとここの実装まで漕ぎつけたと思うのだが、どうだ？
         return 0;
     }
 };
