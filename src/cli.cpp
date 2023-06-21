@@ -249,7 +249,15 @@ private:
     string orgCmd = "";                     // 値を代入後、この値は変更してはいけない。
     vector<string> splitCmd;                // 最初に用意したけど、このまま利用しない可能性が高くなったぞ：）考えとけ：）
     char reconcCmd[CMD_SIZE] = {"\0"};      // re concatenation command. 再連結されたコマンド。 
-    CommandInsert() {}
+    CommandInsert() {}                      // デフォルトコンストラクタ
+
+    /**
+        半角スペースで分割されたコマンドを再連結する。
+        cmdUpData の data を連結して reconcCmd に保存する。
+    */
+    int reconcate() {
+        return 0;
+    }
 protected:
     /**
         Values までをtoUpper する。
@@ -315,6 +323,8 @@ public:
         // これからやることに、少し参考になったぞ：）ありがたい。結局調べるだけに留まったな、図書館に行ってから野暮用をすませて来たのだ、しかたない。
         // git の確認をする。
         // 20230621 やっとここの実装まで漕ぎつけたと思うのだが、どうだ？
+
+        // cmdUpData を再連結し、reconcCmd に代入する。
         return 0;
     }
 };
