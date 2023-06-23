@@ -5,6 +5,17 @@
     e.g. INSERT INTO FILE_NAME(COL_1,COL_2) VALUES ("I'm Jack.", ""What's up ?"")
 
     ここから、システム定義のカラム名とユーザ入力されたカラム名及びその値を抜き出す方法を考える。
+    そもそも論だけど、システムのデフォルトカラムを決めていないな：）
+    - ID        システム自動設定、プライマリキ。
+    - EMAIL     ユーザ入力、必須。
+    - NAME      ユーザ入力、必須。
+    - PHONE_1   ユーザ入力、必須。
+    - PHONE_2   ユーザ入力
+    - PHONE_3   ユーザ入力
+    - ADDRESS   ユーザ入力
+    - MEMO      ユーザ入力
+    - CREATE_AT システム自動設定
+    - UPDATE_AT システム自動設定
 */
 #include <iostream>
 
