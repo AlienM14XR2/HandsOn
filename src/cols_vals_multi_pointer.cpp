@@ -10,12 +10,12 @@
     - EMAIL     ユーザ入力、必須。
     - NAME      ユーザ入力、必須。
     - PHONE_1   ユーザ入力、必須。
-    - PHONE_2   ユーザ入力
-    - PHONE_3   ユーザ入力
-    - ADDRESS   ユーザ入力
-    - MEMO      ユーザ入力
-    - CREATE_AT システム自動設定
-    - UPDATE_AT システム自動設定
+    - PHONE_2   ユーザ入力。
+    - PHONE_3   ユーザ入力。
+    - ADDRESS   ユーザ入力。
+    - MEMO      ユーザ入力。
+    - CREATE_AT システム自動設定。
+    - UPDATE_AT システム自動設定。
 */
 #include <iostream>
 
@@ -26,10 +26,18 @@ void (*ptr_lambda_debug)(M,D) = [](auto message,auto debug)-> void {
     cout << message << '\t' << debug << endl;
 };
 
+int sample_a() {
+    cout << "----------------------- sample_a" << endl;
+    return 0;
+}
+
 int main(void) {
     cout << "START Cols Vals Multi Pointer ===============" << endl;
     if(1.0) {
         ptr_lambda_debug<const string&,const int&>("Yeah Here we go !!",0);
+    }
+    if(1.1) {
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... ",sample_a());
     }
     cout << "=============== Cols Vals Multi Pointer END" << endl;
     return 0;
