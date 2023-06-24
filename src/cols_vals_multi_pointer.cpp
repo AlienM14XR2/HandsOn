@@ -26,8 +26,18 @@ void (*ptr_lambda_debug)(M,D) = [](auto message,auto debug)-> void {
     cout << message << '\t' << debug << endl;
 };
 
-int sample_a() {
-    cout << "----------------------- sample_a" << endl;
+/**
+    以下のデータ整形まではプログラムで完了している。
+    よってここから、Cols とVals を取り出す。
+    最初の '(' から ')' まではCols。
+    VALUES 以下の '(' から ')' まではVals。
+
+    e.g. INSERT INTO FILE_NAME(COL_1,COL_2) VALUES ("I'm Jack.", ""What's up ?"")
+*/
+int step_a() {
+    cout << "----------------------- step_a" << endl;
+    char reconcCmd[] = {"INSERT INTO FILE_NAME(COL_1,COL_2) VALUES (\"I'm Jack.\", \"\\\"What's up ?\\\"\")\0"};
+    ptr_lambda_debug<const string&,const char*>("reconcCmd is ",reconcCmd);
     return 0;
 }
 
@@ -37,7 +47,7 @@ int main(void) {
         ptr_lambda_debug<const string&,const int&>("Yeah Here we go !!",0);
     }
     if(1.1) {
-        ptr_lambda_debug<const string&,const int&>("Play and Result ... ",sample_a());
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... ",step_a());
     }
     cout << "=============== Cols Vals Multi Pointer END" << endl;
     return 0;
