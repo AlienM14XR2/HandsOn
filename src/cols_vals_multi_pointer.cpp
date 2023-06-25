@@ -26,6 +26,25 @@ void (*ptr_lambda_debug)(M,D) = [](auto message,auto debug)-> void {
     cout << message << '\t' << debug << endl;
 };
 
+int fetchCols(char* dest, const char* cmd) {
+    try {
+
+    } catch(exception& e) {
+        cerr << e.what() << endl;
+        return -1;
+    }
+    return 0;
+}
+int fetchVals(char* dest, const char* cmd) {
+    try {
+
+    } catch(exception& e) {
+        cerr << e.what() << endl;
+        return -1;
+    }
+    return 0;
+}
+
 /**
     以下のデータ整形まではプログラムで完了している。
     よってここから、Cols とVals を取り出す。
@@ -38,6 +57,9 @@ int step_a() {
     cout << "----------------------- step_a" << endl;
     char reconcCmd[] = {"INSERT INTO FILE_NAME(COL_1,COL_2) VALUES (\"I'm Jack.\", \"\\\"What's up ?\\\"\")\0"};
     ptr_lambda_debug<const string&,const char*>("reconcCmd is ",reconcCmd);
+    char vals[1024] = {"\0"};
+    char cols[1024] = {"\0"};
+    ptr_lambda_debug<const string&,const int&>("Play and Result ... fetchCols",fetchCols(vals,reconcCmd));
     return 0;
 }
 
@@ -47,7 +69,7 @@ int main(void) {
         ptr_lambda_debug<const string&,const int&>("Yeah Here we go !!",0);
     }
     if(1.1) {
-        ptr_lambda_debug<const string&,const int&>("Play and Result ... ",step_a());
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... step_a",step_a());
     }
     cout << "=============== Cols Vals Multi Pointer END" << endl;
     return 0;
