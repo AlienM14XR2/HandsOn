@@ -40,7 +40,7 @@ void (*ptr_lambda_debug)(M,D) = [](auto message,auto debug)-> void {
     中身の取り出す方法が異なるだけなら、そこを変えるだけだ、やりようはいくらでもある。
     通常フローでもいいし、関数ポインタでもいいだろう。どうかな：）
 */
-int fetch(char* dest, const char* cmd) {
+int fetch(char* destc, char* destv, const char* cmd) {
     try {
         int len = strlen(cmd);
         for(int i=0; i<len; i++) {
@@ -59,18 +59,9 @@ int fetch(char* dest, const char* cmd) {
     return 0;
 }
 
-int fetchCols(char* dest, const char* cmd) {
+int fetchColsVals(char* destc, char* destv, const char* cmd) {
     try {
-        ptr_lambda_debug<const string&,const int&>("Play and Result ... fetch",fetch(dest,cmd));
-    } catch(exception& e) {
-        cerr << e.what() << endl;
-        return -1;
-    }
-    return 0;
-}
-int fetchVals(char* dest, const char* cmd) {
-    try {
-
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... fetch",fetch(destc,destv,cmd));
     } catch(exception& e) {
         cerr << e.what() << endl;
         return -1;
@@ -91,8 +82,8 @@ int step_a() {
     char reconcCmd[] = {"INSERT INTO FILE_NAME(COL_1,COL_2) VALUES (\"I'm Jack.\", \"\\\"What's up ?\\\"\")\0"};
     ptr_lambda_debug<const string&,const char*>("reconcCmd is ",reconcCmd);
     char cols[1024] = {"\0"};
-//    char vals[1024] = {"\0"};
-    ptr_lambda_debug<const string&,const int&>("Play and Result ... fetchCols",fetchCols(cols,reconcCmd));
+    char vals[1024] = {"\0"};
+    ptr_lambda_debug<const string&,const int&>("Play and Result ... fetchCols",fetchColsVals(cols,vals,reconcCmd));
     return 0;
 }
 
