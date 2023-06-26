@@ -18,6 +18,9 @@
     - UPDATE_AT システム自動設定。
 */
 #include <iostream>
+#include "stdio.h"
+#include "stdlib.h"
+#include "string.h"
 
 using namespace std;
 
@@ -39,7 +42,16 @@ void (*ptr_lambda_debug)(M,D) = [](auto message,auto debug)-> void {
 */
 int fetch(char* dest, const char* cmd) {
     try {
-
+        int len = strlen(cmd);
+        for(int i=0; i<len; i++) {
+            printf("%c",cmd[i]);
+            if('(' == cmd[i]) {
+                printf("Hit.\n");
+            } else if(')' == cmd[i]) {
+                printf("Hit.\n");
+            }
+        }
+        printf("\n");
     } catch(exception& e) {
         cerr << e.what() << endl;
         return -1;
@@ -78,9 +90,9 @@ int step_a() {
     cout << "----------------------- step_a" << endl;
     char reconcCmd[] = {"INSERT INTO FILE_NAME(COL_1,COL_2) VALUES (\"I'm Jack.\", \"\\\"What's up ?\\\"\")\0"};
     ptr_lambda_debug<const string&,const char*>("reconcCmd is ",reconcCmd);
-    char vals[1024] = {"\0"};
     char cols[1024] = {"\0"};
-    ptr_lambda_debug<const string&,const int&>("Play and Result ... fetchCols",fetchCols(vals,reconcCmd));
+//    char vals[1024] = {"\0"};
+    ptr_lambda_debug<const string&,const int&>("Play and Result ... fetchCols",fetchCols(cols,reconcCmd));
     return 0;
 }
 
