@@ -37,10 +37,19 @@ void (*ptr_lambda_debug)(M,D) = [](auto message,auto debug)-> void {
     中身の取り出す方法が異なるだけなら、そこを変えるだけだ、やりようはいくらでもある。
     通常フローでもいいし、関数ポインタでもいいだろう。どうかな：）
 */
+int fetch(char* dest, const char* cmd) {
+    try {
+
+    } catch(exception& e) {
+        cerr << e.what() << endl;
+        return -1;
+    }
+    return 0;
+}
 
 int fetchCols(char* dest, const char* cmd) {
     try {
-
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... fetch",fetch(dest,cmd));
     } catch(exception& e) {
         cerr << e.what() << endl;
         return -1;
