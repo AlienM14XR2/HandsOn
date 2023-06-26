@@ -5,6 +5,15 @@
     今後の開発はC++ も利用するが、ベースはC で行う予定。まずは、いつものテンプレソースファイルを用意し
     その後cli.c で有効だった関数を移植する予定。
 
+    コンストラクタで必要な初期化、代入は行う、これは徹底すること。
+    デストラクタで必ずnew したメモリは解放すること、これも徹底する。
+    要検証、コピーコンスタントの *this = own; これだけでメンバ変数の再設定は必要ないのか確認すること。
+    別ファイルでもOK。
+
+    基底クラスに再利用可能な関数はまとめること、都度リファクタを考慮して進めること。（焦る必要は一個もない：）
+    念のため、各関数はその殆どが戻り値（int）を持つ、それはエラーハンドリングに利用する予定、そう予定だから未定だ。
+    未定なので、現状考慮はされていない。
+
     @Author Jack
 */
 #include <iostream>
@@ -15,9 +24,9 @@
 #include "ctype.h"
 using namespace std;
 
-#define CMD_SIZE                1024
-#define CMD_SPLIT_SIZE            32
-#define CMD_DATA_MAX_INDEX       512
+#define CMD_SIZE                2048
+#define CMD_SPLIT_SIZE           512
+#define CMD_DATA_MAX_INDEX      1024
 
 typedef struct {
     int no;
@@ -45,20 +54,47 @@ void ptr_str_debug(const char* message, char* debug) {
 void ptr_cstr_debug(const char* message, const char* debug) {
     printf("%s\tvalue=%s\taddr=%p\n",message,debug,debug);
 }
+
+/**
+     コマンドのコピーを行う。
+*/
+int copyCmd(char* dest, const char* src, const int len) {
+    int i = 0;
+    for(;i < len; i++) {
+        dest[i] = src[i];
+    }
+    dest[i] = '\0';
+   return 0;
+}
+
+/**
+    in の値、文字を大文字に変換し out に代入する。
+*/
+int upperStr(const char* in, char* out) {
+    int i = 0;
+    while(in[i] != '\0') {
+          out[i] = toupper(in[i]);
+        i++;
+    }
+    out[i] = '\0';
+    return 0;
+}
+
 /**
     任意の文字列から、"" で囲まれた間の X や Y といった特定の文字を読み飛ばす、本来の制御処理の対象外とする。
     抽象的に言うと以上の事柄。
     具体的に示すと下記になる。
     Values ("半角スペース","エスケープ文字+ダブルクォート");
     e.g. Values ("I'm Jack.","\"What's up ?\"");
-    CommandAnalyzer
+
+    ICommandAnalyzer
 */
 class ICommandAnalyzer {
 protected:
     int cmdMaxIndex = -1;           // CMD_DATA のMax Index 数
     CMD_DATA* cmdData = nullptr;    // CMD_DATA スプリットしたコマンドを格納する配列。 
+    CMD_DATA* cmdUpData = nullptr;  // CMD_DATA スプリットしたコマンドを格納する配列でシステムコマンドのみ大文字変換したもの。
     char* ptrOrgCmd = nullptr;      // この値は変更しない（orgCmdのchar 配列版だと考えてほしい）。
-    char* ptrUpCmd = nullptr;       // ユーザ入力されたコマンドを大文字変換したもの。
 
     /**
         is End of Command.
@@ -70,17 +106,6 @@ protected:
         if(*c == ';' || *c == '\0') {
             return 1;
         }
-        return 0;
-    }
-    /**
-        コマンドのコピーを行う。
-    */
-    int copyCmd(char* dest, const char* src, const int len) {
-        int i = 0;
-        for(;i < len; i++) {
-            dest[i] = src[i];
-        }
-        dest[i] = '\0';
         return 0;
     }
     /**
@@ -103,6 +128,17 @@ protected:
         }
         return 0;
     }
+    /**
+        メンバ変数 cmdUpData の初期化を行う。
+    */
+    int initCmdUpData() {
+        cmdUpData = new CMD_DATA[cmdMaxIndex];
+        for(int i=0; i<cmdMaxIndex; i++) {
+            cmdUpData[i].no = -1;
+            initCmd(cmdUpData[i].data);
+        }
+        return 0;
+    }
     // string から char 配列への変換を行う。
     int toArray(const string& str) {
         int size = str.size()+1;
@@ -119,6 +155,13 @@ protected:
             printf("%c",ptrOrgCmd[i]);
         }
         printf("\n");
+    }
+    void debugCmdData(const CMD_DATA* cmdd) {
+        printf("--- debugCmdData\n");
+        for(int i=0 ;i < cmdMaxIndex; i++) {
+            ptr_lambda_debug<const string&,const int&>("no is ",cmdd[i].no);
+            ptr_lambda_debug<const string&,const char*>("data is ",cmdd[i].data);
+        }
     }
     /**
         前提条件として、ptrOrgCmd がユーザ入力されたコマンドで初期化されているものとする。
@@ -147,8 +190,7 @@ protected:
     */
     int segmentCmd() {
         char tmp[CMD_SPLIT_SIZE] = {'\0'};
-        int j = 0;
-        int k = 0;
+        int j = 0, k = 0;
         int limit = strlen(ptrOrgCmd);
         try {
             for(int i=0; i<limit ; i++) {
@@ -158,9 +200,7 @@ protected:
                 } else {
                     tmp[j] = '\0';
                     // デバッグ
-                    ptr_str_debug("tmp is ",tmp);
-                    int len = strlen(tmp);
-                    ptr_d_debug("\tlen is ",&len);
+                    ptr_str_debug("tmp is ",tmp);int len = strlen(tmp);ptr_d_debug("\tlen is ",&len);
                     if( len > 0 ) {
                         cmdData[k].no = k;
                         copyCmd(cmdData[k].data,tmp,len);
@@ -180,52 +220,125 @@ protected:
         }
         return 0;
     }
+
+    virtual int toUpper() const = 0;        // 少し迷ったが、結局Protected の純粋仮想関数にした。ここで各コマンドの揺らぎを吸収してくれ。コンストラクタ内で利用してね。
+    virtual int reconcate() const = 0;      // C++ まだまだ理解が足りない部分が多い、この方法以外で派生クラスで実装及び呼び出す術を知らない（現状できない：）。analyze()で呼び出す。
+    
+public:
+    virtual int validation() const = 0;
+    virtual int analyze() const = 0;
+    virtual ~ICommandAnalyzer() {}
+};
+/**
+    CommandInsert クラス
+    インサートコマンドの解析を行う。
+
+    e.g. insert into file_name(col_1,col_2) values ("I'm Jack.", "\"What's up ?\"");
+
+    '(' から ')' 一回目はCols
+    二回目はVals、Vals は""の中身のみを取得すること。
+    cmdUpData を利用する。
+
+    現状、cmdUpData に半角スペースで分割されたデータはある。
+    それを再加工（半角スペース）で連結し直す。
+    連結後、上記の処理を行う。
+    再加工、連結したデータを保存する変数（文字列）と
+    多重ポインタ、その内訳はシステム定義のCols、ユーザ入力されたCols、ユーザ入力されたVals。
+
+*/
+class CommandInsert final : public virtual ICommandAnalyzer {
+private:
+    string orgCmd = "";                     // 値を代入後、この値は変更してはいけない。
+    vector<string> splitCmd;                // 最初に用意したけど、このまま利用しない可能性が高くなったぞ：）考えとけ：）
+    mutable char reconcCmd[CMD_SIZE] = {"\0"};      // re concatenation command. 再連結されたコマンド。 
+
     /**
-        in の値、文字を大文字に変換し out に代入する。
-        これはそのまま利用することはできないのではないか？
+        デフォルトコンストラクタ
     */
-    int upperStr(const char* in, char* out) {
-        int i = 0;
-        while(in[i] != '\0') {
-            out[i] = toupper(in[i]);
-            i++;
+    CommandInsert() {} 
+protected:
+    /**
+        Values までをtoUpper する。
+        values がシステムの予約語になったということでいいのか。（Yes そうなる。
+        insert もそうなるのか。（Yes そうなる。
+    */
+    virtual int toUpper() const override {
+        int ignore = 0;
+        for(int i=0;i < cmdMaxIndex; i++) {
+            cmdUpData[i].no = cmdData[i].no;
+            if(ignore == 0) {
+                upperStr(cmdData[i].data,cmdUpData[i].data);
+                if(strcmp("VALUES",cmdUpData[i].data) == 0) {
+                    ignore = 1;
+                }
+            } else {
+                int len = strlen(cmdData[i].data);
+                copyCmd(cmdUpData[i].data, cmdData[i].data, len);
+            }
+        }
+        return 0;
+    }
+    /**
+        半角スペースで分割されたコマンドを再連結する。
+        cmdUpData の data を連結して reconcCmd に保存する。
+    */
+    int reconcate() const override {
+        ptr_lambda_debug<const string&,const int&>("--- reconcate",0);
+        try {
+            int k = 0;
+            int l = 0;
+            for(int i=0; i < cmdMaxIndex; i++) {
+                for(int j=0;; j++) {
+                    if( cmdUpData[i].data[j] == '\0' ) {
+                        k+=1;
+                        if(k < cmdMaxIndex) {
+                            reconcCmd[l] = ' ';
+                        } else {
+                            reconcCmd[l] = '\0';
+                        }
+                        l+=1;
+                        break;
+                    } else {
+                        reconcCmd[l] = cmdUpData[i].data[j];
+                        l+=1;
+                    }
+                }
+            }
+            ptr_lambda_debug<const string&,const int&>("k is ",k);
+            ptr_lambda_debug<const string&,const char*>("reconcCmd is ",reconcCmd);
+            // パッと見よさそうな気がするのだがな：）
+        } 
+        catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
         }
         return 0;
     }
 
-public:
-    virtual int validation() const = 0;
-    virtual int analyze() const = 0;
-    virtual int toUpper() const = 0;      // 少し迷ったが、結局Public の純粋仮想関数にした。ここで各コマンドの揺らぎを吸収してくれ。
-    virtual ~ICommandAnalyzer() {}
-};
-class CommandInsert final : public virtual ICommandAnalyzer {
-private:
-    string orgCmd = "";         // 値を代入後、この値は変更してはいけない。
-    vector<string> splitCmd;
-    CommandInsert() {}
+
 public:
     CommandInsert(const string& originalCommnad) {
         orgCmd = originalCommnad;
         cmdMaxIndex = -1;
         toArray(originalCommnad);   // @see 基底クラス
-        debugArray();               // @see 基底クラス
+    debugArray();               // @see 基底クラス
         computeCmdDataMaxIndex();   // @see 基底クラス
-        ptr_lambda_debug<const string&,const int&>("cmdMaxIndex is ",cmdMaxIndex);
+    ptr_lambda_debug<const string&,const int&>("cmdMaxIndex is ",cmdMaxIndex);
         initCmdData();      // @see 基底クラス
+        initCmdUpData();    // @see 基底クラス 中身はinitCmdData() と同じ、ループが増える分処理の無駄とも言えるが、あえて分けた。
         segmentCmd();       // @see 基底クラス
         // Values までをtoUpper する。
+        toUpper();
+    debugCmdData(cmdUpData);
     }
     CommandInsert(const CommandInsert& own) {
         *this = own;
-        this->orgCmd = own.orgCmd;
-        this->splitCmd = own.splitCmd;
     }
     ~CommandInsert() {
         ptr_lambda_debug<const string&,const int&>("CommandInsert Destructor ...",0);
         delete [] ptrOrgCmd;
-        delete [] ptrUpCmd;
         delete [] cmdData;
+        delete [] cmdUpData;
     }
     virtual int validation() const override {
         return 1;   // 未実装なので 0 ではなく 1 を返却している。
@@ -244,13 +357,9 @@ public:
         // https://marycore.jp/prog/cpp/convert-string-to-char/
         // これからやることに、少し参考になったぞ：）ありがたい。結局調べるだけに留まったな、図書館に行ってから野暮用をすませて来たのだ、しかたない。
         // git の確認をする。
-        return 0;
-    }
-    /**
-        ダメだ、眠すぎて何も考えられなくなってきた。
-        ここまでだな、今日は：）
-    */
-    virtual int toUpper() const override {
+        // 20230621 やっとここの実装まで漕ぎつけたと思うのだが、どうだ？
+        // cmdUpData を再連結し、reconcCmd に代入する。
+        reconcate();
         return 0;
     }
 };
@@ -260,8 +369,8 @@ int test_Command_Insert() {
 //    const string cmd = "insert into file_name(col_1,col_2) values ('I\\'m Jack.', '\\'What\\'s up ?\\'');";
     ptr_lambda_debug<const string&,const string&>("cmd is ",cmd);
     CommandInsert cmdIns(cmd);
-    ptr_lambda_debug<const string&,const int&>("validation ... ",cmdIns.validation());
-    ptr_lambda_debug<const string&,const int&>("analyze ... ",cmdIns.analyze());
+    ptr_lambda_debug<const string&,const int&>("Play and Result validation ... ",cmdIns.validation());
+    ptr_lambda_debug<const string&,const int&>("Play and Result analyze ... ",cmdIns.analyze());
     return 0;
 }
 
