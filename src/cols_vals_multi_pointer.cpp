@@ -26,6 +26,18 @@ void (*ptr_lambda_debug)(M,D) = [](auto message,auto debug)-> void {
     cout << message << '\t' << debug << endl;
 };
 
+/**
+    fetchCols fetchVals で思うこと。
+    from '(' to  ')' の発見と
+    (COL_1,COL_2) ... ',' を検知して文字列を取り出す。
+    ("I'm Jack.", ""What's up ?"") ',' を検知して文字列を取り出す
+    ？？？
+    同じではないのかな、ここまでは：）
+    つまりこの処理が共通だとすればひとつの関数にまとめられる。
+    中身の取り出す方法が異なるだけなら、そこを変えるだけだ、やりようはいくらでもある。
+    通常フローでもいいし、関数ポインタでもいいだろう。どうかな：）
+*/
+
 int fetchCols(char* dest, const char* cmd) {
     try {
 
