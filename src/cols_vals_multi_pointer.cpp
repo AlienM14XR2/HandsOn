@@ -30,6 +30,28 @@ void (*ptr_lambda_debug)(M,D) = [](auto message,auto debug)-> void {
 };
 
 /**
+    コマンドの初期化を行う。
+ */
+int initCmd(char* cmd) {
+    for(int i = 0; i < sizeof(cmd)/sizeof(cmd[0]); i++) {
+        cmd[i] = '\0';
+    }
+    return 0;
+}
+/**
+     コマンドのコピーを行う。
+*/
+int copyCmd(char* dest, const char* src, const int len) {
+    int i = 0;
+    for(;i < len; i++) {
+        dest[i] = src[i];
+    }
+    dest[i] = '\0';
+   return 0;
+}
+
+
+/**
     fetchCols fetchVals で思うこと。
     from '(' to  ')' の発見と
     (COL_1,COL_2) ... ',' を検知して文字列を取り出す。
@@ -42,13 +64,37 @@ void (*ptr_lambda_debug)(M,D) = [](auto message,auto debug)-> void {
 */
 int fetch(char* destc, char* destv, const char* cmd) {
     try {
+        int hitFrom = 0;    // 1: cols のはじまり、2: 中間 3: vals のはじまり。
         int len = strlen(cmd);
+        char tmp[512] = {"\0"};
+        int j = 0;
         for(int i=0; i<len; i++) {
             printf("%c",cmd[i]);
             if('(' == cmd[i]) {
-                printf("Hit.\n");
+                if( hitFrom == 0 ) {
+                    hitFrom = 1;
+                } else if( hitFrom == 2 ) {
+                    hitFrom = 3;
+                }
+                initCmd(tmp);
+                j = 0;
+                printf("\nHit. hitFrom is %d\n",hitFrom);
             } else if(')' == cmd[i]) {
-                printf("Hit.\n");
+                ptr_lambda_debug<const string&,const char*>("tmp is ", tmp);
+                if( hitFrom == 1 ) {
+                    copyCmd(destc,tmp,strlen(tmp));
+                    hitFrom = 2;
+                    ptr_lambda_debug<const string&,const char*>("destc is ", destc);
+                } else if( hitFrom == 3 ) {
+                    copyCmd(destv,tmp,strlen(tmp));
+                    hitFrom = 4;
+                    ptr_lambda_debug<const string&,const char*>("destv is ", destv);
+                }
+                printf("\nHit. hitFrom is %d\n",hitFrom);
+            }
+            if((hitFrom == 1 || hitFrom == 3) && cmd[i] != '(') {
+                tmp[j] = cmd[i];
+                j+=1;
             }
         }
         printf("\n");
