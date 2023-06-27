@@ -99,7 +99,6 @@ int fetch(char* destc, char* destv, const char* cmd) {
         char tmp[512] = {"\0"};
         int j = 0;
         for(int i=0; i<len; i++) {
-            printf("%c",cmd[i]);
             if('(' == cmd[i]) {
                 manageFrom(&hitFrom, tmp, &j);
             } else if(')' == cmd[i]) {
@@ -110,7 +109,6 @@ int fetch(char* destc, char* destv, const char* cmd) {
                 j+=1;
             }
         }
-        printf("\n");
     } catch(exception& e) {
         cerr << e.what() << endl;
         return -1;
