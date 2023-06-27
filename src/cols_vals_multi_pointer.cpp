@@ -136,8 +136,14 @@ int fetchColsVals(char* destc, char* destv, const char* cmd) {
 
     ※実を言うと例のアセンブリ言語が怖すぎて、こっちに逃げてきた：）
 */
-int step_b() {
+int step_b(char* cols, char* vals) {
     cout << "--- step_b" << endl;
+    // vals から取り組む
+    int len = strlen(vals);
+    for(int i=0; i < len; i++) {
+        printf("%c",vals[i]);
+    }
+    printf("\n");
     return 0;
 }
 /**
@@ -155,7 +161,7 @@ int step_a() {
     char cols[1024] = {"\0"};
     char vals[1024] = {"\0"};
     ptr_lambda_debug<const string&,const int&>("Play and Result ... fetchCols",fetchColsVals(cols,vals,reconcCmd));
-    ptr_lambda_debug<const string&,const int&>("Play and Result ... step_b",step_b());
+    ptr_lambda_debug<const string&,const int&>("Play and Result ... step_b",step_b(cols,vals));
     return 0;
 }
 
