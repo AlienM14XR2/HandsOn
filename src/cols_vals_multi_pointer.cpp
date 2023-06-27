@@ -49,7 +49,37 @@ int copyCmd(char* dest, const char* src, const int len) {
     dest[i] = '\0';
    return 0;
 }
-
+/**
+    '(' の検知による状態変化を管理する。
+    @see fetch 関数。
+*/
+int manageFrom(int* flg, char* tmp, int* counter) {
+    // フラグの状態遷移
+    if( (*flg) == 0 ) {
+        (*flg) = 1;
+    } else if( (*flg) == 2 ) {
+        (*flg) = 3;
+    }
+    initCmd(tmp);       // tmp の初期化
+    (*counter) = 0;     // カウンタの初期化
+    return 0;
+}
+/**
+    ')' の検知による状態変化を管理する。
+    @see fetch 関数。
+*/
+int manageTo(int* flg, char* destc, char* destv, char* tmp) {
+    if( (*flg) == 1 ) {
+        copyCmd(destc,tmp,strlen(tmp));
+        (*flg) = 2;
+        ptr_lambda_debug<const string&,const char*>("\ndestc is ", destc);
+    } else if( (*flg) == 3 ) {
+       copyCmd(destv,tmp,strlen(tmp));
+        (*flg) = 4;    // この値は本来使わないけどデバックに利用している、確認のため：）
+        ptr_lambda_debug<const string&,const char*>("\ndestv is ", destv);
+    }
+    return 0;
+}
 
 /**
     fetchCols fetchVals で思うこと。
@@ -64,33 +94,16 @@ int copyCmd(char* dest, const char* src, const int len) {
 */
 int fetch(char* destc, char* destv, const char* cmd) {
     try {
-        int hitFrom = 0;    // 1: cols のはじまり、2: 中間 3: vals のはじまり。
+        int hitFrom = 0;    // 1: cols のはじまり、2: 中間 3: vals のはじまり、4: おしまい。
         int len = strlen(cmd);
         char tmp[512] = {"\0"};
         int j = 0;
         for(int i=0; i<len; i++) {
             printf("%c",cmd[i]);
             if('(' == cmd[i]) {
-                if( hitFrom == 0 ) {
-                    hitFrom = 1;
-                } else if( hitFrom == 2 ) {
-                    hitFrom = 3;
-                }
-                initCmd(tmp);
-                j = 0;
-                printf("\nHit. hitFrom is %d\n",hitFrom);
+                manageFrom(&hitFrom, tmp, &j);
             } else if(')' == cmd[i]) {
-                ptr_lambda_debug<const string&,const char*>("tmp is ", tmp);
-                if( hitFrom == 1 ) {
-                    copyCmd(destc,tmp,strlen(tmp));
-                    hitFrom = 2;
-                    ptr_lambda_debug<const string&,const char*>("destc is ", destc);
-                } else if( hitFrom == 3 ) {
-                    copyCmd(destv,tmp,strlen(tmp));
-                    hitFrom = 4;
-                    ptr_lambda_debug<const string&,const char*>("destv is ", destv);
-                }
-                printf("\nHit. hitFrom is %d\n",hitFrom);
+                manageTo(&hitFrom, destc, destv, tmp);
             }
             if((hitFrom == 1 || hitFrom == 3) && cmd[i] != '(') {
                 tmp[j] = cmd[i];
