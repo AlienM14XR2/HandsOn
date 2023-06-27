@@ -127,6 +127,20 @@ int fetchColsVals(char* destc, char* destv, const char* cmd) {
 }
 
 /**
+    destc is 	COL_1,COL_2
+    destv is 	"I'm Jack.", "\"What's up ?\""
+
+    この二つの文字列をそれぞれ ',' で分割して何かの多重ポインタ配列にいれようと思うが、どうかな？
+    まずは単純に ',' で分割するところからはじめる。
+    少し面倒そうな destv から "" の中身だけを取り出すことをやってみたい。
+
+    ※実を言うと例のアセンブリ言語が怖すぎて、こっちに逃げてきた：）
+*/
+int step_b() {
+    cout << "--- step_b" << endl;
+    return 0;
+}
+/**
     以下のデータ整形まではプログラムで完了している。
     よってここから、Cols とVals を取り出す。
     最初の '(' から ')' まではCols。
@@ -141,6 +155,7 @@ int step_a() {
     char cols[1024] = {"\0"};
     char vals[1024] = {"\0"};
     ptr_lambda_debug<const string&,const int&>("Play and Result ... fetchCols",fetchColsVals(cols,vals,reconcCmd));
+    ptr_lambda_debug<const string&,const int&>("Play and Result ... step_b",step_b());
     return 0;
 }
 
