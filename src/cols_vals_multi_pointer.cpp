@@ -24,6 +24,14 @@
 
 using namespace std;
 
+#define CMD_SIZE                2048
+#define CMD_SPLIT_SIZE           512
+#define CMD_DATA_MAX_INDEX      1024
+typedef struct {
+    int no;
+    char data[CMD_SPLIT_SIZE];
+} CMD_DATA;
+
 template<class M,class D>
 void (*ptr_lambda_debug)(M,D) = [](auto message,auto debug)-> void {
     cout << message << '\t' << debug << endl;
@@ -134,15 +142,30 @@ int fetchColsVals(char* destc, char* destv, const char* cmd) {
     まずは単純に ',' で分割するところからはじめる。
     少し面倒そうな destv から "" の中身だけを取り出すことをやってみたい。
 
+    '\' は無視し、次の1文字を許可するフラグが必要かな。
+
     ※実を言うと例のアセンブリ言語が怖すぎて、こっちに逃げてきた：）
+    レジストリ番号による意味、別名をはじめに覚える必要があると思った。
 */
 int step_b(char* cols, char* vals) {
     cout << "--- step_b" << endl;
+    int escape = 0;
     // vals から取り組む
     int len = strlen(vals);
     for(int i=0; i < len; i++) {
-        printf("%c",vals[i]);
+        if(vals[i] == '"' && escape == 0) {
+            // ignore 何もしない：）
+        } else if(vals[i] == '\\') {
+            escape = 1;
+            // ignore 何もしない：）
+        } else {
+            printf("%c",vals[i]);
+            if(escape == 1) {
+                escape = 0;
+            }
+        }
     }
+    // ここまでで、ダブルクォート内の必要な情報のみ取得できた、Escape を利用したシステム予約語との併用も可能。
     printf("\n");
     return 0;
 }
@@ -160,7 +183,7 @@ int step_a() {
     ptr_lambda_debug<const string&,const char*>("reconcCmd is ",reconcCmd);
     char cols[1024] = {"\0"};
     char vals[1024] = {"\0"};
-    ptr_lambda_debug<const string&,const int&>("Play and Result ... fetchCols",fetchColsVals(cols,vals,reconcCmd));
+    ptr_lambda_debug<const string&,const int&>("Play and Result ... fetchColsVals",fetchColsVals(cols,vals,reconcCmd));
     ptr_lambda_debug<const string&,const int&>("Play and Result ... step_b",step_b(cols,vals));
     return 0;
 }
