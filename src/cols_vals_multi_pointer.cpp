@@ -104,7 +104,7 @@ int fetch(char* destc, char* destv, const char* cmd) {
     try {
         int hitFrom = 0;    // 1: cols のはじまり、2: 中間 3: vals のはじまり、4: おしまい。
         int len = strlen(cmd);
-        char tmp[512] = {"\0"};
+        char tmp[CMD_SPLIT_SIZE] = {"\0"};
         int j = 0;
         for(int i=0; i<len; i++) {
             if('(' == cmd[i]) {
@@ -133,8 +133,25 @@ int fetchColsVals(char* destc, char* destv, const char* cmd) {
     }
     return 0;
 }
+/**
+    step_c 関数。
+
+    destc destv を ',' で分割取得する。
+    分割後、前後の半角スペースは除去する。（全角は知らん：）
+    CMD_DATA の配列に格納する（予定。
+
+    destc is 	COL_1,COL_2
+    destv is 	I'm Jack., "What's up ?"
+*/
+int step_c(char* cols, char* cvals) {
+    return 0;
+}
+
 
 /**
+    step_b 関数。
+    destv のみ対象のダブルクォートの除去作業といえる。
+
     destc is 	COL_1,COL_2
     destv is 	"I'm Jack.", "\"What's up ?\""
 
@@ -147,8 +164,9 @@ int fetchColsVals(char* destc, char* destv, const char* cmd) {
     ※実を言うと例のアセンブリ言語が怖すぎて、こっちに逃げてきた：）
     レジストリ番号による意味、別名をはじめに覚える必要があると思った。
 */
-int step_b(char* cols, char* vals) {
+int step_b(char* cols, char* vals, char* cvals) {
     cout << "--- step_b" << endl;
+    int j = 0;
     int escape = 0;
     // vals から取り組む
     int len = strlen(vals);
@@ -159,7 +177,9 @@ int step_b(char* cols, char* vals) {
             escape = 1;
             // ignore 何もしない：）
         } else {
-            printf("%c",vals[i]);
+            printf("%c",vals[i]);   // デバッグ
+            cvals[j] = vals[i];
+            j+=1;
             if(escape == 1) {
                 escape = 0;
             }
@@ -167,6 +187,9 @@ int step_b(char* cols, char* vals) {
     }
     // ここまでで、ダブルクォート内の必要な情報のみ取得できた、Escape を利用したシステム予約語との併用も可能。
     printf("\n");
+    cvals[j] = '\0';
+    ptr_lambda_debug<const string&,const char*>("cvals is ",cvals);
+    ptr_lambda_debug<const string&,const int&>("Play and Result ... step_c",step_c(cols,cvals));
     return 0;
 }
 /**
@@ -181,10 +204,11 @@ int step_a() {
     cout << "----------------------- step_a" << endl;
     char reconcCmd[] = {"INSERT INTO FILE_NAME(COL_1,COL_2) VALUES (\"I'm Jack.\", \"\\\"What's up ?\\\"\")\0"};
     ptr_lambda_debug<const string&,const char*>("reconcCmd is ",reconcCmd);
-    char cols[1024] = {"\0"};
-    char vals[1024] = {"\0"};
+    char cols[CMD_DATA_MAX_INDEX] = {"\0"};
+    char vals[CMD_DATA_MAX_INDEX] = {"\0"};
     ptr_lambda_debug<const string&,const int&>("Play and Result ... fetchColsVals",fetchColsVals(cols,vals,reconcCmd));
-    ptr_lambda_debug<const string&,const int&>("Play and Result ... step_b",step_b(cols,vals));
+    char cleanVals[CMD_DATA_MAX_INDEX] = {'\0'};
+    ptr_lambda_debug<const string&,const int&>("Play and Result ... step_b",step_b(cols,vals,cleanVals));
     return 0;
 }
 
