@@ -30,7 +30,18 @@ using namespace std;
 typedef struct {
     int no;
     char data[CMD_SPLIT_SIZE];
-    // 例えば、この構造体（クラス）のメンバ関数に半角スペースを除去するものを用意する。
+    /**
+        メンバ変数 data の top と bottom の半角スペースを取り除く（無視する）。
+    */
+    int trim() {
+        try {
+
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+        return 0;
+    }
 } CMD_DATA;
 
 template<class M,class D>
