@@ -124,7 +124,6 @@ int fetch(char* destc, char* destv, const char* cmd) {
     }
     return 0;
 }
-
 int fetchColsVals(char* destc, char* destv, const char* cmd) {
     try {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... fetch",fetch(destc,destv,cmd));
@@ -132,6 +131,12 @@ int fetchColsVals(char* destc, char* destv, const char* cmd) {
         cerr << e.what() << endl;
         return -1;
     }
+    return 0;
+}
+/**
+    文字列を分割し、CMD_DATA配列のメンバ変数 data に格納する。
+*/
+int splitData(char delim, const char* src, CMD_DATA* dest) {
     return 0;
 }
 /**
@@ -143,23 +148,25 @@ int fetchColsVals(char* destc, char* destv, const char* cmd) {
 
     destc is 	COL_1,COL_2
     destv is 	I'm Jack., "What's up ?"
+
+    区切り文字、この場合は ',' ひとつの関数でまとめられるはずだ：）
 */
 int step_c(char* cols, char* cvals, CMD_DATA* cdCols, CMD_DATA* cdVals) {
     cout << "--- step_c (split data.)" << endl;
+    ptr_lambda_debug<const string&,const int&>("Play and Result ... splitData cols ",splitData(',',cols,cdCols));
     return 0;
 }
 /**
     メンバ変数 cmdData の初期化を行う。
 */
 int initCmdData(CMD_DATA* cmdd, int maxIndex) {
-//    printf("sizeof(cmdd) is %ld\tsizeof(cmdd[0]) is %ld\n",sizeof(cmdd),sizeof(cmdd[0]));
-//    int size = sizeof(cmdd)/sizeof(cmdd[0]);
-//    ptr_lambda_debug<const string&,const int&>("initCmdData ... size is ",size);
     for(int i=0; i<maxIndex ; i++) {
         cmdd[i].no = -1;
         initCmd(cmdd[i].data);
     }
+    // デバッグ
     printf("initCmdData ... cmdd[0].no is %d\t cmdd[0].data is %s\n", cmdd[0].no, cmdd[0].data);
+    printf("initCmdData ... cmdd[CMD_DATA_MAX_INDEX-1].no is %d\t cmdd[CMD_DATA_MAX_INDEX-1].data is %s\n", cmdd[CMD_DATA_MAX_INDEX-1].no, cmdd[CMD_DATA_MAX_INDEX-1].data);
     return 0;
 }
 
@@ -205,7 +212,7 @@ int step_b(char* cols, char* vals, char* cvals) {
     cvals[j] = '\0';
     ptr_lambda_debug<const string&,const char*>("cols is ",cols);
     ptr_lambda_debug<const string&,const char*>("cvals is ",cvals);
-    // ここでの宣言が妥当かどうか、少し考慮の余地があると思う。
+    // CMD_DATA 型配列、ここでの宣言が妥当かどうか、少し考慮の余地があると思う。
     CMD_DATA cdCols[CMD_DATA_MAX_INDEX], cdVals[CMD_DATA_MAX_INDEX];
     initCmdData(cdCols,CMD_DATA_MAX_INDEX);
     initCmdData(cdVals,CMD_DATA_MAX_INDEX);
