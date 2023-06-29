@@ -30,6 +30,7 @@ using namespace std;
 typedef struct {
     int no;
     char data[CMD_SPLIT_SIZE];
+    // 例えば、この構造体（クラス）のメンバ関数に半角スペースを除去するものを用意する。
 } CMD_DATA;
 
 template<class M,class D>
@@ -137,16 +138,30 @@ int fetchColsVals(char* destc, char* destv, const char* cmd) {
     step_c 関数。
 
     destc destv を ',' で分割取得する。
-    分割後、前後の半角スペースは除去する。（全角は知らん：）
+    分割後、前後の半角スペースは除去する。（全角は知らん、コマンドに全角を使うな、以上だ：）
     CMD_DATA の配列に格納する（予定。
 
     destc is 	COL_1,COL_2
     destv is 	I'm Jack., "What's up ?"
 */
-int step_c(char* cols, char* cvals) {
+int step_c(char* cols, char* cvals, CMD_DATA* cdCols, CMD_DATA* cdVals) {
+    cout << "--- step_c (split data.)" << endl;
     return 0;
 }
-
+/**
+    メンバ変数 cmdData の初期化を行う。
+*/
+int initCmdData(CMD_DATA* cmdd, int maxIndex) {
+//    printf("sizeof(cmdd) is %ld\tsizeof(cmdd[0]) is %ld\n",sizeof(cmdd),sizeof(cmdd[0]));
+//    int size = sizeof(cmdd)/sizeof(cmdd[0]);
+//    ptr_lambda_debug<const string&,const int&>("initCmdData ... size is ",size);
+    for(int i=0; i<maxIndex ; i++) {
+        cmdd[i].no = -1;
+        initCmd(cmdd[i].data);
+    }
+    printf("initCmdData ... cmdd[0].no is %d\t cmdd[0].data is %s\n", cmdd[0].no, cmdd[0].data);
+    return 0;
+}
 
 /**
     step_b 関数。
@@ -165,7 +180,7 @@ int step_c(char* cols, char* cvals) {
     レジストリ番号による意味、別名をはじめに覚える必要があると思った。
 */
 int step_b(char* cols, char* vals, char* cvals) {
-    cout << "--- step_b" << endl;
+    cout << "--- step_b (cleanup data)" << endl;
     int j = 0;
     int escape = 0;
     // vals から取り組む
@@ -188,8 +203,13 @@ int step_b(char* cols, char* vals, char* cvals) {
     // ここまでで、ダブルクォート内の必要な情報のみ取得できた、Escape を利用したシステム予約語との併用も可能。
     printf("\n");
     cvals[j] = '\0';
+    ptr_lambda_debug<const string&,const char*>("cols is ",cols);
     ptr_lambda_debug<const string&,const char*>("cvals is ",cvals);
-    ptr_lambda_debug<const string&,const int&>("Play and Result ... step_c",step_c(cols,cvals));
+    // ここでの宣言が妥当かどうか、少し考慮の余地があると思う。
+    CMD_DATA cdCols[CMD_DATA_MAX_INDEX], cdVals[CMD_DATA_MAX_INDEX];
+    initCmdData(cdCols,CMD_DATA_MAX_INDEX);
+    initCmdData(cdVals,CMD_DATA_MAX_INDEX);
+    ptr_lambda_debug<const string&,const int&>("Play and Result ... step_c",step_c(cols,cvals,cdCols,cdVals));
     return 0;
 }
 /**
