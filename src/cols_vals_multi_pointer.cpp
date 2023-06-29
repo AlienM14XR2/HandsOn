@@ -137,6 +137,31 @@ int fetchColsVals(char* destc, char* destv, const char* cmd) {
     文字列を分割し、CMD_DATA配列のメンバ変数 data に格納する。
 */
 int splitData(char delim, const char* src, CMD_DATA* dest) {
+    try {
+        int len = strlen(src);
+        char tmp[CMD_SPLIT_SIZE] = {"\0"};
+        int j = 0, k = 0;
+        for(int i=0; i<len ; i++) {
+            if(src[i] != delim) {
+                tmp[j] = src[i];
+                j+=1;
+            } else {
+                copyCmd(dest[k].data, tmp, strlen(tmp));
+                printf("dest[%d] is %s\n",k,dest[k].data);  // 本当に printf は優秀だわ：）
+                k+=1;
+                j = 0;
+                initCmd(tmp);
+            }
+        }
+        // 分割された最後の部分を検知しておく
+        if(tmp[0] != '\0') {
+                copyCmd(dest[k].data, tmp, strlen(tmp));
+                printf("dest[%d] is %s\n",k,dest[k].data);
+        }
+    } catch(exception& e) {
+        cerr << e.what() << endl;
+        return -1;
+    }
     return 0;
 }
 /**
@@ -149,11 +174,13 @@ int splitData(char delim, const char* src, CMD_DATA* dest) {
     destc is 	COL_1,COL_2
     destv is 	I'm Jack., "What's up ?"
 
-    区切り文字、この場合は ',' ひとつの関数でまとめられるはずだ：）
+    区切り文字、この場合は ',' この処理はひとつの関数でまとめられるはずだ：）
 */
 int step_c(char* cols, char* cvals, CMD_DATA* cdCols, CMD_DATA* cdVals) {
     cout << "--- step_c (split data.)" << endl;
     ptr_lambda_debug<const string&,const int&>("Play and Result ... splitData cols ",splitData(',',cols,cdCols));
+    ptr_lambda_debug<const string&,const int&>("Play and Result ... splitData cvals ",splitData(',',cvals,cdVals));
+    // 次は、CMD_DATA に格納された値、文字列の前後の半角スペースを除去する処理を行うこと。
     return 0;
 }
 /**
