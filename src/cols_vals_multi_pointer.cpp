@@ -32,10 +32,31 @@ typedef struct {
     char data[CMD_SPLIT_SIZE];
     /**
         メンバ変数 data の top と bottom の半角スペースを取り除く（無視する）。
+        考え方としては ignore のフラグによる読み飛ばし。
     */
     int trim() {
         try {
-
+            int ignore = 0;     // 最初の文字にHit したら 1 、文字列の最後尾から文字を捜査し最初の文字にHit したら 2 とする。
+            int top = 0;        // 最初の文字のインデックス。
+            int bottom = 0;     // 最後の文字のインデックス。 
+            int len = strlen(data);
+            for(int i=0; i<len; i++) {
+                if( data[i] == ' ' ) {
+                    // ignore
+                } else {
+                    top = i;
+                    break;
+                }
+            }
+            for(int i=len-1; i>=0; i--) {
+                if( data[i] == ' ' ) {
+                    // ignore
+                } else {
+                    bottom = i;
+                    break;
+                }
+            }
+            printf("top is %d\tbottom is %d\n",top,bottom);
         } catch(exception& e) {
             cerr << e.what() << endl;
             return -1;
@@ -145,6 +166,19 @@ int fetchColsVals(char* destc, char* destv, const char* cmd) {
     return 0;
 }
 /**
+    CMD_DATA trim を呼び出す。
+*/
+int doTrim(CMD_DATA* splits) {
+    for(int i=0;;i++) {
+        if(splits[i].no == -1) {
+            break;
+        } else {
+            splits[i].trim();
+        }
+    }
+    return 0;
+}
+/**
     文字列を分割し、CMD_DATA配列のメンバ変数 data に格納する。
 */
 int splitData(char delim, const char* src, CMD_DATA* dest) {
@@ -157,6 +191,7 @@ int splitData(char delim, const char* src, CMD_DATA* dest) {
                 tmp[j] = src[i];
                 j+=1;
             } else {
+                dest[k].no = k;
                 copyCmd(dest[k].data, tmp, strlen(tmp));
                 printf("dest[%d] is %s\n",k,dest[k].data);  // 本当に printf は優秀だわ：）
                 k+=1;
@@ -166,8 +201,9 @@ int splitData(char delim, const char* src, CMD_DATA* dest) {
         }
         // 分割された最後の部分を検知しておく
         if(tmp[0] != '\0') {
-                copyCmd(dest[k].data, tmp, strlen(tmp));
-                printf("dest[%d] is %s\n",k,dest[k].data);
+            dest[k].no = k;
+            copyCmd(dest[k].data, tmp, strlen(tmp));
+            printf("dest[%d] is %s\n",k,dest[k].data);
         }
     } catch(exception& e) {
         cerr << e.what() << endl;
@@ -192,6 +228,8 @@ int step_c(char* cols, char* cvals, CMD_DATA* cdCols, CMD_DATA* cdVals) {
     ptr_lambda_debug<const string&,const int&>("Play and Result ... splitData cols ",splitData(',',cols,cdCols));
     ptr_lambda_debug<const string&,const int&>("Play and Result ... splitData cvals ",splitData(',',cvals,cdVals));
     // 次は、CMD_DATA に格納された値、文字列の前後の半角スペースを除去する処理を行うこと。
+    ptr_lambda_debug<const string&,const int&>("Play and Result ... doTrim cdCols ",doTrim(cdCols));
+    ptr_lambda_debug<const string&,const int&>("Play and Result ... doTrim cdVals ",doTrim(cdVals));
     return 0;
 }
 /**
