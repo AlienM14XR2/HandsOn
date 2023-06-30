@@ -27,57 +27,11 @@ using namespace std;
 #define CMD_SIZE                2048
 #define CMD_SPLIT_SIZE           512
 #define CMD_DATA_MAX_INDEX      1024
-typedef struct {
-    int no;
-    char data[CMD_SPLIT_SIZE];
-    /**
-        メンバ変数 data の top と bottom の半角スペースを取り除く（無視する）。
-        考え方としては ignore のフラグによる読み飛ばし。
-    */
-    int trim() {
-        try {
-            int top = 0;        // 最初の文字のインデックス。
-            int bottom = 0;     // 最後の文字のインデックス。 
-            int len = strlen(data);
-            for(int i=0; i<len; i++) {
-                if( data[i] == ' ' ) {
-                    // ignore
-                } else {
-                    top = i;
-                    break;
-                }
-            }
-            for(int i=len-1; i>=0; i--) {
-                if( data[i] == ' ' ) {
-                    // ignore
-                } else {
-                    bottom = i;
-                    break;
-                }
-            }
-            printf("top is %d\tbottom is %d\n",top,bottom);
-        } catch(exception& e) {
-            cerr << e.what() << endl;
-            return -1;
-        }
-        return 0;
-    }
-} CMD_DATA;
 
 template<class M,class D>
 void (*ptr_lambda_debug)(M,D) = [](auto message,auto debug)-> void {
     cout << message << '\t' << debug << endl;
 };
-
-/**
-    コマンドの初期化を行う。
- */
-int initCmd(char* cmd) {
-    for(int i = 0; i < sizeof(cmd)/sizeof(cmd[0]); i++) {
-        cmd[i] = '\0';
-    }
-    return 0;
-}
 /**
      コマンドのコピーを行う。
 */
@@ -88,6 +42,72 @@ int copyCmd(char* dest, const char* src, const int len) {
     }
     dest[i] = '\0';
    return 0;
+}
+typedef struct {
+private:
+    int getFromToIndex(int* from, int* to) {
+        try {
+            int len = strlen(data);
+            for(int i=0; i<len; i++) {
+                if( data[i] == ' ' ) {
+                    // ignore
+                } else {
+                    (*from) = i;
+                    break;
+                }
+            }
+            for(int i=len-1; i>=0; i--) {
+                if( data[i] == ' ' ) {
+                    // ignore
+                } else {
+                    (*to) = i;
+                    break;
+                }
+            }
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+        return 0;
+    }
+public:
+    int no;
+    char data[CMD_SPLIT_SIZE];
+    /**
+        メンバ変数 data の top と bottom の半角スペースを取り除く（無視する）。
+        考え方としては ignore のフラグによる読み飛ばし。
+        ※ここで元データである data の更新を行っている、つまり、オリジナルの書き換えをしている。
+    */
+    int trim() {
+        try {
+            int top = 0;        // 最初の文字のインデックス。
+            int bottom = 0;     // 最後の文字のインデックス。
+            getFromToIndex(&top,&bottom); 
+            printf("top is %d\tbottom is %d\n",top,bottom);
+            // 忘れてた、ここまででやりたいことの半分で、取得した index 分文字列を取得し、data を更新する必要がある。
+            char tmp[CMD_SPLIT_SIZE] = {"\0"};
+            int j = 0;
+            for(int i=top; i<=bottom; i++) {
+                tmp[j] = data[i];
+                j+=1;
+            }
+            copyCmd(data, tmp, strlen(tmp));
+            ptr_lambda_debug<const string&,const char*>("data is ",data);
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+        return 0;
+    }
+} CMD_DATA;
+/**
+    コマンドの初期化を行う。
+ */
+int initCmd(char* cmd) {
+    for(int i = 0; i < sizeof(cmd)/sizeof(cmd[0]); i++) {
+        cmd[i] = '\0';
+    }
+    return 0;
 }
 /**
     '(' の検知による状態変化を管理する。
@@ -223,7 +243,7 @@ int splitData(char delim, const char* src, CMD_DATA* dest) {
     区切り文字、この場合は ',' この処理はひとつの関数でまとめられるはずだ：）
 */
 int step_c(char* cols, char* cvals, CMD_DATA* cdCols, CMD_DATA* cdVals) {
-    cout << "--- step_c (split data.)" << endl;
+    cout << "------ step_c (split data.)" << endl;
     ptr_lambda_debug<const string&,const int&>("Play and Result ... splitData cols ",splitData(',',cols,cdCols));
     ptr_lambda_debug<const string&,const int&>("Play and Result ... splitData cvals ",splitData(',',cvals,cdVals));
     // 次は、CMD_DATA に格納された値、文字列の前後の半角スペースを除去する処理を行うこと。
@@ -262,7 +282,7 @@ int initCmdData(CMD_DATA* cmdd, int maxIndex) {
     レジストリ番号による意味、別名をはじめに覚える必要があると思った。
 */
 int step_b(char* cols, char* vals, char* cvals) {
-    cout << "--- step_b (cleanup data)" << endl;
+    cout << "------ step_b (cleanup data)" << endl;
     int j = 0;
     int escape = 0;
     // vals から取り組む
@@ -291,7 +311,7 @@ int step_b(char* cols, char* vals, char* cvals) {
     CMD_DATA cdCols[CMD_DATA_MAX_INDEX], cdVals[CMD_DATA_MAX_INDEX];
     initCmdData(cdCols,CMD_DATA_MAX_INDEX);
     initCmdData(cdVals,CMD_DATA_MAX_INDEX);
-    ptr_lambda_debug<const string&,const int&>("Play and Result ... step_c",step_c(cols,cvals,cdCols,cdVals));
+    ptr_lambda_debug<const string&,const int&>("Play and Result ...... step_c",step_c(cols,cvals,cdCols,cdVals));
     return 0;
 }
 /**
@@ -308,9 +328,9 @@ int step_a() {
     ptr_lambda_debug<const string&,const char*>("reconcCmd is ",reconcCmd);
     char cols[CMD_DATA_MAX_INDEX] = {"\0"};
     char vals[CMD_DATA_MAX_INDEX] = {"\0"};
-    ptr_lambda_debug<const string&,const int&>("Play and Result ... fetchColsVals",fetchColsVals(cols,vals,reconcCmd));
+    ptr_lambda_debug<const string&,const int&>("Play and Result ...... fetchColsVals",fetchColsVals(cols,vals,reconcCmd));
     char cleanVals[CMD_DATA_MAX_INDEX] = {'\0'};
-    ptr_lambda_debug<const string&,const int&>("Play and Result ... step_b",step_b(cols,vals,cleanVals));
+    ptr_lambda_debug<const string&,const int&>("Play and Result ...... step_b",step_b(cols,vals,cleanVals));
     return 0;
 }
 
@@ -320,7 +340,7 @@ int main(void) {
         ptr_lambda_debug<const string&,const int&>("Yeah Here we go !!",0);
     }
     if(1.1) {
-        ptr_lambda_debug<const string&,const int&>("Play and Result ... step_a",step_a());
+        ptr_lambda_debug<const string&,const int&>("Play and Result ...... step_a",step_a());
     }
     cout << "=============== Cols Vals Multi Pointer END" << endl;
     return 0;
