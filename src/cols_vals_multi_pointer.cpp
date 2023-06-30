@@ -231,6 +231,17 @@ int splitData(char delim, const char* src, CMD_DATA* dest) {
     return 0;
 }
 /**
+    step_d 関数。
+
+    多重ポインタによる、システムカラム名、ユーザ入力カラム名とその値の管理と比較を行う。
+    後々何のことか分からなくなりそうだが、今のイメージを言葉にすると以上になる。
+    つまり、ユーザ入力されたカラムとその値がシステムカラムのどれと一致しているのか判断し設定するもの。
+*/
+int step_d(CMD_DATA* sysCols, CMD_DATA* cdCols, CMD_DATA* cdVals) {
+    cout << "------ step_d (multi-pointer.)" << endl;
+    return 0;
+}
+/**
     step_c 関数。
 
     destc destv を ',' で分割取得する。
@@ -312,6 +323,8 @@ int step_b(char* cols, char* vals, char* cvals) {
     initCmdData(cdCols,CMD_DATA_MAX_INDEX);
     initCmdData(cdVals,CMD_DATA_MAX_INDEX);
     ptr_lambda_debug<const string&,const int&>("Play and Result ...... step_c",step_c(cols,cvals,cdCols,cdVals));
+    // 第一実引数（システムカラム名）が nullptr になっている、これを直ぐに修正すること。
+    ptr_lambda_debug<const string&,const int&>("Play and Result ...... step_d",step_d(nullptr,cdCols,cdVals));
     return 0;
 }
 /**
