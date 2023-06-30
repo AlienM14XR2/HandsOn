@@ -36,7 +36,6 @@ typedef struct {
     */
     int trim() {
         try {
-            int ignore = 0;     // 最初の文字にHit したら 1 、文字列の最後尾から文字を捜査し最初の文字にHit したら 2 とする。
             int top = 0;        // 最初の文字のインデックス。
             int bottom = 0;     // 最後の文字のインデックス。 
             int len = strlen(data);
