@@ -71,8 +71,9 @@ private:
         return 0;
     }
 public:
-    int no;
-    char data[CMD_SPLIT_SIZE];
+    int no;                         // 番号、単なるインデックス。
+    char data[CMD_SPLIT_SIZE];      // 文字データならなんでもいい。
+    int cno;                        // カラム番号。
     /**
         メンバ変数 data の top と bottom の半角スペースを取り除く（無視する）。
         考え方としては ignore のフラグによる読み飛ばし。
@@ -236,6 +237,13 @@ int splitData(char delim, const char* src, CMD_DATA* dest) {
     多重ポインタによる、システムカラム名、ユーザ入力カラム名とその値の管理と比較を行う。
     後々何のことか分からなくなりそうだが、今のイメージを言葉にすると以上になる。
     つまり、ユーザ入力されたカラムとその値がシステムカラムのどれと一致しているのか判断し設定するもの。
+
+    CMD_DATA にメンバ変数を追加する（cno）、Column Numberを管理するもの。
+    システムカラム名とユーザ入力カラム名が一致した際、ユーザ入力したカラム名の cno をシステムのものと合わせる。
+    その時ユーザ入力したカラム名は既に no 管理されているので、ユーザ入力した値の no が同じものの cno も一致させる。
+    これでユーザ入力された値がシステムのどのカラムに対応するものなのか判別できるはずだ。
+    もっといい方法があるかもしれないが、今はこれしか思いつかない：）というか多重ポインタありきの処理なのだよ：）
+    それを使ってみたかっただけだ。
 */
 int step_d(CMD_DATA* sysCols, CMD_DATA* cdCols, CMD_DATA* cdVals) {
     cout << "------ step_d (multi-pointer.)" << endl;
