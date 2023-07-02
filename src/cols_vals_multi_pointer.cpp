@@ -244,9 +244,18 @@ int splitData(char delim, const char* src, CMD_DATA* dest) {
     これでユーザ入力された値がシステムのどのカラムに対応するものなのか判別できるはずだ。
     もっといい方法があるかもしれないが、今はこれしか思いつかない：）というか多重ポインタありきの処理なのだよ：）
     それを使ってみたかっただけだ。
+
+    これはズルだ：）連続記録を強引に引っ張るためだ：）
 */
 int step_d(CMD_DATA* sysCols, CMD_DATA* cdCols, CMD_DATA* cdVals) {
     cout << "------ step_d (multi-pointer.)" << endl;
+    try {
+        ptr_lambda_debug<const string&,const int&>("7月だな、よい月にする：）",369);
+    } 
+    catch(exception& e) {
+        cerr << e.what() << endl;
+        return -1;
+    }
     return 0;
 }
 /**
