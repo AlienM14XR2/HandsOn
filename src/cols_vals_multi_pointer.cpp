@@ -102,6 +102,19 @@ public:
     }
 } CMD_DATA;
 /**
+    CMD_DATA のデバッグ出力を行う。
+    初期化時に no を -1 にしないとダメだよ。
+*/
+int cmd_deta_debug(CMD_DATA* cmdd) {
+    for(int i=0;; i++) {
+        if(cmdd[i].no == -1) {
+            break;
+        }
+        printf("no is %d\tdata is %s\tcno is %d\n",cmdd[i].no,cmdd[i].data,cmdd[i].cno);
+    }
+    return 0;
+}
+/**
     コマンドの初期化を行う。
  */
 int initCmd(char* cmd) {
@@ -234,7 +247,7 @@ int splitData(char delim, const char* src, CMD_DATA* dest) {
 /**
     step_d 関数。
 
-    多重ポインタによる、システムカラム名、ユーザ入力カラム名とその値の管理と比較を行う。
+    多次元配列による、システムカラム名、ユーザ入力カラム名とその値の管理と比較を行う。
     後々何のことか分からなくなりそうだが、今のイメージを言葉にすると以上になる。
     つまり、ユーザ入力されたカラムとその値がシステムカラムのどれと一致しているのか判断し設定するもの。
 
@@ -251,6 +264,7 @@ int step_d(CMD_DATA* sysCols, CMD_DATA* cdCols, CMD_DATA* cdVals) {
     cout << "------ step_d (three dimensional array.)" << endl;
     try {
         ptr_lambda_debug<const string&,const int&>("7月だな、よい月にする：）",369);
+        ptr_lambda_debug<const string&,const int&>("7月だな、よい月にはならなそうだな。。。少なくともプライベートは：）",999);
     } 
     catch(exception& e) {
         cerr << e.what() << endl;
@@ -294,9 +308,50 @@ int initCmdData(CMD_DATA* cmdd, int maxIndex) {
 }
 /**
     システムカラムの初期化を行う。
+    - ID        システム自動設定、プライマリキ。
+    - EMAIL     ユーザ入力、必須。  it's item. cno is 1.
+    - NAME      ユーザ入力、必須。  it's item. cno is 2.
+    - PHONE_1   ユーザ入力、必須。  it's item. cno is 3.
+    - PHONE_2   ユーザ入力。        it's item. cno is 4.
+    - PHONE_3   ユーザ入力。        it's item. cno is 5.
+    - ADDRESS   ユーザ入力。        it's item. cno is 6.
+    - MEMO      ユーザ入力。        it's item. cno is 7.
+    - CREATE_AT システム自動設定。
+    - UPDATE_AT システム自動設定。
+
 */
 int initSystemData(CMD_DATA* syscol) {
     cout << "------ initSystemData 未実装：）" << endl;
+    int i = 0, j = 1;    
+    syscol[i].no = i;
+    copyCmd(syscol[i].data,"EMAIL",strlen("EMAIL"));
+    syscol[i].cno = j;
+    i+=1;j+=1;
+    syscol[i].no = i;
+    copyCmd(syscol[i].data,"NAME",strlen("NAME"));
+    syscol[i].cno = j;
+    i+=1;j+=1;
+    syscol[i].no = i;
+    copyCmd(syscol[i].data,"PHONE_1",strlen("PHONE_1"));
+    syscol[i].cno = j;
+    i+=1;j+=1;
+    syscol[i].no = i;
+    copyCmd(syscol[i].data,"PHONE_2",strlen("PHONE_2"));
+    syscol[i].cno = j;
+    i+=1;j+=1;
+    syscol[i].no = i;
+    copyCmd(syscol[i].data,"PHONE_3",strlen("PHONE_3"));
+    syscol[i].cno = j;
+    i+=1;j+=1;
+    syscol[i].no = i;
+    copyCmd(syscol[i].data,"ADDRESS",strlen("ADDRESS"));
+    syscol[i].cno = j;
+    i+=1;j+=1;
+    syscol[i].no = i;
+    copyCmd(syscol[i].data,"MEMO",strlen("MEMO"));
+    syscol[i].cno = j;
+    i+=1;j+=1;
+    syscol[i].no = -1;
     return 0;
 }
 /**
@@ -348,6 +403,7 @@ int step_b(char* cols, char* vals, char* cvals) {
     ptr_lambda_debug<const string&,const int&>("Play and Result ...... step_c",step_c(cols,cvals,cdCols,cdVals));
     // 第一実引数（システムカラム名）が nullptr になっている、これを直ぐに修正すること。// DONE.
     initSystemData(sysCols);
+    cmd_deta_debug(sysCols);
     ptr_lambda_debug<const string&,const int&>("Play and Result ...... step_d",step_d(sysCols,cdCols,cdVals));
     return 0;
 }
