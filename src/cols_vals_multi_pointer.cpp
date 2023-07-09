@@ -266,6 +266,8 @@ int step_d(CMD_DATA* sysCols, CMD_DATA* cdCols, CMD_DATA* cdVals) {
         ptr_lambda_debug<const string&,const int&>("7月だな、よい月にする：）",369);
         ptr_lambda_debug<const string&,const int&>("7月だな、よい月にはならなそうだな。。。少なくともプライベートは：）",999);
         // この次は、sysCols と cdCols の名前によるマッチングを行う。(次回はここからはじめること：）
+        // アイデアを少し、システムとユーザ入力カラムの適合はGoF ストラテジー？でいこう、仕事をしていたら時間が無くなった orz
+        // うん今日はここまでだね：）
 
     } 
     catch(exception& e) {
