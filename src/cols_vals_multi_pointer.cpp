@@ -265,6 +265,8 @@ int step_d(CMD_DATA* sysCols, CMD_DATA* cdCols, CMD_DATA* cdVals) {
     try {
         ptr_lambda_debug<const string&,const int&>("7月だな、よい月にする：）",369);
         ptr_lambda_debug<const string&,const int&>("7月だな、よい月にはならなそうだな。。。少なくともプライベートは：）",999);
+        // この次は、sysCols と cdCols の名前によるマッチングを行う。(次回はここからはじめること：）
+
     } 
     catch(exception& e) {
         cerr << e.what() << endl;
@@ -321,7 +323,7 @@ int initCmdData(CMD_DATA* cmdd, int maxIndex) {
 
 */
 int initSystemData(CMD_DATA* syscol) {
-    cout << "------ initSystemData 未実装：）" << endl;
+    cout << "------ initSystemData ：）" << endl;
     int i = 0, j = 1;    
     syscol[i].no = i;
     copyCmd(syscol[i].data,"EMAIL",strlen("EMAIL"));
