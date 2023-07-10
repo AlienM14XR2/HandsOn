@@ -33,21 +33,6 @@ void (*ptr_lambda_debug)(M,D) = [](auto message,auto debug)-> void {
     cout << message << '\t' << debug << endl;
 };
 /**
-    GoF Strategy を利用した、システムカラムとユーザ入力カラムの比較を行うもの。
-    その基底クラス（インタフェース）。
-*/
-template <class T>
-class IStrategy {
-public:
-    /**
-        l == r then return 0.
-        l > r then return -1.
-        l < r then return 1.
-        派生クラスはこのルールで実装すること。
-    */
-    virtual int compare(const T& l, const T& r) const = 0;
-};
-/**
      コマンドのコピーを行う。
 */
 int copyCmd(char* dest, const char* src, const int len) {
@@ -116,6 +101,44 @@ public:
         return 0;
     }
 } CMD_DATA;
+/**
+    GoF Strategy を利用した、システムカラムとユーザ入力カラムの比較を行うもの。
+    その基底クラス（インタフェース）。
+*/
+template <class T>
+class IStrategy {
+public:
+    /**
+        l == r then return 0.
+        l > r then return -1.
+        l < r then return 1.
+        派生クラスはこのルールで実装すること。
+        ```
+        e.g.
+        strcmp("EMAIL",cmd) == 0
+        ```
+    */
+    virtual int compare(const T* l, const T* r) const = 0;
+    virtual ~IStrategy() {}
+};
+class CompSystemCols final : public virtual IStrategy<CMD_DATA> {
+public:
+    CompSystemCols() {}
+    CompSystemCols(const CompSystemCols& own) {
+        (*this) = own;
+    }
+    ~CompSystemCols() {}
+    virtual int compare(const CMD_DATA* l, const CMD_DATA* r) const override {
+        return -2;  // 暫定としてありえない数値を返却してる。
+    }
+
+};
+int test_CompSystemCols(const CMD_DATA* sys, const CMD_DATA* in) {
+    cout << "------------------- test_CompSystemCols" << endl;
+    CompSystemCols compSystemCols;
+    ptr_lambda_debug<const string&,const int&>("Play and Result ... test_CompSystemCols",compSystemCols.compare(sys,in));
+    return 0;
+}
 /**
     CMD_DATA のデバッグ出力を行う。
     初期化時に no を -1 にしないとダメだよ。
@@ -283,6 +306,7 @@ int step_d(CMD_DATA* sysCols, CMD_DATA* cdCols, CMD_DATA* cdVals) {
         // この次は、sysCols と cdCols の名前によるマッチングを行う。(次回はここからはじめること：）
         // アイデアを少し、システムとユーザ入力カラムの適合はGoF ストラテジー？でいこう、仕事をしていたら時間が無くなった orz
         // うん今日はここまでだね：）
+        test_CompSystemCols(sysCols,cdCols);
 
     } 
     catch(exception& e) {
@@ -436,7 +460,8 @@ int step_b(char* cols, char* vals, char* cvals) {
 */
 int step_a() {
     cout << "----------------------- step_a" << endl;
-    char reconcCmd[] = {"INSERT INTO FILE_NAME(COL_1,COL_2) VALUES (\"I'm Jack.\", \"\\\"What's up ?\\\"\")\0"};
+//    char reconcCmd[] = {"INSERT INTO FILE_NAME(COL_1,COL_2) VALUES (\"I'm Jack.\", \"\\\"What's up ?\\\"\")\0"};
+    char reconcCmd[] = {"INSERT INTO FILE_NAME(NAME,EMAIL,MEMO) VALUES (\"I'm Jack.\", \"jack@loki.org\",  \"\\\"What's up ?\\\"\")\0"};
     ptr_lambda_debug<const string&,const char*>("reconcCmd is ",reconcCmd);
     char cols[CMD_DATA_MAX_INDEX] = {"\0"};
     char vals[CMD_DATA_MAX_INDEX] = {"\0"};
