@@ -33,6 +33,21 @@ void (*ptr_lambda_debug)(M,D) = [](auto message,auto debug)-> void {
     cout << message << '\t' << debug << endl;
 };
 /**
+    GoF Strategy を利用した、システムカラムとユーザ入力カラムの比較を行うもの。
+    その基底クラス（インタフェース）。
+*/
+template <class T>
+class IStrategy {
+public:
+    /**
+        l == r then return 0.
+        l > r then return -1.
+        l < r then return 1.
+        派生クラスはこのルールで実装すること。
+    */
+    virtual int compare(const T& l, const T& r) const = 0;
+};
+/**
      コマンドのコピーを行う。
 */
 int copyCmd(char* dest, const char* src, const int len) {
