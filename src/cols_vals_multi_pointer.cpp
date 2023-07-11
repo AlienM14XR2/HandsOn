@@ -120,12 +120,13 @@ protected:
     */
     virtual int compare(const char* sys, const T* in) const = 0;
 public:
-    // 上記関数のラップ。。。うん冗長なのかな。    
+    // 上記関数のラップ。。。うん冗長なのかな。
+    // @see protected compare.
     virtual int compare(const T* in) const = 0;
     virtual ~IStrategy() {}
 };
 /**
-    システムカラム EMAIL の比較を検知を行うクラス。
+    システムカラム EMAIL の比較をし検知を行うクラス。
 */
 class CompSysEmailCol final : public virtual IStrategy<CMD_DATA> {
 private:
@@ -133,7 +134,14 @@ private:
 protected:
     virtual int compare(const char* sys, const CMD_DATA* in) const override {
         ptr_lambda_debug<const char*,const char*>("sys is ", sys);
-        return -2;  // 暫定としてありえない数値を返却してる。
+        int ret = strcmp(sys,in->data);
+        if( ret == 0) {
+            return 0;
+        } else if( ret > 0 ) {    // sys > in 正
+            return -1;
+        } else {    // sys < in 負
+            return 1;
+        }
     }
 public:
     CompSysEmailCol() {}
@@ -319,7 +327,7 @@ int step_d(CMD_DATA* sysCols, CMD_DATA* cdCols, CMD_DATA* cdVals) {
         // この次は、sysCols と cdCols の名前によるマッチングを行う。(次回はここからはじめること：）
         // アイデアを少し、システムとユーザ入力カラムの適合はGoF ストラテジー？でいこう、仕事をしていたら時間が無くなった orz
         // うん今日はここまでだね：）
-        test_CompSysEmailCol(cdCols);
+        test_CompSysEmailCol(&cdCols[1]);
 
     } 
     catch(exception& e) {
