@@ -158,10 +158,51 @@ public:
     }
 
 };
+/**
+    システムカラム NAME の比較をし検知を行うクラス。
+*/
+class CompSysNameCol final : public virtual IStrategy<CMD_DATA> {
+private:
+    const char* name = "NAME";
+    static const int cno = 2;
+protected:
+    virtual int compare(const char* sys, CMD_DATA* in) const override {
+        // コピペして色々と気づくことがあるよね、DRY この処理は上手くひとつに集約できそうだな：）
+        ptr_lambda_debug<const char*,const char*>("sys is ", sys);
+        int ret = strcmp(sys,in->data);
+        if( ret == 0) {
+            in->cno = cno;
+            return 0;
+        } else if( ret > 0 ) {    // sys > in 正
+            in->cno = -1;
+            return -1;
+        } else {    // sys < in 負
+            in->cno = -1;
+            return 1;
+        }
+    }
+public:
+    CompSysNameCol() {}
+    CompSysNameCol(const CompSysNameCol& own) {
+        (*this) = own;
+    }
+    ~CompSysNameCol() {}
+    virtual int compare(CMD_DATA* in) const override {
+        return compare(name,in);
+    }
+
+};
 int test_CompSysEmailCol(CMD_DATA* in) {
     cout << "------------------- test_CompSysEmailCol" << endl;
     CompSysEmailCol compSysEmailCol;
     ptr_lambda_debug<const string&,const int&>("Play and Result ... compSysEmailCol.compare is ",compSysEmailCol.compare(in));
+    printf("data is %s\tcno is %d\n",in->data,in->cno);
+    return 0;
+}
+int test_CompSysNameCol(CMD_DATA* in) {
+    cout << "------------------- test_CompSysNameCol" << endl;
+    CompSysNameCol compSysNameCol;
+    ptr_lambda_debug<const string&,const int&>("Play and Result ... compSysNameCol.compare is ",compSysNameCol.compare(in));
     printf("data is %s\tcno is %d\n",in->data,in->cno);
     return 0;
 }
@@ -328,11 +369,15 @@ int step_d(CMD_DATA* cdCols, CMD_DATA* cdVals) {
     cout << "------ step_d (three dimensional array.)" << endl;
     try {
         ptr_lambda_debug<const string&,const int&>("7月だな、よい月にする：）",369);
-        ptr_lambda_debug<const string&,const int&>("7月だな、よい月にはならなそうだな。。。少なくともプライベートは：）",999);
+        ptr_lambda_debug<const string&,const int&>("7月だな、よい月にはならなそうだな。。。少なくともプライベートは：）",666);
+        ptr_lambda_debug<const string&,const int&>("二度目の人生、やはり初恋は実らないのかな：）",333);
         // この次は、sysCols と cdCols の名前によるマッチングを行う。(次回はここからはじめること：）
         // アイデアを少し、システムとユーザ入力カラムの適合はGoF ストラテジー？でいこう、仕事をしていたら時間が無くなった orz
         // うん今日はここまでだね：）
-        test_CompSysEmailCol(&cdCols[1]);
+        test_CompSysEmailCol(&cdCols[1]);   // このテストが成功したので、ループで cdCols の cno を確定させることができるはず。
+        // 次回はループでユーザ入力された cdCols の cno を確定させる。。。ということは、Strategy の派生クラスを全て用意する必要があるのか：）少しダルいな：）
+        test_CompSysNameCol(&cdCols[0]);
+        // IStrategy のリファクタを行って共通処理をまとめよう、コピペコードを排除すること。
 
     } 
     catch(exception& e) {
