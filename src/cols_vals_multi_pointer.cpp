@@ -118,25 +118,26 @@ public:
         strcmp("EMAIL",cmd) == 0
         ```
     */
-    virtual int compare(const T* l, const T* r) const = 0;
+    virtual int compare(const char* sys, const T* in) const = 0;
     virtual ~IStrategy() {}
 };
-class CompSystemCols final : public virtual IStrategy<CMD_DATA> {
+class CompSysEmailCol final : public virtual IStrategy<CMD_DATA> {
 public:
-    CompSystemCols() {}
-    CompSystemCols(const CompSystemCols& own) {
+    CompSysEmailCol() {}
+    CompSysEmailCol(const CompSysEmailCol& own) {
         (*this) = own;
     }
-    ~CompSystemCols() {}
-    virtual int compare(const CMD_DATA* l, const CMD_DATA* r) const override {
+    ~CompSysEmailCol() {}
+    virtual int compare(const char* sys, const CMD_DATA* in) const override {
+        ptr_lambda_debug<const char*,const char*>("sys is ", sys);
         return -2;  // 暫定としてありえない数値を返却してる。
     }
 
 };
-int test_CompSystemCols(const CMD_DATA* sys, const CMD_DATA* in) {
-    cout << "------------------- test_CompSystemCols" << endl;
-    CompSystemCols compSystemCols;
-    ptr_lambda_debug<const string&,const int&>("Play and Result ... test_CompSystemCols",compSystemCols.compare(sys,in));
+int test_CompSysEmailCol(const char* sys, const CMD_DATA* in) {
+    cout << "------------------- test_CompSysEmailCol" << endl;
+    CompSysEmailCol compSysEmailCol;
+    ptr_lambda_debug<const string&,const int&>("Play and Result ... compSysEmailCol.compare is ",compSysEmailCol.compare(sys,in));
     return 0;
 }
 /**
@@ -306,7 +307,7 @@ int step_d(CMD_DATA* sysCols, CMD_DATA* cdCols, CMD_DATA* cdVals) {
         // この次は、sysCols と cdCols の名前によるマッチングを行う。(次回はここからはじめること：）
         // アイデアを少し、システムとユーザ入力カラムの適合はGoF ストラテジー？でいこう、仕事をしていたら時間が無くなった orz
         // うん今日はここまでだね：）
-        test_CompSystemCols(sysCols,cdCols);
+        test_CompSysEmailCol("EMAIL",cdCols);
 
     } 
     catch(exception& e) {
