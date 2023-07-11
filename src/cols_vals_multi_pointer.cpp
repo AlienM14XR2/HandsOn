@@ -324,7 +324,7 @@ int splitData(char delim, const char* src, CMD_DATA* dest) {
 
     これはズルだ：）連続記録を強引に引っ張るためだ：）
 */
-int step_d(CMD_DATA* sysCols, CMD_DATA* cdCols, CMD_DATA* cdVals) {
+int step_d(CMD_DATA* cdCols, CMD_DATA* cdVals) {
     cout << "------ step_d (three dimensional array.)" << endl;
     try {
         ptr_lambda_debug<const string&,const int&>("7月だな、よい月にする：）",369);
@@ -466,14 +466,14 @@ int step_b(char* cols, char* vals, char* cvals) {
     ptr_lambda_debug<const string&,const char*>("cols is ",cols);
     ptr_lambda_debug<const string&,const char*>("cvals is ",cvals);
     // CMD_DATA 型配列、ここでの宣言が妥当かどうか、少し考慮の余地があると思う。
-    CMD_DATA cdCols[CMD_DATA_MAX_INDEX], cdVals[CMD_DATA_MAX_INDEX], sysCols[CMD_DATA_MAX_INDEX];
+    CMD_DATA cdCols[CMD_DATA_MAX_INDEX], cdVals[CMD_DATA_MAX_INDEX], sysCols[CMD_DATA_MAX_INDEX];   // sysCols は今後不要と思われる。
     initCmdData(cdCols,CMD_DATA_MAX_INDEX);
     initCmdData(cdVals,CMD_DATA_MAX_INDEX);
     ptr_lambda_debug<const string&,const int&>("Play and Result ...... step_c",step_c(cols,cvals,cdCols,cdVals));
     // 第一実引数（システムカラム名）が nullptr になっている、これを直ぐに修正すること。// DONE.
-    initSystemData(sysCols);
-    cmd_deta_debug(sysCols);
-    ptr_lambda_debug<const string&,const int&>("Play and Result ...... step_d",step_d(sysCols,cdCols,cdVals));
+    initSystemData(sysCols);    // この処理がいらなくなりそう。
+    cmd_deta_debug(sysCols);    // この処理が不要になるかも。
+    ptr_lambda_debug<const string&,const int&>("Play and Result ...... step_d",step_d(cdCols,cdVals));
     return 0;
 }
 /**
