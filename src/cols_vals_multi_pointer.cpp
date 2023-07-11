@@ -6,16 +6,16 @@
 
     ここから、システム定義のカラム名とユーザ入力されたカラム名及びその値を抜き出す方法を考える。
     そもそも論だけど、システムのデフォルトカラムを決めていないな：）
-    - ID        システム自動設定、プライマリキ。
-    - EMAIL     ユーザ入力、必須。
-    - NAME      ユーザ入力、必須。
-    - PHONE_1   ユーザ入力、必須。
-    - PHONE_2   ユーザ入力。
-    - PHONE_3   ユーザ入力。
-    - ADDRESS   ユーザ入力。
-    - MEMO      ユーザ入力。
-    - CREATE_AT システム自動設定。
-    - UPDATE_AT システム自動設定。
+    - ID        システム自動設定、プライマリキ 0。
+    - EMAIL     ユーザ入力、必須               1。
+    - NAME      ユーザ入力、必須               2。
+    - PHONE_1   ユーザ入力、必須               3。
+    - PHONE_2   ユーザ入力                     4。
+    - PHONE_3   ユーザ入力                     5。
+    - ADDRESS   ユーザ入力                     6。
+    - MEMO      ユーザ入力                     7。
+    - CREATE_AT システム自動設定               8。
+    - UPDATE_AT システム自動設定               9。
 */
 #include <iostream>
 #include "stdio.h"
@@ -118,11 +118,11 @@ protected:
         strcmp("EMAIL",cmd) == 0
         ```
     */
-    virtual int compare(const char* sys, const T* in) const = 0;
+    virtual int compare(const char* sys, T* in) const = 0;
 public:
     // 上記関数のラップ。。。うん冗長なのかな。
     // @see protected compare.
-    virtual int compare(const T* in) const = 0;
+    virtual int compare(T* in) const = 0;
     virtual ~IStrategy() {}
 };
 /**
@@ -131,15 +131,19 @@ public:
 class CompSysEmailCol final : public virtual IStrategy<CMD_DATA> {
 private:
     const char* name = "EMAIL";
+    static const int cno = 1;
 protected:
-    virtual int compare(const char* sys, const CMD_DATA* in) const override {
+    virtual int compare(const char* sys, CMD_DATA* in) const override {
         ptr_lambda_debug<const char*,const char*>("sys is ", sys);
         int ret = strcmp(sys,in->data);
         if( ret == 0) {
+            in->cno = cno;
             return 0;
         } else if( ret > 0 ) {    // sys > in 正
+            in->cno = -1;
             return -1;
         } else {    // sys < in 負
+            in->cno = -1;
             return 1;
         }
     }
@@ -149,15 +153,16 @@ public:
         (*this) = own;
     }
     ~CompSysEmailCol() {}
-    virtual int compare(const CMD_DATA* in) const override {
+    virtual int compare(CMD_DATA* in) const override {
         return compare(name,in);
     }
 
 };
-int test_CompSysEmailCol(const CMD_DATA* in) {
+int test_CompSysEmailCol(CMD_DATA* in) {
     cout << "------------------- test_CompSysEmailCol" << endl;
     CompSysEmailCol compSysEmailCol;
     ptr_lambda_debug<const string&,const int&>("Play and Result ... compSysEmailCol.compare is ",compSysEmailCol.compare(in));
+    printf("data is %s\tcno is %d\n",in->data,in->cno);
     return 0;
 }
 /**
