@@ -107,7 +107,7 @@ public:
 */
 template <class T>
 class IStrategy {
-public:
+protected:
     /**
         l == r then return 0.
         l > r then return -1.
@@ -119,25 +119,37 @@ public:
         ```
     */
     virtual int compare(const char* sys, const T* in) const = 0;
+public:
+    // 上記関数のラップ。。。うん冗長なのかな。    
+    virtual int compare(const T* in) const = 0;
     virtual ~IStrategy() {}
 };
+/**
+    システムカラム EMAIL の比較を検知を行うクラス。
+*/
 class CompSysEmailCol final : public virtual IStrategy<CMD_DATA> {
+private:
+    const char* name = "EMAIL";
+protected:
+    virtual int compare(const char* sys, const CMD_DATA* in) const override {
+        ptr_lambda_debug<const char*,const char*>("sys is ", sys);
+        return -2;  // 暫定としてありえない数値を返却してる。
+    }
 public:
     CompSysEmailCol() {}
     CompSysEmailCol(const CompSysEmailCol& own) {
         (*this) = own;
     }
     ~CompSysEmailCol() {}
-    virtual int compare(const char* sys, const CMD_DATA* in) const override {
-        ptr_lambda_debug<const char*,const char*>("sys is ", sys);
-        return -2;  // 暫定としてありえない数値を返却してる。
+    virtual int compare(const CMD_DATA* in) const override {
+        return compare(name,in);
     }
 
 };
-int test_CompSysEmailCol(const char* sys, const CMD_DATA* in) {
+int test_CompSysEmailCol(const CMD_DATA* in) {
     cout << "------------------- test_CompSysEmailCol" << endl;
     CompSysEmailCol compSysEmailCol;
-    ptr_lambda_debug<const string&,const int&>("Play and Result ... compSysEmailCol.compare is ",compSysEmailCol.compare(sys,in));
+    ptr_lambda_debug<const string&,const int&>("Play and Result ... compSysEmailCol.compare is ",compSysEmailCol.compare(in));
     return 0;
 }
 /**
@@ -307,7 +319,7 @@ int step_d(CMD_DATA* sysCols, CMD_DATA* cdCols, CMD_DATA* cdVals) {
         // この次は、sysCols と cdCols の名前によるマッチングを行う。(次回はここからはじめること：）
         // アイデアを少し、システムとユーザ入力カラムの適合はGoF ストラテジー？でいこう、仕事をしていたら時間が無くなった orz
         // うん今日はここまでだね：）
-        test_CompSysEmailCol("EMAIL",cdCols);
+        test_CompSysEmailCol(cdCols);
 
     } 
     catch(exception& e) {
