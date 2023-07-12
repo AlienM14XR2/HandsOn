@@ -35,7 +35,7 @@ void (*ptr_lambda_debug)(M,D) = [](auto message,auto debug)-> void {
 /**
      コマンドのコピーを行う。
 */
-int copyCmd(char* dest, const char* src, const int len) {
+int copyCmd(char* dest, const char* src, const int& len) {
     int i = 0;
     for(;i < len; i++) {
         dest[i] = src[i];
@@ -126,12 +126,14 @@ public:
     virtual ~IStrategy() {}
 };
 /**
-    システムカラム EMAIL の比較をし検知を行うクラス。
+    システムカラム の比較をし検知を行うクラス。
 */
-class CompSysEmailCol final : public virtual IStrategy<CMD_DATA> {
+class CompSysCol final : public virtual IStrategy<CMD_DATA> {
 private:
-    const char* name = "EMAIL";
-    static const int cno = 1;
+    // 以下の属性はコンストラクタで再設定、正しい値を再代入すること。
+    char name[CMD_SPLIT_SIZE] = {"\0"};
+    int cno = -1;
+    CompSysCol() {}
 protected:
     virtual int compare(const char* sys, CMD_DATA* in) const override {
         ptr_lambda_debug<const char*,const char*>("sys is ", sys);
@@ -148,11 +150,15 @@ protected:
         }
     }
 public:
-    CompSysEmailCol() {}
-    CompSysEmailCol(const CompSysEmailCol& own) {
+    CompSysCol(const char* n, const int& num) {
+        int len = strlen(n);
+        copyCmd(name, n, len);
+        cno = num;
+    }
+    CompSysCol(const CompSysCol& own) {
         (*this) = own;
     }
-    ~CompSysEmailCol() {}
+    ~CompSysCol() {}
     virtual int compare(CMD_DATA* in) const override {
         return compare(name,in);
     }
@@ -160,7 +166,7 @@ public:
 };
 /**
     システムカラム NAME の比較をし検知を行うクラス。
-*/
+*//*
 class CompSysNameCol final : public virtual IStrategy<CMD_DATA> {
 private:
     const char* name = "NAME";
@@ -191,17 +197,17 @@ public:
         return compare(name,in);
     }
 
-};
+};*/
 int test_CompSysEmailCol(CMD_DATA* in) {
     cout << "------------------- test_CompSysEmailCol" << endl;
-    CompSysEmailCol compSysEmailCol;
+    CompSysCol compSysEmailCol("EMAIL",1);
     ptr_lambda_debug<const string&,const int&>("Play and Result ... compSysEmailCol.compare is ",compSysEmailCol.compare(in));
     printf("data is %s\tcno is %d\n",in->data,in->cno);
     return 0;
 }
 int test_CompSysNameCol(CMD_DATA* in) {
     cout << "------------------- test_CompSysNameCol" << endl;
-    CompSysNameCol compSysNameCol;
+    CompSysCol compSysNameCol("NAME",2);
     ptr_lambda_debug<const string&,const int&>("Play and Result ... compSysNameCol.compare is ",compSysNameCol.compare(in));
     printf("data is %s\tcno is %d\n",in->data,in->cno);
     return 0;
