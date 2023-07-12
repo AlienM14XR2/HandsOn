@@ -127,6 +127,7 @@ public:
 };
 /**
     システムカラム の比較をし検知を行うクラス。
+    現状の仕組みならこのクラスひとつで事足りるはず。（複数の派生クラスはいらない：）
 */
 class CompSysCol final : public virtual IStrategy<CMD_DATA> {
 private:
@@ -164,40 +165,6 @@ public:
     }
 
 };
-/**
-    システムカラム NAME の比較をし検知を行うクラス。
-*//*
-class CompSysNameCol final : public virtual IStrategy<CMD_DATA> {
-private:
-    const char* name = "NAME";
-    static const int cno = 2;
-protected:
-    virtual int compare(const char* sys, CMD_DATA* in) const override {
-        // コピペして色々と気づくことがあるよね、DRY この処理は上手くひとつに集約できそうだな：）
-        ptr_lambda_debug<const char*,const char*>("sys is ", sys);
-        int ret = strcmp(sys,in->data);
-        if( ret == 0) {
-            in->cno = cno;
-            return 0;
-        } else if( ret > 0 ) {    // sys > in 正
-            in->cno = -1;
-            return -1;
-        } else {    // sys < in 負
-            in->cno = -1;
-            return 1;
-        }
-    }
-public:
-    CompSysNameCol() {}
-    CompSysNameCol(const CompSysNameCol& own) {
-        (*this) = own;
-    }
-    ~CompSysNameCol() {}
-    virtual int compare(CMD_DATA* in) const override {
-        return compare(name,in);
-    }
-
-};*/
 int test_CompSysEmailCol(CMD_DATA* in) {
     cout << "------------------- test_CompSysEmailCol" << endl;
     CompSysCol compSysEmailCol("EMAIL",1);
@@ -383,8 +350,13 @@ int step_d(CMD_DATA* cdCols, CMD_DATA* cdVals) {
         test_CompSysEmailCol(&cdCols[1]);   // このテストが成功したので、ループで cdCols の cno を確定させることができるはず。
         // 次回はループでユーザ入力された cdCols の cno を確定させる。。。ということは、Strategy の派生クラスを全て用意する必要があるのか：）少しダルいな：）
         test_CompSysNameCol(&cdCols[0]);
-        // IStrategy のリファクタを行って共通処理をまとめよう、コピペコードを排除すること。
-
+        // IStrategy のリファクタを行って共通処理をまとめよう、コピペコードを排除すること。DONE.
+        // テストデータをフルにして、IStrategy のテスト。。。はいらないな：）上の二つで確認は十分と判断した。
+        // 次は、cdCols のインデックス no と cdVals の同一 no 同士の cno の同期を行う。
+        printf("col data %s\tno is %d\tcno is %d\n",cdCols[0].data,cdCols[0].no,cdCols[0].cno);
+        printf("col data %s\tno is %d\tcno is %d\n",cdCols[1].data,cdCols[1].no,cdCols[1].cno);
+        printf("col data %s\tno is %d\tcno is %d\n",cdVals[0].data,cdVals[0].no,cdVals[0].cno);
+        printf("col data %s\tno is %d\tcno is %d\n",cdVals[1].data,cdVals[1].no,cdVals[1].cno);
     } 
     catch(exception& e) {
         cerr << e.what() << endl;
@@ -420,6 +392,7 @@ int initCmdData(CMD_DATA* cmdd, int maxIndex) {
     for(int i=0; i<maxIndex ; i++) {
         cmdd[i].no = -1;
         initCmd(cmdd[i].data);
+        cmdd[i].cno = -1;
     }
     // デバッグ
     printf("initCmdData ... cmdd[0].no is %d\t cmdd[0].data is %s\n", cmdd[0].no, cmdd[0].data);
