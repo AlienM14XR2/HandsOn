@@ -78,7 +78,6 @@ int copyCmd(char* dest, const char* src, const int len) {
     dest[i] = '\0';
    return 0;
 }
-
 /**
     in の値、文字を大文字に変換し out に代入する。
 */
@@ -89,6 +88,15 @@ int upperStr(const char* in, char* out) {
         i++;
     }
     out[i] = '\0';
+    return 0;
+}
+/**
+    コマンドの初期化を行う。
+*/
+int initCmd(char* cmd) {
+    for(int i = 0; i < sizeof(cmd)/sizeof(cmd[0]); i++) {
+        cmd[i] = '\0';
+    }
     return 0;
 }
 
@@ -117,15 +125,6 @@ protected:
     int isEOC(const char* c) {
         if(*c == ';' || *c == '\0') {
             return 1;
-        }
-        return 0;
-    }
-    /**
-        コマンドの初期化を行う。
-    */
-    int initCmd(char* cmd) {
-        for(int i = 0; i < sizeof(cmd)/sizeof(cmd[0]); i++) {
-            cmd[i] = '\0';
         }
         return 0;
     }
@@ -232,9 +231,11 @@ protected:
         }
         return 0;
     }
-
     virtual int toUpper() const = 0;        // 少し迷ったが、結局Protected の純粋仮想関数にした。ここで各コマンドの揺らぎを吸収してくれ。コンストラクタ内で利用してね。
     virtual int reconcate() const = 0;      // C++ まだまだ理解が足りない部分が多い、この方法以外で派生クラスで実装及び呼び出す術を知らない（現状できない：）。analyze()で呼び出す。
+    virtual int manageFrom(int* flg, char* tmp, int* counter) const = 0;
+    virtual int manageTo(int* flg, char* destc, char* destv, char* tmp) const = 0;
+    virtual int extract() const = 0;
     
 public:
     virtual int validation() const = 0;
@@ -261,8 +262,10 @@ public:
 class CommandInsert final : public virtual ICommandAnalyzer {
 private:
     string orgCmd = "";                     // 値を代入後、この値は変更してはいけない。
-    vector<string> splitCmd;                // 最初に用意したけど、このまま利用しない可能性が高くなったぞ：）考えとけ：）
+//    vector<string> splitCmd;                // 最初に用意したけど、このまま利用しない可能性が高くなったぞ：）考えとけ：）
     mutable char reconcCmd[CMD_SIZE] = {"\0"};      // re concatenation command. 再連結されたコマンド。 
+    mutable char cols[CMD_DATA_MAX_INDEX] = {"\0"};
+    mutable char vals[CMD_DATA_MAX_INDEX] = {"\0"};
 
     /**
         デフォルトコンストラクタ
@@ -326,7 +329,63 @@ protected:
         }
         return 0;
     }
-
+    /**
+        '(' の検知による状態変化を管理する。
+        @see extract 関数。
+    */
+    virtual int manageFrom(int* flg, char* tmp, int* counter) const override {
+        // フラグの状態遷移
+        if( (*flg) == 0 ) {
+            (*flg) = 1;
+        } else if( (*flg) == 2 ) {
+            (*flg) = 3;
+        }
+        initCmd(tmp);       // tmp の初期化
+        (*counter) = 0;     // カウンタの初期化
+        return 0;
+    }
+    /**
+        ')' の検知による状態変化を管理する。
+        @see extract 関数。
+    */
+    virtual int manageTo(int* flg, char* destc, char* destv, char* tmp) const override {
+        if( (*flg) == 1 ) {
+            copyCmd(destc,tmp,strlen(tmp));
+            (*flg) = 2;
+            ptr_lambda_debug<const string&,const char*>("\ndestc is ", destc);
+        } else if( (*flg) == 3 ) {
+        copyCmd(destv,tmp,strlen(tmp));
+            (*flg) = 4;    // この値は本来使わないけどデバックに利用している、確認のため：）
+            ptr_lambda_debug<const string&,const char*>("\ndestv is ", destv);
+        }
+        return 0;
+    }
+    /**
+        ユーザ入力カラムとユーザ入力値の抽出を行う。
+    */
+    virtual int extract() const override {    // メンバ変数の操作なので仮引数は必要ないけど。@see cols_vals_multi_pointer.cpp fetch 関数。
+        try {
+            int hitFrom = 0;    // 1: cols のはじまり、2: 中間 3: vals のはじまり、4: おしまい。
+            int len = strlen(reconcCmd);
+            char tmp[CMD_SPLIT_SIZE] = {"\0"};
+            int j = 0;
+            for(int i=0; i<len; i++) {
+                if('(' == reconcCmd[i]) {
+                    manageFrom(&hitFrom, tmp, &j);
+                } else if(')' == reconcCmd[i]) {
+                    manageTo(&hitFrom, cols, vals, tmp);
+                }
+                if((hitFrom == 1 || hitFrom == 3) && reconcCmd[i] != '(') {
+                    tmp[j] = reconcCmd[i];
+                    j+=1;
+                }
+            }
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+        return 0;
+    }
 
 public:
     CommandInsert(const string& originalCommnad) {
@@ -372,6 +431,8 @@ public:
         // 20230621 やっとここの実装まで漕ぎつけたと思うのだが、どうだ？
         // cmdUpData を再連結し、reconcCmd に代入する。
         reconcate();
+        // ここに cols_vals_muti_pointer.cpp の各Step を移植していく予定、まずは Step A... Cols と Vals の「抽出」から。
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... extract is ",extract());
         return 0;
     }
 };
