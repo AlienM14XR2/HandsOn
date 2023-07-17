@@ -14,7 +14,19 @@
     念のため、各関数はその殆どが戻り値（int）を持つ、それはエラーハンドリングに利用する予定、そう予定だから未定だ。
     未定なので、現状考慮はされていない。
 
-    @Author Jack
+    ## システムカラム
+    - ID        システム自動設定、プライマリキ 0。
+    - EMAIL     ユーザ入力、必須               1。
+    - NAME      ユーザ入力、必須               2。
+    - PHONE_1   ユーザ入力、必須               3。
+    - PHONE_2   ユーザ入力                     4。
+    - PHONE_3   ユーザ入力                     5。
+    - ADDRESS   ユーザ入力                     6。
+    - MEMO      ユーザ入力                     7。
+    - CREATE_AT システム自動設定               8。
+    - UPDATE_AT システム自動設定               9。
+
+    @author Jack
 */
 #include <iostream>
 #include <vector>
@@ -365,7 +377,7 @@ public:
 };
 int test_Command_Insert() {
     cout << "------------------------------------ test_Command_Insert" << endl;
-    const string cmd = "insert into file_name(col_1,col_2) values (\"I'm Jack.\", \"\\\"What's up ?\\\"\");";
+    const string cmd = "insert into file_name(name,email,memo) values (\"I'm Jack.\", \"jack@loki.org\",\"\\\"What's up ?\\\"\");";
 //    const string cmd = "insert into file_name(col_1,col_2) values ('I\\'m Jack.', '\\'What\\'s up ?\\'');";
     ptr_lambda_debug<const string&,const string&>("cmd is ",cmd);
     CommandInsert cmdIns(cmd);
@@ -429,8 +441,8 @@ int init_cmd(char* cmd) {
 }
 /**
     これでは、問題があることに気付いた。
-  Values はユーザの任意なので、これを大文字に強制的に変換してしまうのは違う。
-  したがって、別途、Values 以降の（）内の値は無視するものが必要だ。
+    Values はユーザの任意なので、これを大文字に強制的に変換してしまうのは違う。
+    したがって、別途、Values 以降の（）内の値は無視するものが必要だ。
     
 */
 int upper_str(const char* in, char* out) {
