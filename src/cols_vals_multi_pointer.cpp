@@ -179,6 +179,13 @@ int test_CompSysNameCol(CMD_DATA* in) {
     printf("data is %s\tcno is %d\n",in->data,in->cno);
     return 0;
 }
+int test_CompSysMemoCol(CMD_DATA* in) {
+    cout << "------------------- test_CompSysMemoCol" << endl;
+    CompSysCol compSysMemoCol("MEMO",7);
+    ptr_lambda_debug<const string&,const int&>("Play and Result ... compSysNameCol.compare is ",compSysMemoCol.compare(in));
+    printf("data is %s\tcno is %d\n",in->data,in->cno);
+    return 0;
+}
 /**
     CMD_DATA のデバッグ出力を行う。
     初期化時に no を -1 にしないとダメだよ。
@@ -323,6 +330,30 @@ int splitData(char delim, const char* src, CMD_DATA* dest) {
     return 0;
 }
 /**
+    ユーザ入力された値のカラム番号を確定させる。
+    この関数を利用する前にユーザ入力されたカラムのカラム番号が確定
+    していることが必須となる。
+*/
+int fixValColumnNumber(CMD_DATA* cdCols, CMD_DATA* cdVals) {
+    // 予防線、そもそもユーザ入力されたカラムと値の数が同数でないといけないので：）そのValidation やってないし：）
+    try {
+        //int size = sizeof(cdCols)/sizeof(cdCols[0]);
+        for(int i=0; i < CMD_DATA_MAX_INDEX ;i++) {
+            if(cdCols[i].no == -1) {break;}
+            cdVals[i].cno = cdCols[i].cno;
+        }
+    } catch(exception& e) {
+        cerr << e.what() << endl;
+        return -1;
+    }
+    // debug
+    for(int i=0; i < CMD_DATA_MAX_INDEX; i++) {
+        if(cdVals[i].no == -1) {break;}
+        printf("val data is %s\tcno is %d\n",cdVals[i].data,cdVals[i].cno);
+    }
+    return 0;
+}
+/**
     step_d 関数。
 
     多次元配列による、システムカラム名、ユーザ入力カラム名とその値の管理と比較を行う。
@@ -350,13 +381,15 @@ int step_d(CMD_DATA* cdCols, CMD_DATA* cdVals) {
         test_CompSysEmailCol(&cdCols[1]);   // このテストが成功したので、ループで cdCols の cno を確定させることができるはず。
         // 次回はループでユーザ入力された cdCols の cno を確定させる。。。ということは、Strategy の派生クラスを全て用意する必要があるのか：）少しダルいな：）
         test_CompSysNameCol(&cdCols[0]);
+        test_CompSysMemoCol(&cdCols[2]);
         // IStrategy のリファクタを行って共通処理をまとめよう、コピペコードを排除すること。DONE.
         // テストデータをフルにして、IStrategy のテスト。。。はいらないな：）上の二つで確認は十分と判断した。
         // 次は、cdCols のインデックス no と cdVals の同一 no 同士の cno の同期を行う。
         printf("col data %s\tno is %d\tcno is %d\n",cdCols[0].data,cdCols[0].no,cdCols[0].cno);
         printf("col data %s\tno is %d\tcno is %d\n",cdCols[1].data,cdCols[1].no,cdCols[1].cno);
-        printf("col data %s\tno is %d\tcno is %d\n",cdVals[0].data,cdVals[0].no,cdVals[0].cno);
-        printf("col data %s\tno is %d\tcno is %d\n",cdVals[1].data,cdVals[1].no,cdVals[1].cno);
+        printf("val data %s\tno is %d\tcno is %d\n",cdVals[0].data,cdVals[0].no,cdVals[0].cno);
+        printf("val data %s\tno is %d\tcno is %d\n",cdVals[1].data,cdVals[1].no,cdVals[1].cno);
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... fixValColumnNumber",fixValColumnNumber(cdCols,cdVals));
     } 
     catch(exception& e) {
         cerr << e.what() << endl;
@@ -463,7 +496,7 @@ int initSystemData(CMD_DATA* syscol) {
     ※実を言うと例のアセンブリ言語が怖すぎて、こっちに逃げてきた：）
     レジストリ番号による意味、別名をはじめに覚える必要があると思った。
 */
-int step_b(char* cols, char* vals, char* cvals) {
+int step_b(char* cols, char* vals, char* cleanVals) {
     cout << "------ step_b (cleanup data)" << endl;
     int j = 0;
     int escape = 0;
@@ -477,7 +510,7 @@ int step_b(char* cols, char* vals, char* cvals) {
             // ignore 何もしない：）
         } else {
             printf("%c",vals[i]);   // デバッグ
-            cvals[j] = vals[i];
+            cleanVals[j] = vals[i];
             j+=1;
             if(escape == 1) {
                 escape = 0;
@@ -486,14 +519,14 @@ int step_b(char* cols, char* vals, char* cvals) {
     }
     // ここまでで、ダブルクォート内の必要な情報のみ取得できた、Escape を利用したシステム予約語との併用も可能。
     printf("\n");
-    cvals[j] = '\0';
+    cleanVals[j] = '\0';
     ptr_lambda_debug<const string&,const char*>("cols is ",cols);
-    ptr_lambda_debug<const string&,const char*>("cvals is ",cvals);
+    ptr_lambda_debug<const string&,const char*>("cleanVals is ",cleanVals);
     // CMD_DATA 型配列、ここでの宣言が妥当かどうか、少し考慮の余地があると思う。
     CMD_DATA cdCols[CMD_DATA_MAX_INDEX], cdVals[CMD_DATA_MAX_INDEX], sysCols[CMD_DATA_MAX_INDEX];   // sysCols は今後不要と思われる。
     initCmdData(cdCols,CMD_DATA_MAX_INDEX);
     initCmdData(cdVals,CMD_DATA_MAX_INDEX);
-    ptr_lambda_debug<const string&,const int&>("Play and Result ...... step_c",step_c(cols,cvals,cdCols,cdVals));
+    ptr_lambda_debug<const string&,const int&>("Play and Result ...... step_c",step_c(cols,cleanVals,cdCols,cdVals));
     // 第一実引数（システムカラム名）が nullptr になっている、これを直ぐに修正すること。// DONE.
     initSystemData(sysCols);    // この処理がいらなくなりそう。
     cmd_deta_debug(sysCols);    // この処理が不要になるかも。
