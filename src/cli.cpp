@@ -264,8 +264,8 @@ private:
     string orgCmd = "";                     // 値を代入後、この値は変更してはいけない。
 //    vector<string> splitCmd;                // 最初に用意したけど、このまま利用しない可能性が高くなったぞ：）考えとけ：）
     mutable char reconcCmd[CMD_SIZE] = {"\0"};      // re concatenation command. 再連結されたコマンド。 
-    mutable char cols[CMD_DATA_MAX_INDEX] = {"\0"};
-    mutable char vals[CMD_DATA_MAX_INDEX] = {"\0"};
+    mutable char cols[CMD_DATA_MAX_INDEX] = {"\0"}; // ユーザ入力されたカラムを分割して保持する。
+    mutable char vals[CMD_DATA_MAX_INDEX] = {"\0"}; // ユーザ入力された値を分割して保持する。
 
     /**
         デフォルトコンストラクタ
@@ -433,6 +433,7 @@ public:
         reconcate();
         // ここに cols_vals_muti_pointer.cpp の各Step を移植していく予定、まずは Step A... Cols と Vals の「抽出」から。
         ptr_lambda_debug<const string&,const int&>("Play and Result ... extract is ",extract());
+        // 次は Step B ... destv(vals) のみ対象のダブルクォートの除去作業といえる。
         return 0;
     }
 };
