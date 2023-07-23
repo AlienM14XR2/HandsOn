@@ -239,7 +239,8 @@ protected:
     virtual int manageTo(int* flg, char* destc, char* destv, char* tmp) const = 0;
     virtual int extract() const = 0;
     virtual int removeDblQuote() const = 0;
-    
+    virtual int splitAndTrim() const = 0;
+    virtual int splitData(char delim, const char* src, CMD_DATA* dest) const = 0;
 public:
     virtual int validation() const = 0;
     virtual int analyze() const = 0;
@@ -273,11 +274,28 @@ private:
     mutable char reconcCmd[CMD_SIZE] = {"\0"};              // re concatenation command. 再連結されたコマンド。 
     mutable char cols[CMD_DATA_MAX_INDEX] = {"\0"};         // ユーザ入力されたカラムを分割して保持する。
     mutable char vals[CMD_DATA_MAX_INDEX] = {"\0"};         // ユーザ入力された値を分割して保持する。
-    mutable char cleanVals[CMD_DATA_MAX_INDEX] = {'\0'};    // Trim 後の値を保持する。（ダブルクォート内の必要な情報取得、Escape を利用したシステム予約語との併用も可能。）
+    mutable char cleanVals[CMD_DATA_MAX_INDEX] = {"\0"};    // Trim 後の値を保持する。（ダブルクォート内の必要な情報取得、Escape を利用したシステム予約語との併用も可能。）
+    mutable CMD_DATA cdCols[CMD_DATA_MAX_INDEX];            // 初期化必須、split and trim 後のユーザ入力カラムデータを保持する。
+    mutable CMD_DATA cdVals[CMD_DATA_MAX_INDEX];            // 初期化必須、split and trim 後のユーザ入力値データを保持する。
     /**
         デフォルトコンストラクタ
     */
     CommandInsert() {} 
+    /**
+        仮引数 cmdd の初期化を行う。
+    */
+    int initCmdd(CMD_DATA* cmdd, int maxIndex) {
+        for(int i=0; i<maxIndex ; i++) {
+            cmdd[i].no = -1;
+            initCmd(cmdd[i].data);
+            cmdd[i].cno = -1;
+        }
+        // デバッグ
+        printf("initCmdd ... cmdd[0].no is %d\t cmdd[0].data is %s\tcmdd[0].cno is %d\n", cmdd[0].no, cmdd[0].data, cmdd[0].cno);
+        printf("initCmdd ... cmdd[CMD_DATA_MAX_INDEX-1].no is %d\tcmdd[CMD_DATA_MAX_INDEX-1].data is %s\tcmdd[CMD_DATA_MAX_INDEX-1].cno is %d\n", cmdd[CMD_DATA_MAX_INDEX-1].no, cmdd[CMD_DATA_MAX_INDEX-1].data, cmdd[CMD_DATA_MAX_INDEX-1].cno);
+        return 0;
+    }
+
 protected:
     /**
         Values までをtoUpper する。
@@ -424,10 +442,54 @@ protected:
             ptr_lambda_debug<const string&,const char*>("cleanVals is ",cleanVals);
         } catch(exception& e) {
             cerr << e.what() << endl;
+            return -1;
         }
         return 0;
     }
-
+    /**
+        destc destv を ',' で分割取得する。
+        分割後、前後の半角スペースは除去する。（全角は知らん、コマンドに全角を使うな、以上だ：）    
+    */
+    virtual int splitAndTrim() const override {
+        try {
+            ptr_lambda_debug<const string&,const int&>("Play and Result ... splitData cols ",splitData(',',cols,cdCols));
+            ptr_lambda_debug<const string&,const int&>("Play and Result ... splitData cleanVals ",splitData(',',cleanVals,cdVals));
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+        return 0;
+    }
+    virtual int splitData(char delim, const char* src, CMD_DATA* dest) const override {
+        try {
+            int len = strlen(src);
+            char tmp[CMD_SPLIT_SIZE] = {"\0"};
+            int j = 0, k = 0;
+            for(int i=0; i<len ; i++) {
+                if(src[i] != delim) {
+                    tmp[j] = src[i];
+                    j+=1;
+                } else {
+                    dest[k].no = k;
+                    copyCmd(dest[k].data, tmp, strlen(tmp));
+                    printf("dest[%d] is %s\n",k,dest[k].data);  // 本当に printf は優秀だわ：）
+                    k+=1;
+                    j = 0;
+                    initCmd(tmp);
+                }
+            }
+            // 分割された最後の部分を検知しておく
+            if(tmp[0] != '\0') {
+                dest[k].no = k;
+                copyCmd(dest[k].data, tmp, strlen(tmp));
+                printf("dest[%d] is %s\n",k,dest[k].data);
+            }
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+        return 0;
+    }
 
 public:
     CommandInsert(const string& originalCommnad) {
@@ -443,6 +505,8 @@ public:
         // Values までをtoUpper する。
         toUpper();
     debugCmdData(cmdUpData);
+        initCmdd(cdCols,CMD_DATA_MAX_INDEX);
+        initCmdd(cdVals,CMD_DATA_MAX_INDEX);
     }
     CommandInsert(const CommandInsert& own) {
         *this = own;
@@ -477,13 +541,14 @@ public:
         ptr_lambda_debug<const string&,const int&>("Play and Result ... extract is ",extract());
         // 次は Step B ... destv(vals) のみ対象のダブルクォートの除去作業といえる。
         ptr_lambda_debug<const string&,const int&>("Play and Result ... removeDblQuote is ",removeDblQuote());
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... splitAndTrim is ",splitAndTrim());
         return 0;
     }
 };
 int test_Command_Insert() {
     cout << "------------------------------------ test_Command_Insert" << endl;
-    // テストデータがよくない、半角スペースを入れたものに変えて以降の動作確認は行うこと。
-    const string cmd = "insert into file_name(name,email,memo) values (\"I'm Jack.\", \"jack@loki.org\",\"\\\"What's up ?\\\"\");";
+    // テストデータがよくない、半角スペースを入れたものに変えて以降の動作確認は行うこと。   DONE.
+    const string cmd = "insert into file_name(name,email,memo) values (\"  I'm Jack. \", \"   jack@loki.org   \",   \"\\\"What's up ?\\\"     \");";
 //    const string cmd = "insert into file_name(col_1,col_2) values ('I\\'m Jack.', '\\'What\\'s up ?\\'');";
     ptr_lambda_debug<const string&,const string&>("cmd is ",cmd);
     CommandInsert cmdIns(cmd);
