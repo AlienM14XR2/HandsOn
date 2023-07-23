@@ -482,6 +482,7 @@ public:
 };
 int test_Command_Insert() {
     cout << "------------------------------------ test_Command_Insert" << endl;
+    // テストデータがよくない、半角スペースを入れたものに変えて以降の動作確認は行うこと。
     const string cmd = "insert into file_name(name,email,memo) values (\"I'm Jack.\", \"jack@loki.org\",\"\\\"What's up ?\\\"\");";
 //    const string cmd = "insert into file_name(col_1,col_2) values ('I\\'m Jack.', '\\'What\\'s up ?\\'');";
     ptr_lambda_debug<const string&,const string&>("cmd is ",cmd);
