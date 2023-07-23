@@ -41,8 +41,9 @@ using namespace std;
 #define CMD_DATA_MAX_INDEX      1024
 
 typedef struct {
-    int no;
-    char data[CMD_SPLIT_SIZE];
+    int no;                         // 番号、単なるインデックス。
+    char data[CMD_SPLIT_SIZE];      // 文字データならなんでもいい。
+    int cno;                        // カラム番号。
 } CMD_DATA;
 
 // Debug 用の関数
@@ -136,6 +137,7 @@ protected:
         for(int i=0; i<cmdMaxIndex ; i++) {
             cmdData[i].no = -1;
             initCmd(cmdData[i].data);
+            cmdData[i].cno = -1;
         }
         return 0;
     }
@@ -236,6 +238,7 @@ protected:
     virtual int manageFrom(int* flg, char* tmp, int* counter) const = 0;
     virtual int manageTo(int* flg, char* destc, char* destv, char* tmp) const = 0;
     virtual int extract() const = 0;
+    virtual int removeDblQuote() const = 0;
     
 public:
     virtual int validation() const = 0;
@@ -256,17 +259,21 @@ public:
     それを再加工（半角スペース）で連結し直す。
     連結後、上記の処理を行う。
     再加工、連結したデータを保存する変数（文字列）と
-    多重ポインタ、その内訳はシステム定義のCols、ユーザ入力されたCols、ユーザ入力されたVals。
+    多重ポインタというより、多次元配列が近いかな、その内訳はシステム定義のCols、ユーザ入力されたCols、ユーザ入力されたVals。
+
+    cols_vals_multi_pointer.cpp の移植作業（Step B）中で思ったこと。
+    現時点でもそう感じているが、すべての移植作業とその動作確認が済んだ段階で、このクラス及び継承関係をもう一度よく
+    考え直した方がいいだろう、平たく言えば、リファクタリングの必要性を強く感じている。
 
 */
 class CommandInsert final : public virtual ICommandAnalyzer {
 private:
-    string orgCmd = "";                     // 値を代入後、この値は変更してはいけない。
-//    vector<string> splitCmd;                // 最初に用意したけど、このまま利用しない可能性が高くなったぞ：）考えとけ：）
-    mutable char reconcCmd[CMD_SIZE] = {"\0"};      // re concatenation command. 再連結されたコマンド。 
-    mutable char cols[CMD_DATA_MAX_INDEX] = {"\0"}; // ユーザ入力されたカラムを分割して保持する。
-    mutable char vals[CMD_DATA_MAX_INDEX] = {"\0"}; // ユーザ入力された値を分割して保持する。
-
+    string orgCmd = "";                                     // 値を代入後、この値は変更してはいけない。
+//    vector<string> splitCmd;                              // 最初に用意したけど、このまま利用しない可能性が高くなったぞ：）考えとけ：）
+    mutable char reconcCmd[CMD_SIZE] = {"\0"};              // re concatenation command. 再連結されたコマンド。 
+    mutable char cols[CMD_DATA_MAX_INDEX] = {"\0"};         // ユーザ入力されたカラムを分割して保持する。
+    mutable char vals[CMD_DATA_MAX_INDEX] = {"\0"};         // ユーザ入力された値を分割して保持する。
+    mutable char cleanVals[CMD_DATA_MAX_INDEX] = {'\0'};    // Trim 後の値を保持する。（ダブルクォート内の必要な情報取得、Escape を利用したシステム予約語との併用も可能。）
     /**
         デフォルトコンストラクタ
     */
@@ -386,6 +393,41 @@ protected:
         }
         return 0;
     }
+    /**
+        ダブルクォートの除去処理
+    */
+    virtual int removeDblQuote() const override {
+        try {
+            cout << "------ removeDblQuote (cleanup data)" << endl;
+            int j = 0;
+            int escape = 0;
+            // vals から取り組む
+            int len = strlen(vals);
+            for(int i=0; i < len; i++) {
+                if(vals[i] == '"' && escape == 0) {
+                    // ignore 何もしない：）
+                } else if(vals[i] == '\\') {
+                    escape = 1;
+                    // ignore 何もしない：）
+                } else {
+                    printf("%c",vals[i]);   // デバッグ
+                    cleanVals[j] = vals[i];
+                    j+=1;
+                    if(escape == 1) {
+                        escape = 0;
+                    }
+                }
+            }
+            printf("\n");
+            cleanVals[j] = '\0';
+            ptr_lambda_debug<const string&,const char*>("cols is ",cols);
+            ptr_lambda_debug<const string&,const char*>("cleanVals is ",cleanVals);
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+        }
+        return 0;
+    }
+
 
 public:
     CommandInsert(const string& originalCommnad) {
@@ -434,6 +476,7 @@ public:
         // ここに cols_vals_muti_pointer.cpp の各Step を移植していく予定、まずは Step A... Cols と Vals の「抽出」から。
         ptr_lambda_debug<const string&,const int&>("Play and Result ... extract is ",extract());
         // 次は Step B ... destv(vals) のみ対象のダブルクォートの除去作業といえる。
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... removeDblQuote is ",removeDblQuote());
         return 0;
     }
 };
