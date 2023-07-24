@@ -40,12 +40,6 @@ using namespace std;
 #define CMD_SPLIT_SIZE           512
 #define CMD_DATA_MAX_INDEX      1024
 
-typedef struct {
-    int no;                         // 番号、単なるインデックス。
-    char data[CMD_SPLIT_SIZE];      // 文字データならなんでもいい。
-    int cno;                        // カラム番号。
-} CMD_DATA;
-
 // Debug 用の関数
 template<class M,class D>
 void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
@@ -67,7 +61,6 @@ void ptr_str_debug(const char* message, char* debug) {
 void ptr_cstr_debug(const char* message, const char* debug) {
     printf("%s\tvalue=%s\taddr=%p\n",message,debug,debug);
 }
-
 /**
      コマンドのコピーを行う。
 */
@@ -79,6 +72,65 @@ int copyCmd(char* dest, const char* src, const int len) {
     dest[i] = '\0';
    return 0;
 }
+typedef struct {
+private:
+    int getFromToIndex(int* from, int* to) {
+        try {
+            int len = strlen(data);
+            for(int i=0; i<len; i++) {
+                if( data[i] == ' ' ) {
+                    // ignore
+                } else {
+                    (*from) = i;
+                    break;
+                }
+            }
+            for(int i=len-1; i>=0; i--) {
+                if( data[i] == ' ' ) {
+                    // ignore
+                } else {
+                    (*to) = i;
+                    break;
+                }
+            }
+            return 0;
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+    }
+public:
+    int no;                         // 番号、単なるインデックス。
+    char data[CMD_SPLIT_SIZE];      // 文字データならなんでもいい。
+    int cno;                        // カラム番号。
+    /**
+        メンバ変数 data の top と bottom の半角スペースを取り除く（無視する）。
+        考え方としては ignore のフラグによる読み飛ばし。
+        ※ここで元データである data の更新を行っている、つまり、オリジナルの書き換えをしている。
+    */
+    int trim() {
+        try {
+            int top = 0;        // 最初の文字のインデックス。
+            int bottom = 0;     // 最後の文字のインデックス。
+            getFromToIndex(&top,&bottom); 
+            printf("top is %d\tbottom is %d\n",top,bottom);
+            // 忘れてた、ここまででやりたいことの半分で、取得した index 分文字列を取得し、data を更新する必要がある。
+            char tmp[CMD_SPLIT_SIZE] = {"\0"};
+            int j = 0;
+            for(int i=top; i<=bottom; i++) {
+                tmp[j] = data[i];
+                j+=1;
+            }
+            copyCmd(data, tmp, strlen(tmp));
+            ptr_lambda_debug<const string&,const char*>("data is ",data);
+            return 0;
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+    }
+
+} CMD_DATA;
 /**
     in の値、文字を大文字に変換し out に代入する。
 */
@@ -241,6 +293,8 @@ protected:
     virtual int removeDblQuote() const = 0;
     virtual int splitAndTrim() const = 0;
     virtual int splitData(char delim, const char* src, CMD_DATA* dest) const = 0;
+    virtual int doTrim(CMD_DATA* splits) const = 0;
+    // 上記の protected のメンバ関数群、これが正直イケてないと思ってる,移植が完了するまではこのままだが。
 public:
     virtual int validation() const = 0;
     virtual int analyze() const = 0;
@@ -454,12 +508,18 @@ protected:
         try {
             ptr_lambda_debug<const string&,const int&>("Play and Result ... splitData cols ",splitData(',',cols,cdCols));
             ptr_lambda_debug<const string&,const int&>("Play and Result ... splitData cleanVals ",splitData(',',cleanVals,cdVals));
+            // 下記処理を行うことで半角スペースの除去を行っている、つまり完全なる元データとは異なるものになる。
+            ptr_lambda_debug<const string&,const int&>("Play and Result ... doTrim cdCols ",doTrim(cdCols));
+            ptr_lambda_debug<const string&,const int&>("Play and Result ... doTrim cdVals ",doTrim(cdVals));
         } catch(exception& e) {
             cerr << e.what() << endl;
             return -1;
         }
         return 0;
     }
+    /**
+        delim による src 文字列の分割、その結果を dest[i].data に格納する。
+    */
     virtual int splitData(char delim, const char* src, CMD_DATA* dest) const override {
         try {
             int len = strlen(src);
@@ -490,7 +550,21 @@ protected:
         }
         return 0;
     }
-
+    virtual int doTrim(CMD_DATA* splits) const override {
+        try {
+            for(int i=0;;i++) {
+                if(splits[i].no == -1) {
+                    break;
+                } else {
+                    splits[i].trim();
+                }
+            }
+            return 0;
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+    }
 public:
     CommandInsert(const string& originalCommnad) {
         orgCmd = originalCommnad;
