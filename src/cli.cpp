@@ -295,6 +295,8 @@ protected:
     virtual int splitData(char delim, const char* src, CMD_DATA* dest) const = 0;
     virtual int doTrim(CMD_DATA* splits) const = 0;
     // 上記の protected のメンバ関数群、これが正直イケてないと思ってる,移植が完了するまではこのままだが。
+    // 以下が最後の移植になる。（cols_vals_multi_pointer.cpp の step_d に相当する。）
+    virtual int fitColsVals() const = 0;
 public:
     virtual int validation() const = 0;
     virtual int analyze() const = 0;
@@ -550,6 +552,10 @@ protected:
         }
         return 0;
     }
+    /**
+        入力された文字列の前後の半角スペースの除去を行う。
+        えっ？全角スペース。。。「コマンドに全角を使うな（無論入力値はいいけど）以上だ：）」
+    */
     virtual int doTrim(CMD_DATA* splits) const override {
         try {
             for(int i=0;;i++) {
@@ -559,6 +565,17 @@ protected:
                     splits[i].trim();
                 }
             }
+            return 0;
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+    }
+    /**
+        ユーザ入力されたカラムとその値がシステムカラムのどれと一致しているのか判断し設定する。
+    */
+    virtual int fitColsVals() const override {
+        try {
             return 0;
         } catch(exception& e) {
             cerr << e.what() << endl;
