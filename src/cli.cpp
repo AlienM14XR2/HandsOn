@@ -72,6 +72,27 @@ int copyCmd(char* dest, const char* src, const int len) {
     dest[i] = '\0';
    return 0;
 }
+/**
+    in の値、文字を大文字に変換し out に代入する。
+*/
+int upperStr(const char* in, char* out) {
+    int i = 0;
+    while(in[i] != '\0') {
+          out[i] = toupper(in[i]);
+        i++;
+    }
+    out[i] = '\0';
+    return 0;
+}
+/**
+    コマンドの初期化を行う。
+*/
+int initCmd(char* cmd) {
+    for(int i = 0; i < sizeof(cmd)/sizeof(cmd[0]); i++) {
+        cmd[i] = '\0';
+    }
+    return 0;
+}
 typedef struct {
 private:
     int getFromToIndex(int* from, int* to) {
@@ -132,26 +153,68 @@ public:
 
 } CMD_DATA;
 /**
-    in の値、文字を大文字に変換し out に代入する。
+    GoF Strategy を利用した、システムカラムとユーザ入力カラムの比較を行うもの。
+    その基底クラス（インタフェース）。
 */
-int upperStr(const char* in, char* out) {
-    int i = 0;
-    while(in[i] != '\0') {
-          out[i] = toupper(in[i]);
-        i++;
-    }
-    out[i] = '\0';
-    return 0;
-}
+template <class T>
+class IStrategy {
+protected:
+    /**
+        l == r then return 0.
+        l > r then return -1.
+        l < r then return 1.
+        派生クラスはこのルールで実装すること。
+        ```
+        e.g.
+        strcmp("EMAIL",cmd) == 0
+        ```
+    */
+    virtual int compare(const char* sys, T* in) const = 0;
+public:
+    // 上記関数のラップ。。。うん冗長なのかな。
+    // @see protected compare.
+    virtual int compare(T* in) const = 0;
+    virtual ~IStrategy() {}
+};
 /**
-    コマンドの初期化を行う。
+    システムカラム の比較をし検知を行うクラス。
+    現状の仕組みならこのクラスひとつで事足りるはず。（複数の派生クラスはいらない：）
 */
-int initCmd(char* cmd) {
-    for(int i = 0; i < sizeof(cmd)/sizeof(cmd[0]); i++) {
-        cmd[i] = '\0';
+class CompSysCol final : public virtual IStrategy<CMD_DATA> {
+private:
+    // 以下の属性はコンストラクタで再設定、正しい値を再代入すること。
+    char name[CMD_SPLIT_SIZE] = {"\0"};
+    int cno = -1;
+    CompSysCol() {}
+protected:
+    virtual int compare(const char* sys, CMD_DATA* in) const override {
+        ptr_lambda_debug<const char*,const char*>("sys is ", sys);
+        int ret = strcmp(sys,in->data);
+        if( ret == 0) {
+            in->cno = cno;
+            return 0;
+        } else if( ret > 0 ) {    // sys > in 正
+            in->cno = -1;
+            return -1;
+        } else {    // sys < in 負
+            in->cno = -1;
+            return 1;
+        }
     }
-    return 0;
-}
+public:
+    CompSysCol(const char* n, const int& num) {
+        int len = strlen(n);
+        copyCmd(name, n, len);
+        cno = num;
+    }
+    CompSysCol(const CompSysCol& own) {
+        (*this) = own;
+    }
+    ~CompSysCol() {}
+    virtual int compare(CMD_DATA* in) const override {
+        return compare(name,in);
+    }
+};
 
 /**
     任意の文字列から、"" で囲まれた間の X や Y といった特定の文字を読み飛ばす、本来の制御処理の対象外とする。
