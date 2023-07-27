@@ -8,7 +8,7 @@
     コンストラクタで必要な初期化、代入は行う、これは徹底すること。
     デストラクタで必ずnew したメモリは解放すること、これも徹底する。
     要検証、コピーコンスタントの *this = own; これだけでメンバ変数の再設定は必要ないのか確認すること。
-    別ファイルでもOK。
+    別ファイルでもOK。... 上記だけで良いことを確認した ... DONE. 
 
     基底クラスに再利用可能な関数はまとめること、都度リファクタを考慮して進めること。（焦る必要は一個もない：）
     念のため、各関数はその殆どが戻り値（int）を持つ、それはエラーハンドリングに利用する予定、そう予定だから未定だ。
@@ -357,9 +357,9 @@ protected:
     virtual int splitAndTrim() const = 0;
     virtual int splitData(char delim, const char* src, CMD_DATA* dest) const = 0;
     virtual int doTrim(CMD_DATA* splits) const = 0;
-    // 上記の protected のメンバ関数群、これが正直イケてないと思ってる,移植が完了するまではこのままだが。
     // 以下が最後の移植になる。（cols_vals_multi_pointer.cpp の step_d に相当する。）
     virtual int fitColsVals() const = 0;
+    // 上記の protected のメンバ関数群、これが正直イケてないと思ってる,移植が完了するまではこのままだが。
 public:
     virtual int validation() const = 0;
     virtual int analyze() const = 0;
@@ -636,6 +636,11 @@ protected:
     }
     /**
         ユーザ入力されたカラムとその値がシステムカラムのどれと一致しているのか判断し設定する。
+        操作対象は cdCols cdvals になる。
+        検証時の step_d では単発テストどまりだった、ここでは入力されたものすべてをループで検知する。
+
+        - システムカラムとユーザ入力カラムの一致処理を行う。
+        - ユーザ入力カラムとユーザ入力値の cno を同じにする。
     */
     virtual int fitColsVals() const override {
         try {
