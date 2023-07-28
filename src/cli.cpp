@@ -641,9 +641,35 @@ protected:
 
         - システムカラムとユーザ入力カラムの一致処理を行う。
         - ユーザ入力カラムとユーザ入力値の cno を同じにする。
+
+        参考
+        - ID        システム自動設定、プライマリキ 0。
+        - EMAIL     ユーザ入力、必須               1。
+        - NAME      ユーザ入力、必須               2。
+        - PHONE_1   ユーザ入力、必須               3。
+        - PHONE_2   ユーザ入力                     4。
+        - PHONE_3   ユーザ入力                     5。
+        - ADDRESS   ユーザ入力                     6。
+        - MEMO      ユーザ入力                     7。
+        - CREATE_AT システム自動設定               8。
+        - UPDATE_AT システム自動設定               9。
+
     */
     virtual int fitColsVals() const override {
         try {
+            // ストラテジーによるユーザ入力カラムとシステムカラムの分類を行う。
+            CompSysCol compSysEmailCol("EMAIL"      ,1);
+            CompSysCol compSysNameCol("NAME"        ,2);
+            CompSysCol compSysPhone1Col("PHONE_1"   ,3);
+            CompSysCol compSysPhone2Col("PHONE_2"   ,4);
+            CompSysCol compSysPhone3Col("PHONE_3"   ,5);
+            CompSysCol compSysAddressCol("ADDRESS"  ,6);
+            CompSysCol compSysMemoCol("MEMO"        ,7);
+
+            for(int i=0; i<CMD_DATA_MAX_INDEX ;i++) {
+//                cdCols[i].data;
+            }
+            // ユーザ入力カラムとユーザ入力値を一致させる。
             return 0;
         } catch(exception& e) {
             cerr << e.what() << endl;
@@ -701,6 +727,7 @@ public:
         // 次は Step B ... destv(vals) のみ対象のダブルクォートの除去作業といえる。
         ptr_lambda_debug<const string&,const int&>("Play and Result ... removeDblQuote is ",removeDblQuote());
         ptr_lambda_debug<const string&,const int&>("Play and Result ... splitAndTrim is ",splitAndTrim());
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... fitColsVals is ",fitColsVals());
         return 0;
     }
 };
