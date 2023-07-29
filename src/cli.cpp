@@ -667,7 +667,19 @@ protected:
             CompSysCol compSysMemoCol("MEMO"        ,7);
 
             for(int i=0; i<CMD_DATA_MAX_INDEX ;i++) {
-//                cdCols[i].data;
+                if(cdCols[i].no == -1) {break;}
+                if(compSysEmailCol.compare(&cdCols[i]) == 0) {continue;}
+                if(compSysNameCol.compare(&cdCols[i]) == 0) {continue;}
+                if(compSysPhone1Col.compare(&cdCols[i]) == 0) {continue;}
+                if(compSysPhone2Col.compare(&cdCols[i]) == 0) {continue;}
+                if(compSysPhone3Col.compare(&cdCols[i]) == 0) {continue;}
+                if(compSysAddressCol.compare(&cdCols[i]) == 0) {continue;}
+                if(compSysMemoCol.compare(&cdCols[i]) == 0) {continue;}
+            }
+            // デバッグ
+            for(int i=0; i<CMD_DATA_MAX_INDEX; i++) {
+                if(cdCols[i].no == -1) {break;}
+                printf("no is %d\tdata is %s\tcno is %d\n",cdCols[i].no,cdCols[i].data,cdCols[i].cno);
             }
             // ユーザ入力カラムとユーザ入力値を一致させる。
             return 0;
