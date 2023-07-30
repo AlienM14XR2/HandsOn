@@ -352,6 +352,7 @@ protected:
         }
         return 0;
     }
+    // ここから Insert の責務
     virtual int toUpper() const = 0;        // 少し迷ったが、結局Protected の純粋仮想関数にした。ここで各コマンドの揺らぎを吸収してくれ。コンストラクタ内で利用してね。
     virtual int reconcate() const = 0;      // C++ まだまだ理解が足りない部分が多い、この方法以外で派生クラスで実装及び呼び出す術を知らない（現状できない：）。analyze()で呼び出す。
     virtual int manageFrom(int* flg, char* tmp, int* counter) const = 0;
@@ -361,53 +362,20 @@ protected:
     virtual int splitAndTrim() const = 0;
     virtual int splitData(char delim, const char* src, CMD_DATA* dest) const = 0;
     virtual int doTrim(CMD_DATA* splits) const = 0;
-    // 以下が最後の移植になる。（cols_vals_multi_pointer.cpp の step_d に相当する。）
     virtual int fitColsVals() const = 0;
-    // 上記の protected のメンバ関数群、これが正直イケてないと思ってる,移植が完了するまではこのままだが。
+    // ここまで Insert の責務だけど、いくつか重複する処理がありそうだな。
+    // その場合は別で切り出すGoF ... Adapter だったかな、それが使えるかも。
 public:
     virtual int validation() const = 0;
     virtual int analyze() const = 0;
     virtual ~ICommandAnalyzer() {}
 };
-/**
-    CommandInsert クラス
-    インサートコマンドの解析を行う。
-
-    e.g. insert into file_name(col_1,col_2) values ("I'm Jack.", "\"What's up ?\"");
-
-    '(' から ')' 一回目はCols
-    二回目はVals、Vals は""の中身のみを取得すること。
-    cmdUpData を利用する。
-
-    現状、cmdUpData に半角スペースで分割されたデータはある。
-    それを再加工（半角スペース）で連結し直す。
-    連結後、上記の処理を行う。
-    再加工、連結したデータを保存する変数（文字列）と
-    多重ポインタというより、多次元配列が近いかな、その内訳はシステム定義のCols、ユーザ入力されたCols、ユーザ入力されたVals。
-
-    cols_vals_multi_pointer.cpp の移植作業（Step B）中で思ったこと。
-    現時点でもそう感じているが、すべての移植作業とその動作確認が済んだ段階で、このクラス及び継承関係をもう一度よく
-    考え直した方がいいだろう、平たく言えば、リファクタリングの必要性を強く感じている。
-
-*/
-class CommandInsert final : public virtual ICommandAnalyzer {
+class InsertAnalyzer : public virtual ICommandAnalyzer {
 private:
-    string orgCmd = "";                                     // 値を代入後、この値は変更してはいけない。
-//    vector<string> splitCmd;                              // 最初に用意したけど、このまま利用しない可能性が高くなったぞ：）考えとけ：）
-    mutable char reconcCmd[CMD_SIZE] = {"\0"};              // re concatenation command. 再連結されたコマンド。 
-    mutable char cols[CMD_DATA_MAX_INDEX] = {"\0"};         // ユーザ入力されたカラムを分割して保持する。
-    mutable char vals[CMD_DATA_MAX_INDEX] = {"\0"};         // ユーザ入力された値を分割して保持する。
-    mutable char cleanVals[CMD_DATA_MAX_INDEX] = {"\0"};    // Trim 後の値を保持する。（ダブルクォート内の必要な情報取得、Escape を利用したシステム予約語との併用も可能。）
-    mutable CMD_DATA cdCols[CMD_DATA_MAX_INDEX];            // 初期化必須、split and trim 後のユーザ入力カラムデータを保持する。
-    mutable CMD_DATA cdVals[CMD_DATA_MAX_INDEX];            // 初期化必須、split and trim 後のユーザ入力値データを保持する。
-    /**
-        デフォルトコンストラクタ
-    */
-    CommandInsert() {} 
     /**
         仮引数 cmdd の初期化を行う。
     */
-    int initCmdd(CMD_DATA* cmdd, int maxIndex) {
+    int initCmdd(CMD_DATA* cmdd, int& maxIndex) {
         for(int i=0; i<maxIndex ; i++) {
             cmdd[i].no = -1;
             initCmd(cmdd[i].data);
@@ -418,8 +386,19 @@ private:
         printf("initCmdd ... cmdd[CMD_DATA_MAX_INDEX-1].no is %d\tcmdd[CMD_DATA_MAX_INDEX-1].data is %s\tcmdd[CMD_DATA_MAX_INDEX-1].cno is %d\n", cmdd[CMD_DATA_MAX_INDEX-1].no, cmdd[CMD_DATA_MAX_INDEX-1].data, cmdd[CMD_DATA_MAX_INDEX-1].cno);
         return 0;
     }
-
 protected:
+    mutable char reconcCmd[CMD_SIZE] = {"\0"};              // re concatenation command. 再連結されたコマンド。 
+    mutable char cols[CMD_DATA_MAX_INDEX] = {"\0"};         // ユーザ入力されたカラムを分割して保持する。
+    mutable char vals[CMD_DATA_MAX_INDEX] = {"\0"};         // ユーザ入力された値を分割して保持する。
+    mutable char cleanVals[CMD_DATA_MAX_INDEX] = {"\0"};    // Trim 後の値を保持する。（ダブルクォート内の必要な情報取得、Escape を利用したシステム予約語との併用も可能。）
+    mutable CMD_DATA cdCols[CMD_DATA_MAX_INDEX];            // 初期化必須、split and trim 後のユーザ入力カラムデータを保持する。
+    mutable CMD_DATA cdVals[CMD_DATA_MAX_INDEX];            // 初期化必須、split and trim 後のユーザ入力値データを保持する。
+    int initCdCols(int maxIndex) {
+        return initCmdd(cdCols,maxIndex);
+    }
+    int initCdVals(int maxIndex) {
+        return initCmdd(cdVals,maxIndex);
+    }
     /**
         Values までをtoUpper する。
         values がシステムの予約語になったということでいいのか。（Yes そうなる。
@@ -703,11 +682,48 @@ protected:
         }
     }
 public:
+    InsertAnalyzer() {}
+    InsertAnalyzer(const InsertAnalyzer& own) {
+        (*this) = own;
+    }
+    virtual ~InsertAnalyzer() {}
+};
+/**
+    CommandInsert クラス
+    インサートコマンドの解析を行う。
+
+    e.g. insert into file_name(col_1,col_2) values ("I'm Jack.", "\"What's up ?\"");
+
+    '(' から ')' 一回目はCols
+    二回目はVals、Vals は""の中身のみを取得すること。
+    cmdUpData を利用する。
+
+    現状、cmdUpData に半角スペースで分割されたデータはある。
+    それを再加工（半角スペース）で連結し直す。
+    連結後、上記の処理を行う。
+    再加工、連結したデータを保存する変数（文字列）と
+    多重ポインタというより、多次元配列が近いかな、その内訳はシステム定義のCols、ユーザ入力されたCols、ユーザ入力されたVals。
+
+    cols_vals_multi_pointer.cpp の移植作業（Step B）中で思ったこと。
+    現時点でもそう感じているが、すべての移植作業とその動作確認が済んだ段階で、このクラス及び継承関係をもう一度よく
+    考え直した方がいいだろう、平たく言えば、リファクタリングの必要性を強く感じている。
+
+*/
+class CommandInsert final : public virtual InsertAnalyzer {
+private:
+    string orgCmd = "";                                     // 値を代入後、この値は変更してはいけない。
+//    vector<string> splitCmd;                              // 最初に用意したけど、このまま利用しない可能性が高くなったぞ：）考えとけ：）
+    /**
+        デフォルトコンストラクタ
+    */
+    CommandInsert() {} 
+protected:
+public:
     CommandInsert(const string& originalCommnad) {
         orgCmd = originalCommnad;
         cmdMaxIndex = -1;
         toArray(originalCommnad);   // @see 基底クラス
-    debugArray();               // @see 基底クラス
+    debugArray();                   // @see 基底クラス
         computeCmdDataMaxIndex();   // @see 基底クラス
     ptr_lambda_debug<const string&,const int&>("cmdMaxIndex is ",cmdMaxIndex);
         initCmdData();      // @see 基底クラス
@@ -716,8 +732,8 @@ public:
         // Values までをtoUpper する。
         toUpper();
     debugCmdData(cmdUpData);
-        initCmdd(cdCols,CMD_DATA_MAX_INDEX);
-        initCmdd(cdVals,CMD_DATA_MAX_INDEX);
+        initCdCols(CMD_DATA_MAX_INDEX);
+        initCdVals(CMD_DATA_MAX_INDEX);
     }
     CommandInsert(const CommandInsert& own) {
         *this = own;
