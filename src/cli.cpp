@@ -690,7 +690,8 @@ protected:
                 if(cdCols[i].no == -1) {break;}
                 cdVals[i].cno = cdCols[i].cno;
             }
-            // debug
+            // デバッグ
+            printf("There are cdVals ... under print.\n");
             for(int i=0; i < CMD_DATA_MAX_INDEX; i++) {
                 if(cdVals[i].no == -1) {break;}
                 printf("val data is %s\tcno is %d\n",cdVals[i].data,cdVals[i].cno);
