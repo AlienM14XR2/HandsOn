@@ -22,6 +22,20 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
     cout << message << '\t' << debug << endl;
 };
 
+class ORx2File final {
+private:
+    string filePath;
+    ORx2File():filePath{""}{}
+public:
+    ORx2File(const string& fpath) {
+        filePath = fpath;
+    }
+    ORx2File(const ORx2File& own) {
+        (*this) = own;
+    }
+    ~ORx2File() {}
+};
+
 int main(void) {
     cout << "START cli_file ===============" << endl;
     if(1) {
