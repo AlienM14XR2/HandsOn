@@ -28,6 +28,7 @@ private:
     const char* SYSTEM_DEFAULT_PATH = {"../tmp/ORx2.bin"};
     char* filePath = nullptr;
     FILE* fp = NULL;
+    
     void checkOpenFile() {
         if(fp == NULL){
             cerr << "Error. Can't open ORx2.bin file." << endl;
@@ -70,6 +71,9 @@ public:
         ptr_lambda_debug<const string&,const int&>("Destructor ... ORx2File.",0);
         if(filePath != nullptr) {
             delete [] filePath;
+        }
+        if(fp != NULL) {
+            fclose(fp);
         }
     }
 };
