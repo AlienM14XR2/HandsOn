@@ -9,6 +9,10 @@
  * コンストラクタの引数でファイルのフルパスあるいはシステムの相対パスを受付てファイルをOpen する。
  * デストラクタで確保したリソースの解放とファイルのClose を行う、こんなものをイメージしている。
  * 
+ * cli.cpp （2023-08-01）現在の進捗のデータを具体的に書き込む処理を行う。
+ * その際にトランザクションについて考えてみる。マルチスレッドでの振る舞いを考慮しないとダメなのかな。
+ * その点も踏まえてテストできたらいいかな。
+ * 
  * @author jack
 */
 #include <iostream>
@@ -23,12 +27,13 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
     cout << message << '\t' << debug << endl;
 };
 
+template<class T>
 class ORx2File final {
 private:
     const char* SYSTEM_DEFAULT_PATH = {"../tmp/ORx2.bin"};
     char* filePath = nullptr;
     FILE* fp = NULL;
-    
+
     void checkOpenFile() {
         if(fp == NULL){
             cerr << "Error. Can't open ORx2.bin file." << endl;
@@ -76,11 +81,28 @@ public:
             fclose(fp);
         }
     }
+    /**
+     * ファイル書き込みを行う。
+     * template を利用すべきかは要判断だが、現状はそうした：）
+    */
+    int write(const T* data) {
+        try {
+            return 0;
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+    }
 };
 int testOpenClose() {
     try {
-        ORx2File x2File;
-        ORx2File x2File_b("../tmp/ORx2File_b.bin");
+        string data_a = "SampleA.";
+        ORx2File<string> x2File;
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... x2File.write is",x2File.write(&data_a));
+        
+        const char* data_b = "SampleB";
+        ORx2File<const char> x2File_b("../tmp/ORx2File_b.bin");
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... x2File_b.write is",x2File_b.write(data_b));
         return 0;
     } catch(exception& e) {
         cerr << e.what() << endl;
