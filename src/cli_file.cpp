@@ -72,7 +72,7 @@ public:
         (*this) = own;
     }
     ~ORx2File() {
-        ptr_lambda_debug<const string&,const int&>("Destructor ... ORx2File.",0);
+        ptr_lambda_debug<const string&,const int&>("Destructor delete and close ... ORx2File.",0);
         if(filePath != nullptr) {
             delete [] filePath;
         }
@@ -104,6 +104,7 @@ public:
     int write(const char* data) {
         try {
             printf("write char ... \n");
+            fwrite(data,sizeof(char),sizeof(data)/sizeof(data[0]),fp);
             return 0;
         } catch(exception& e) {
             cerr << e.what() << endl;
@@ -120,6 +121,7 @@ int testOpenClose() {
         const char* data_b = "SampleB.";
         ORx2File x2File_b("../tmp/ORx2File_b.bin");
         ptr_lambda_debug<const string&,const int&>("Play and Result ... x2File_b.write is",x2File_b.write(data_b));
+        // ここまでで各ファイルへの文字列の書き込みはできた、その確認は GHex で行った。
         return 0;
     } catch(exception& e) {
         cerr << e.what() << endl;
