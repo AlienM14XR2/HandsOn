@@ -45,12 +45,20 @@ private:
             exit(1);
         }
     }
+    void readClose(FILE* file, const int& size) {
+        if( file != NULL ){
+            char buf[size] = {"\0"};
+            fread(buf,sizeof(char),sizeof(buf)/sizeof(buf[0]),file);
+            printf("buf is %s\n",buf);
+            fclose(file);
+        }
+    }
 public:
     /**
      * デフォルトコンストラクタの場合はメンバ変数 filePath にシステムのデフォルト値が設定される。
     */
     ORx2File():filePath{nullptr},fp{NULL} {
-        fp = fopen(SYSTEM_DEFAULT_PATH,"a+");
+        fp = fopen(SYSTEM_DEFAULT_PATH,"ab+");  // このオプションで指定しても同じファイルポインタでW/R を同時にはできない。
         checkOpenFile();
     }
     /**
@@ -65,7 +73,7 @@ public:
         }
         filePath[i] = '\0';
         ptr_lambda_debug<const char*,const int&>(filePath,0);
-        fp = fopen(filePath,"a+");
+        fp = fopen(filePath,"ab+");     // このオプションで指定しても同じファイルポインタでW/R を同時にはできない。
         checkOpenFile(filePath);
     }
     ORx2File(const ORx2File& own) {
@@ -111,16 +119,35 @@ public:
             return -1;
         }
     }
+    int read(const int& size) {
+        try {
+            if(filePath == nullptr){
+                FILE* file = NULL;
+                file = fopen(SYSTEM_DEFAULT_PATH,"rb");
+                readClose(file,size);
+            } else {
+                FILE* file = NULL;
+                file = fopen(filePath,"rb");
+                readClose(file,size);
+            }
+            return 0;
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+    }
 };
 int testOpenClose() {
     try {
-        string data_a = "SampleA.";
+        string data_a = "SampleA.\n";
         ORx2File x2File;
         ptr_lambda_debug<const string&,const int&>("Play and Result ... x2File.write is",x2File.write(data_a));
-        
-        const char* data_b = "SampleB.";
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... x2File.read is ",x2File.read(1024));
+
+        const char* data_b = "SampleB.\n";
         ORx2File x2File_b("../tmp/ORx2File_b.bin");
         ptr_lambda_debug<const string&,const int&>("Play and Result ... x2File_b.write is",x2File_b.write(data_b));
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... x2File_b.read is ",x2File_b.read(1024));
         // ここまでで各ファイルへの文字列の書き込みはできた、その確認は GHex で行った。
         return 0;
     } catch(exception& e) {
