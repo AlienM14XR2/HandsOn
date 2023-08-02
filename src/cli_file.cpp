@@ -137,6 +137,13 @@ public:
         }
     }
 };
+/**
+ * このサンプルで色々修正したい箇所が出てきた。
+ * 少し考えをまとめる。
+ * - Insert に関して言えばトランザクションはいらないかもしれない、一意制約を気にしなければ：）
+ * - Commit 単位、処理単位でOpen Close するべきかもしれない。
+ * - Begin Commit Rollback の仕組みを考えてみる。
+*/
 int testOpenClose() {
     try {
         string data_a = "SampleA.\n";
