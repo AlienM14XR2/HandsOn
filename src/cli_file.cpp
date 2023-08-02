@@ -27,7 +27,6 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
     cout << message << '\t' << debug << endl;
 };
 
-template<class T>
 class ORx2File final {
 private:
     const char* SYSTEM_DEFAULT_PATH = {"../tmp/ORx2.bin"};
@@ -83,10 +82,28 @@ public:
     }
     /**
      * ファイル書き込みを行う。
-     * template を利用すべきかは要判断だが、現状はそうした：）
+     * 
+     * 敗北感が凄まじいな。
+     * Generics ... template でやりたかったけど。
+     * cast がうまくできなかった。
+     * typeid で型のチェックまではできるのだけれど。
     */
-    int write(const T* data) {
+    int write(const string& data) {
         try {
+            printf("write string ... \n");
+            char tmp[1024];
+            memcpy(tmp,data.data(),data.size());
+            tmp[data.size()] = '\0';
+            printf("tmp is %s\n",tmp);
+            return write(tmp);
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+    }
+    int write(const char* data) {
+        try {
+            printf("write char ... \n");
             return 0;
         } catch(exception& e) {
             cerr << e.what() << endl;
@@ -97,11 +114,11 @@ public:
 int testOpenClose() {
     try {
         string data_a = "SampleA.";
-        ORx2File<string> x2File;
-        ptr_lambda_debug<const string&,const int&>("Play and Result ... x2File.write is",x2File.write(&data_a));
+        ORx2File x2File;
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... x2File.write is",x2File.write(data_a));
         
-        const char* data_b = "SampleB";
-        ORx2File<const char> x2File_b("../tmp/ORx2File_b.bin");
+        const char* data_b = "SampleB.";
+        ORx2File x2File_b("../tmp/ORx2File_b.bin");
         ptr_lambda_debug<const string&,const int&>("Play and Result ... x2File_b.write is",x2File_b.write(data_b));
         return 0;
     } catch(exception& e) {
