@@ -143,6 +143,24 @@ public:
  * - Insert に関して言えばトランザクションはいらないかもしれない、一意制約を気にしなければ：）
  * - Commit 単位、処理単位でOpen Close するべきかもしれない。
  * - Begin Commit Rollback の仕組みを考えてみる。
+ * 
+    ファイル全体のLock と 行Lock の二種類があると思う。
+    何も行わない場合は更新系はすべて前者かな。
+    ユニークキ制約も考えると別のファイルがやはり必要だと思う。
+    主キ（一意制約）も別ファイルで管理すべきなのか？
+    主キの管理方法も色々考えられる、例えばファイルヘッダに置くことだって可能だろう。
+    ユニークキも登録、更新時にすべて走査して確認できる、問題は複数人で操作している場合だけど
+    その時の振る舞いがどうなるのか、結局早いもの勝ちで、Commit 時に再度判定するのか。
+    この辺の調査とテストができることがベストかな。
+
+    - STEP 1
+    Begin で行 Lock 。
+    Commit 時に最終判定を行う。
+    問題があれば Rollback の流れ。
+    この仕組みを考えて実装してみたい。
+        - テストデータが必要。
+        - 行 Lock の仕組み（e.g. 先頭行にフラグ。
+
 */
 int testOpenClose() {
     try {
@@ -162,6 +180,13 @@ int testOpenClose() {
         return -1;
     }
 }
+class ITransaction {
+public:
+    virtual int begin() const = 0;
+    virtual int commit() const = 0;
+    virtual int rollback() const = 0;
+    virtual ~ITransaction() {}
+};
 
 int main(void) {
     cout << "START cli_file ===============" << endl;
