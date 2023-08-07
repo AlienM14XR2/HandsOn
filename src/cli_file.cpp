@@ -187,10 +187,58 @@ public:
     virtual int rollback() const = 0;
     virtual ~ITransaction() {}
 };
+class InsertTx final : public virtual ITransaction {
+public:
+    InsertTx() {}
+    InsertTx(const InsertTx& own) {
+        (*this) = own;
+    }
+    ~InsertTx() {}
+    virtual int begin() const override {
+        try {
+            ptr_lambda_debug<const string&,const int&>("InsertTx ... begin.",0);
+            return 0;
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+    }
+    virtual int commit() const override {
+        try {
+            ptr_lambda_debug<const string&,const int&>("InsertTx ... commit.",0);
+            return 0;
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+    }
+    virtual int rollback() const override {
+        try {
+            ptr_lambda_debug<const string&,const int&>("InsertTx ... rollback.",0);
+            return 0;
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+    }
+};
 class Transaction final {
 private:
     ITransaction* tx = nullptr;
+    Transaction():tx{nullptr}{}
 public:
+    Transaction(ITransaction* iface) {
+        tx = iface;
+    }
+    Transaction(const Transaction& own) {
+        (*this) = own;
+    }
+    ~Transaction() {
+        if(tx != nullptr) {
+            delete tx;
+            ptr_lambda_debug<const string&,const int&>("Done Transaction Destructor... delete tx.",0);
+        }
+    }
     /**
         トランザクションの処理。
 
@@ -221,7 +269,18 @@ public:
         }
     }
 };
-
+int testInsertTransaction() {
+    try {
+        cout << "--------- testInsertTransaction" << endl;
+        InsertTx* insertTx = new InsertTx();
+        ITransaction* tx = static_cast<ITransaction*>(insertTx);
+        Transaction transaction(tx);
+        return transaction.proc();
+    } catch(exception& e) {
+        cerr << e.what() << endl;
+        return -1;
+    }
+}
 int main(void) {
     cout << "START cli_file ===============" << endl;
     if(0.1) {
@@ -229,6 +288,9 @@ int main(void) {
     }
     if(1.0) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... testOpenClose",testOpenClose());
+    }
+    if(1.1) {
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... testInsertTransaction",testInsertTransaction());
     }
     cout << "=============== cli_file END" << endl;
     return 0;
