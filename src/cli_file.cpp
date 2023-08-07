@@ -187,6 +187,40 @@ public:
     virtual int rollback() const = 0;
     virtual ~ITransaction() {}
 };
+class Transaction final {
+private:
+    ITransaction* tx = nullptr;
+public:
+    /**
+        トランザクションの処理。
+
+        return -1 is error.
+        -2 is begin error.
+        -3 is rollback error.
+    */
+    int proc() {
+        try {
+            if(tx->begin() == 0) {
+                if(tx->commit() != 0) {
+                    if(tx->rollback() != 0) {
+                        return -3;
+                    }
+                    return -1;
+                } else {
+                    return 0;
+                }
+            } else {
+                return -2;
+            }
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            if(tx->rollback() != 0) {
+                return -3;
+            }
+            return -1;
+        }
+    }
+};
 
 int main(void) {
     cout << "START cli_file ===============" << endl;
