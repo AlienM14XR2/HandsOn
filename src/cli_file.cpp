@@ -262,9 +262,10 @@ public:
             }
         } catch(exception& e) {
             cerr << e.what() << endl;
-            if(tx->rollback() != 0) {
-                return -3;
-            }
+            // これは無駄かな、ちょっと考えてみる。
+            // if(tx->rollback() != 0) {
+            //     return -3;
+            // }
             return -1;
         }
     }
