@@ -180,6 +180,20 @@ int testOpenClose() {
         return -1;
     }
 }
+class PrimaryKeyDuplicateException final {
+private:
+    const char* defaultErrMsg = "Error: Primary Key is Duplicated.";
+public:
+    PrimaryKeyDuplicateException() {
+    }
+    PrimaryKeyDuplicateException(const PrimaryKeyDuplicateException& own) {
+        (*this) = own;
+    }
+    ~PrimaryKeyDuplicateException() {
+    }
+    const char* what() { return defaultErrMsg; }
+
+};
 class ITransaction {
 public:
     virtual int begin() const = 0;
@@ -197,7 +211,14 @@ public:
     virtual int begin() const override {
         try {
             ptr_lambda_debug<const string&,const int&>("InsertTx ... begin.",0);
+            // プライマリキを発行して、重複がないか確認する。
+            // if(1) {     // 例外を強制的に発生させている。
+            //     throw PrimaryKeyDuplicateException();
+            // }
             return 0;
+        } catch(PrimaryKeyDuplicateException& e) {
+            cerr << e.what() << endl;
+            return -1;
         } catch(exception& e) {
             cerr << e.what() << endl;
             return -1;
@@ -205,8 +226,15 @@ public:
     }
     virtual int commit() const override {
         try {
+            // データの保存を行う、プライマリキの重複の最終確認を行う。
             ptr_lambda_debug<const string&,const int&>("InsertTx ... commit.",0);
+            if(1) {     // 例外を強制的に発生させている。
+                throw PrimaryKeyDuplicateException();
+            }
             return 0;
+        } catch(PrimaryKeyDuplicateException& e) {
+            cerr << e.what() << endl;
+            return -1;
         } catch(exception& e) {
             cerr << e.what() << endl;
             return -1;
