@@ -208,6 +208,14 @@ public:
         (*this) = own;
     }
     ~InsertTx() {}
+    /**
+        データの仮登録を行う。
+
+        問題、仮登録が必要なのか。
+        例えば、データの先頭3桁で仮登録、登録済み、Lock 等のデータ情報を用いて管理すること。
+        こうすることで、Rollback が意味を成すのかもしれない。
+        2023-08-10 現在は上記をイメージして実装と考察を続ける予定。
+    */
     virtual int begin() const override {
         try {
             ptr_lambda_debug<const string&,const int&>("InsertTx ... begin.",0);
@@ -224,6 +232,13 @@ public:
             return -1;
         }
     }
+    /**
+        データ登録を完了させる。
+
+        結局処理は早いもの勝ちというルールでいいが、この仕組みで完全に重複データを防げるのかは正直不明。
+        マルチスレッドで確認してみるのもいいかもしれない。
+        ファイルのOpen と Close（ファイルのLock） とともに要検証と確認が必要だと思う。
+    */
     virtual int commit() const override {
         try {
             // データの保存を行う、プライマリキの重複の最終確認を行う。
@@ -240,6 +255,10 @@ public:
             return -1;
         }
     }
+    /**
+        問題が生じた際、Begin 以前の状態を担保する。
+        Insert に関して言えば仮登録されたデータを削除する。
+    */
     virtual int rollback() const override {
         try {
             ptr_lambda_debug<const string&,const int&>("InsertTx ... rollback.",0);
