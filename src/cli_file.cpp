@@ -49,6 +49,19 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
     cout << message << '\t' << debug << endl;
 };
 
+typedef struct {
+    int id = -1;
+    char email[512] = {"\0"};
+    char name[256] = {"\0"};
+    char phone_1[16] = {"\0"};
+    char phone_2[16] = {"\0"};
+    char phone_3[16] = {"\0"};
+    char address[512] = {"\0"};
+    char memo[512] = {"\0"};
+    char createAt[32] = {"\0"};
+    char updateAt[32] = {"\0"};
+} SYSTEM_DATA;
+
 class ORx2File final {
 private:
     const char* SYSTEM_DEFAULT_PATH = {"../tmp/ORx2.bin"};
