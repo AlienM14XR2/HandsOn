@@ -50,6 +50,7 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
 };
 
 typedef struct {
+    char dstat[8] = {"\0"};
     unsigned int id = 0;
     char email[512] = {"\0"};
     char name[256] = {"\0"};
