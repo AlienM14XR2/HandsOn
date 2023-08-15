@@ -365,6 +365,25 @@ int testInsertTransaction() {
         return -1;
     }
 }
+/**
+    トランザクション。。。Commit Rollback をInsert 時に実現しようとすると
+        - 一行登録あるいは改行なしの登録。（どちらが効率的なのか判然としない：）
+        - 任意（主キ）のデータを検索取得。
+        - 任意（主キ）のデータの削除。
+        - つまりUpdate 以外の処理がすべて必要ということ：）
+        - 登録、検索、削除を順序立てて調査・実装していく必要があるのだね。
+*/
+int test_insert_system_data() {
+    return 0;
+}
+int test_read_system_data() {
+    return 0;
+}
+int test_delete_system_data() {
+    return 0;
+}
+
+
 int main(void) {
     cout << "START cli_file ===============" << endl;
     if(0.1) {
