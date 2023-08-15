@@ -380,6 +380,10 @@ int testInsertTransaction() {
     こうすることで削除や Update の更新系処理も考え方が単純化される。
     ただし、この場合は Read が少し厄介になる。
     更新タイミングで Read 用ファイルをすべて書き換える仕組みが必要なため。
+
+    FILE *fp = fopen(filename, "w");
+    ファイルのオープンモードを "w" にすることで中身がクリアされる。
+    つまり、Insert と Update はファイル名を新規作成するかしないかの違いがあるだけで同じと言えるのか。
 */
 int test_insert_system_data() {
     return 0;
