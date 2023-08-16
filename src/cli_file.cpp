@@ -41,6 +41,8 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
+#include "sys/stat.h"
+
 using namespace std;
 //#define DEFAULT_FILE_PATH           "../tmp/ORx2.bin"
 
@@ -392,6 +394,26 @@ int testInsertTransaction() {
     現状ではこんなことしか言えない。
 
 */
+
+/*
+    ファイルの存在を確認する。
+
+    path:   ファイルパス。
+    戻り値: 存在したら 0以外、存在しなければ 0
+*/
+int exist_file(const char* path) {
+    struct stat st;
+
+    // これは Linux でしか使えない、Win は別のヘッダファイルの関数を利用する必要がある（https://programming-place.net/ppp/contents/c/rev_res/file000.html#way2）
+    if (stat(path, &st) != 0) { 
+        return 0;
+    }
+
+    // ファイルかどうか
+    // S_ISREG(st.st_mode); の方がシンプルだが、Visual Studio では使えない。
+    return (st.st_mode & S_IFMT) == S_IFREG;
+}
+
 int test_insert_system_data(const char* pkey) {
     FILE* fp = NULL;
     char filePath[32] = {"../tmp/"};
@@ -399,9 +421,12 @@ int test_insert_system_data(const char* pkey) {
     ptr_lambda_debug<const string&,const char*>("filePath is ",filePath);
     // これをやる前にそのファイルの有無をチェックしないといけない。
     // それがつまり、すでにそのプライマリキが利用されていることになる。
+    if(exist_file(filePath)) {
+        printf("DEBUG: %s exist\n",filePath);
+    }
     fp = fopen(filePath,"w+");
     if(fp != NULL) {
-        printf("It's open file. mode is \"w+\"\n");
+        printf("DEBUG: It's open file. mode is \"w+\"\n");
     }
     return 0;
 }
@@ -411,7 +436,6 @@ int test_read_system_data() {
 int test_delete_system_data() {
     return 0;
 }
-
 
 int main(void) {
     cout << "START cli_file ===============" << endl;
