@@ -415,20 +415,33 @@ int exist_file(const char* path) {
 }
 
 int test_insert_system_data(const char* pkey) {
-    FILE* fp = NULL;
-    char filePath[32] = {"../tmp/"};
-    strcat(filePath,pkey);
-    ptr_lambda_debug<const string&,const char*>("filePath is ",filePath);
-    // これをやる前にそのファイルの有無をチェックしないといけない。
-    // それがつまり、すでにそのプライマリキが利用されていることになる。
-    if(exist_file(filePath)) {
-        printf("DEBUG: %s exist\n",filePath);
+    try {
+        FILE* fp = NULL;
+        char filePath[32] = {"../tmp/"};
+        strcat(filePath,pkey);
+        ptr_lambda_debug<const string&,const char*>("filePath is ",filePath);
+        // これをやる前にそのファイルの有無をチェックしないといけない。
+        // それがつまり、すでにそのプライマリキが利用されていることになる。
+        if(exist_file(pkey) == 0) { // フルパス、あるいは相対パスとしてこのファイルがないことを期待してのこと。
+            printf("DEBUG: %s no exist\n",pkey);
+        }
+        if(exist_file(filePath)) {
+            printf("DEBUG: %s exist\n",filePath);
+            throw PrimaryKeyDuplicateException();
+        }
+        // 上記のファイルチェックがプライマリキの重複チェックになる。（こんなかたちでユニークキもできるはず：）
+        fp = fopen(filePath,"w+");
+        if(fp != NULL) {
+            printf("DEBUG: It's open file. mode is \"w+\"\n");
+        }
+        return 0;
+    } catch(PrimaryKeyDuplicateException& e) {
+        cerr << e.what() << endl;
+        return -1;
+    } catch(exception& e) {
+        cerr << e.what() << endl;
+        return -1;
     }
-    fp = fopen(filePath,"w+");
-    if(fp != NULL) {
-        printf("DEBUG: It's open file. mode is \"w+\"\n");
-    }
-    return 0;
 }
 int test_read_system_data() {
     return 0;
@@ -450,6 +463,7 @@ int main(void) {
     }
     if(1.2) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... test_insert_system_data",test_insert_system_data("1.bin"));
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... test_insert_system_data",test_insert_system_data("2.bin"));
     }
     cout << "=============== cli_file END" << endl;
     return 0;
