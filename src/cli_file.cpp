@@ -384,8 +384,25 @@ int testInsertTransaction() {
     FILE *fp = fopen(filename, "w");
     ファイルのオープンモードを "w" にすることで中身がクリアされる。
     つまり、Insert と Update はファイル名を新規作成するかしないかの違いがあるだけで同じと言えるのか。
+
+    Insert は主キ（プライマリキ）の重複を調べる。（ユニークキも別ファイルで管理すればいいのか？）
+    - ファイル名はその主キ（プライマリキ）にする。
+    - ファイル Open モードは "w+"
+    - Read してデータの有無をチェック、既に同一のプライマリキがあれば Primary Key Duplicate Exception で終了する。
+    現状ではこんなことしか言えない。
+
 */
-int test_insert_system_data() {
+int test_insert_system_data(const char* pkey) {
+    FILE* fp = NULL;
+    char filePath[32] = {"../tmp/"};
+    strcat(filePath,pkey);
+    ptr_lambda_debug<const string&,const char*>("filePath is ",filePath);
+    // これをやる前にそのファイルの有無をチェックしないといけない。
+    // それがつまり、すでにそのプライマリキが利用されていることになる。
+    fp = fopen(filePath,"w+");
+    if(fp != NULL) {
+        printf("It's open file. mode is \"w+\"\n");
+    }
     return 0;
 }
 int test_read_system_data() {
@@ -401,11 +418,14 @@ int main(void) {
     if(0.1) {
         ptr_lambda_debug<const string&,const int&>("Yeah!!! Have Happy Summer Vacation :)",0);
     }
-    if(1.0) {
+    if(0) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... testOpenClose",testOpenClose());
     }
     if(1.1) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... testInsertTransaction",testInsertTransaction());
+    }
+    if(1.2) {
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... test_insert_system_data",test_insert_system_data("1.bin"));
     }
     cout << "=============== cli_file END" << endl;
     return 0;
