@@ -414,6 +414,12 @@ int exist_file(const char* path) {
     return (st.st_mode & S_IFMT) == S_IFREG;
 }
 
+/**
+    Insert は概ね考えは固まった。
+    その他の更新系、Update Delete は lock ファイルが必要なのか、それをはっきりさせたい。
+    例えば、削除が先に行われて、そのあとに更新が実行されるのはやはりおかしいと思う。
+    これをしっかりと考えておく。
+*/
 int test_insert_system_data(const char* pkey) {
     try {
         FILE* fp = NULL;
