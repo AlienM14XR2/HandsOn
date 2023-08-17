@@ -270,7 +270,7 @@ public:
             if(size <= 32) {
                 strcat(filePath,fileName);  // 第一引数のサイズが第二引数と連結されたサイズ以下だとエラー。。。らしい。
             } else {
-                throw runtime_error("ERROR: file path size 32 but over.");
+                throw runtime_error("Error: file path size 32 but over.");
             }
         } catch(exception& e) {
             cerr << e.what() << endl;
