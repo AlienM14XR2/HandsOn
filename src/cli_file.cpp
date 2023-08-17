@@ -266,7 +266,12 @@ private:
 public:
     InsertTx(const char* fileName) {
         try {
-            strcat(filePath,fileName);  // 第一引数のサイズが第二引数と連結されたサイズ以下だとエラー。。。らしい。
+            int size = strlen(filePath) + strlen(fileName);
+            if(size <= 32) {
+                strcat(filePath,fileName);  // 第一引数のサイズが第二引数と連結されたサイズ以下だとエラー。。。らしい。
+            } else {
+                throw runtime_error("ERROR: file path size 32 but over.");
+            }
         } catch(exception& e) {
             cerr << e.what() << endl;
             exit(1);
@@ -396,10 +401,10 @@ public:
         }
     }
 };
-int testInsertTransaction() {
+int testInsertTransaction(const char* fname) {
     try {
         cout << "--------- testInsertTransaction" << endl;
-        InsertTx* insertTx = new InsertTx("100.bin");
+        InsertTx* insertTx = new InsertTx(fname);
         ITransaction* tx = static_cast<ITransaction*>(insertTx);
         Transaction transaction(tx);
         return transaction.proc();
@@ -486,7 +491,9 @@ int main(void) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... testOpenClose",testOpenClose());
     }
     if(1.1) {
-        ptr_lambda_debug<const string&,const int&>("Play and Result ... testInsertTransaction",testInsertTransaction());
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... testInsertTransaction",testInsertTransaction("100.bin"));
+        // 例外確認を行っている、exit(1) で終了することを期待している。
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... testInsertTransaction",testInsertTransaction("100111111111111111111111111111111111111111111111111111111111.bin"));
     }
     if(0) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... test_insert_system_data",test_insert_system_data("1.bin"));
