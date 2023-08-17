@@ -262,6 +262,7 @@ class InsertTx final : public virtual ITransaction {
 private:
     mutable FILE* fp = NULL;
     char filePath[32] = {"../tmp/"};
+    // データ用の struct 構造体をメンバ変数に持ち、コンストラクタの引数で代入すること。
     InsertTx() {}
 public:
     InsertTx(const char* fileName) {
@@ -270,6 +271,7 @@ public:
             if(size <= 32) {
                 strcat(filePath,fileName);  // 第一引数のサイズが第二引数と連結されたサイズ以下だとエラー。。。らしい。
             } else {
+                // これが一般的で一番簡単かもしれない。
                 throw runtime_error("Error: file path size 32 but over.");
             }
         } catch(exception& e) {
@@ -326,6 +328,8 @@ public:
         結局処理は早いもの勝ちというルールでいいが、この仕組みで完全に重複データを防げるのかは正直不明。
         マルチスレッドで確認してみるのもいいかもしれない。
         ファイルのOpen と Close（ファイルのLock） とともに要検証と確認が必要だと思う。
+
+        begin で ファイル名によるPK の重複チェックは済んでいるのでファイルにデータを書き込む。
     */
     virtual int commit() const override {
         try {
