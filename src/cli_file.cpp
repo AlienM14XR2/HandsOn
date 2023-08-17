@@ -218,6 +218,25 @@ int testOpenClose() {
         return -1;
     }
 }
+/*
+    ファイルの存在を確認する。
+
+    path:   ファイルパス。
+    戻り値: 存在したら 0以外、存在しなければ 0
+*/
+int exist_file(const char* path) {
+    struct stat st;
+
+    // これは Linux でしか使えない、Win は別のヘッダファイルの関数を利用する必要がある（https://programming-place.net/ppp/contents/c/rev_res/file000.html#way2）
+    if (stat(path, &st) != 0) { 
+        return 0;
+    }
+
+    // ファイルかどうか
+    // S_ISREG(st.st_mode); の方がシンプルだが、Visual Studio では使えない。
+    return (st.st_mode & S_IFMT) == S_IFREG;
+}
+
 class PrimaryKeyDuplicateException final {
 private:
     const char* defaultErrMsg = "Error: Primary Key is Duplicated.";
@@ -240,12 +259,28 @@ public:
     virtual ~ITransaction() {}
 };
 class InsertTx final : public virtual ITransaction {
-public:
+private:
+    mutable FILE* fp = NULL;
+    char filePath[32] = {"../tmp/"};
     InsertTx() {}
+public:
+    InsertTx(const char* fileName) {
+        try {
+            strcat(filePath,fileName);  // 第一引数のサイズが第二引数と連結されたサイズ以下だとエラー。。。らしい。
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            exit(1);
+        }
+
+    }
     InsertTx(const InsertTx& own) {
         (*this) = own;
     }
-    ~InsertTx() {}
+    ~InsertTx() {
+        if(fp != NULL) {
+            fclose(fp);
+        }
+    }
     /**
         データの仮登録を行う。
 
@@ -253,14 +288,24 @@ public:
         例えば、データの先頭3桁で仮登録、登録済み、Lock 等のデータ情報を用いて管理すること。
         こうすることで、Rollback が意味を成すのかもしれない。
         2023-08-10 現在は上記をイメージして実装と考察を続ける予定。
+        上記はまだ、すべてのレコードを 1 ファイルで管理することを考えていた。
+        現在（2023-08-17）は 1 レコード 1 ファイルで管理しようと思っている。
+
+        - データを保存するためのファイルを確定する。
+        - ファイル名はプライマリキとする。
+        - すでに同一のファイルが存在する場合は、PK の重複例外を発生させる。
     */
     virtual int begin() const override {
         try {
             ptr_lambda_debug<const string&,const int&>("InsertTx ... begin.",0);
-            // プライマリキを発行して、重複がないか確認する。
-            // if(1) {     // 例外を強制的に発生させている。
-            //     throw PrimaryKeyDuplicateException();
-            // }
+            if(exist_file(filePath)) {
+                printf("DEBUG: %s exist\n",filePath);
+                throw PrimaryKeyDuplicateException();
+            }
+            fp = fopen(filePath,"w+");
+            if(fp != NULL) {
+                printf("DEBUG: It's open file. mode is \"w+\"\n");
+            }
             return 0;
         } catch(PrimaryKeyDuplicateException& e) {
             cerr << e.what() << endl;
@@ -281,9 +326,9 @@ public:
         try {
             // データの保存を行う、プライマリキの重複の最終確認を行う。
             ptr_lambda_debug<const string&,const int&>("InsertTx ... commit.",0);
-            if(1) {     // 例外を強制的に発生させている。
-                throw PrimaryKeyDuplicateException();
-            }
+            // if(1) {     // 例外を強制的に発生させている。
+            //     throw PrimaryKeyDuplicateException();
+            // }
             return 0;
         } catch(PrimaryKeyDuplicateException& e) {
             cerr << e.what() << endl;
@@ -347,10 +392,6 @@ public:
             }
         } catch(exception& e) {
             cerr << e.what() << endl;
-            // これは無駄かな、ちょっと考えてみる。
-            // if(tx->rollback() != 0) {
-            //     return -3;
-            // }
             return -1;
         }
     }
@@ -358,7 +399,7 @@ public:
 int testInsertTransaction() {
     try {
         cout << "--------- testInsertTransaction" << endl;
-        InsertTx* insertTx = new InsertTx();
+        InsertTx* insertTx = new InsertTx("100.bin");
         ITransaction* tx = static_cast<ITransaction*>(insertTx);
         Transaction transaction(tx);
         return transaction.proc();
@@ -394,26 +435,6 @@ int testInsertTransaction() {
     現状ではこんなことしか言えない。
 
 */
-
-/*
-    ファイルの存在を確認する。
-
-    path:   ファイルパス。
-    戻り値: 存在したら 0以外、存在しなければ 0
-*/
-int exist_file(const char* path) {
-    struct stat st;
-
-    // これは Linux でしか使えない、Win は別のヘッダファイルの関数を利用する必要がある（https://programming-place.net/ppp/contents/c/rev_res/file000.html#way2）
-    if (stat(path, &st) != 0) { 
-        return 0;
-    }
-
-    // ファイルかどうか
-    // S_ISREG(st.st_mode); の方がシンプルだが、Visual Studio では使えない。
-    return (st.st_mode & S_IFMT) == S_IFREG;
-}
-
 /**
     Insert は概ね考えは固まった。
     その他の更新系、Update Delete は lock ファイルが必要なのか、それをはっきりさせたい。
@@ -467,7 +488,7 @@ int main(void) {
     if(1.1) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... testInsertTransaction",testInsertTransaction());
     }
-    if(1.2) {
+    if(0) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... test_insert_system_data",test_insert_system_data("1.bin"));
         ptr_lambda_debug<const string&,const int&>("Play and Result ... test_insert_system_data",test_insert_system_data("2.bin"));
     }
