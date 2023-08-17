@@ -218,6 +218,14 @@ int testOpenClose() {
         return -1;
     }
 }
+
+/**
+    サンプル・テスト用データ。
+*/
+typedef struct {
+    unsigned int id;
+    char email[256];
+} SAMPLE_DATA;
 /*
     ファイルの存在を確認する。
 
@@ -263,15 +271,17 @@ private:
     mutable FILE* fp = NULL;
     char filePath[32] = {"../tmp/"};
     // データ用の struct 構造体をメンバ変数に持ち、コンストラクタの引数で代入すること。
+    SAMPLE_DATA* pd = nullptr;
     InsertTx() {}
 public:
-    InsertTx(const char* fileName) {
+    InsertTx(const char* fileName,SAMPLE_DATA* pdata) {
         try {
             int size = strlen(filePath) + strlen(fileName);
             if(size <= 32) {
                 strcat(filePath,fileName);  // 第一引数のサイズが第二引数と連結されたサイズ以下だとエラー。。。らしい。
+                pd = pdata;
             } else {
-                // これが一般的で一番簡単かもしれない。
+                // 例外は、これが一般的で一番簡単かもしれない。
                 throw runtime_error("Error: file path size 32 but over.");
             }
         } catch(exception& e) {
@@ -309,9 +319,9 @@ public:
                 printf("DEBUG: %s exist\n",filePath);
                 throw PrimaryKeyDuplicateException();
             }
-            fp = fopen(filePath,"w+");
+            fp = fopen(filePath,"wb+");
             if(fp != NULL) {
-                printf("DEBUG: It's open file. mode is \"w+\"\n");
+                printf("DEBUG: It's open file. mode is \"wb+\" file path is %s\n",filePath);
             }
             return 0;
         } catch(PrimaryKeyDuplicateException& e) {
@@ -335,13 +345,15 @@ public:
         try {
             // データの保存を行う、プライマリキの重複の最終確認を行う。
             ptr_lambda_debug<const string&,const int&>("InsertTx ... commit.",0);
-            // if(1) {     // 例外を強制的に発生させている。
-            //     throw PrimaryKeyDuplicateException();
-            // }
+            if(fp != NULL) {
+                printf("DEBUG: id is %d, email is %s\n",pd[0].id,pd[0].email);
+                printf("DEBUG: sizeof(SAMPLE_DATA) is %ld\n",sizeof(SAMPLE_DATA));
+                printf("DEBUG: sizeof(pd) is %ld\n",sizeof(pd));
+                fwrite(pd,sizeof(SAMPLE_DATA),1,fp);
+                fclose(fp);
+                fp = NULL;
+            }
             return 0;
-        } catch(PrimaryKeyDuplicateException& e) {
-            cerr << e.what() << endl;
-            return -1;
         } catch(exception& e) {
             cerr << e.what() << endl;
             return -1;
@@ -405,10 +417,11 @@ public:
         }
     }
 };
-int testInsertTransaction(const char* fname) {
+int testInsertTransaction(const unsigned int& pk, const char* fname) {
     try {
         cout << "--------- testInsertTransaction" << endl;
-        InsertTx* insertTx = new InsertTx(fname);
+        SAMPLE_DATA sample[] = {{pk,"jack@loki.org"}};
+        InsertTx* insertTx = new InsertTx(fname,sample);
         ITransaction* tx = static_cast<ITransaction*>(insertTx);
         Transaction transaction(tx);
         return transaction.proc();
@@ -495,9 +508,9 @@ int main(void) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... testOpenClose",testOpenClose());
     }
     if(1.1) {
-        ptr_lambda_debug<const string&,const int&>("Play and Result ... testInsertTransaction",testInsertTransaction("100.bin"));
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... testInsertTransaction",testInsertTransaction(100,"100.bin"));
         // 例外確認を行っている、exit(1) で終了することを期待している。
-        ptr_lambda_debug<const string&,const int&>("Play and Result ... testInsertTransaction",testInsertTransaction("100111111111111111111111111111111111111111111111111111111111.bin"));
+        // ptr_lambda_debug<const string&,const int&>("Play and Result ... testInsertTransaction",testInsertTransaction(1,"100111111111111111111111111111111111111111111111111111111111.bin"));
     }
     if(0) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... test_insert_system_data",test_insert_system_data("1.bin"));
