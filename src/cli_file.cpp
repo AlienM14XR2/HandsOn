@@ -44,7 +44,7 @@
 #include "sys/stat.h"
 
 using namespace std;
-//#define DEFAULT_FILE_PATH           "../tmp/ORx2.bin"
+#define FILE_PATH_SIZE                32
 
 template<class M,class D>
 void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
@@ -387,34 +387,45 @@ public:
 class UpdateTx final : public virtual ITransaction {
 private:
     mutable FILE* fp = NULL;
-    char filePath[32] = {"../tmp/"};
-    char lfilePath[32] = {"../tmp/"};
+    char filePath[FILE_PATH_SIZE] = {"../tmp/"};
+    char lfilePath[FILE_PATH_SIZE] = {"../tmp/"};
     SAMPLE_DATA* pd = nullptr;
+
     UpdateTx() {}
+    int makeFilePath(const unsigned int& pk) {
+        string spk = to_string(pk);
+        spk = spk + ".bin";
+        char cpk[16] = {"\0"};
+        memcpy(cpk,spk.data(),spk.size());
+        cpk[spk.size()] = '\0';
+        int size = strlen(filePath) + strlen(cpk);
+        if( size <= FILE_PATH_SIZE ) {
+            strcat(filePath,cpk);  // 第一引数のサイズが第二引数と連結されたサイズ以下だとエラー。。。らしい。
+        }
+        return size;
+    }
+    int makeLFilePath(const unsigned int& pk) {
+        string spk = to_string(pk);
+        spk = spk + ".loc";
+        char cpk[16] = {"\0"};
+        memcpy(cpk,spk.data(),spk.size());
+        cpk[spk.size()] = '\0';
+        int size = strlen(lfilePath) + strlen(cpk);
+        if( size <= FILE_PATH_SIZE ) {
+            strcat(lfilePath,cpk);  // 第一引数のサイズが第二引数と連結されたサイズ以下だとエラー。。。らしい。
+        }
+        return size;
+    }
+
 public:
     // この作り、DRY の原則からはずれてる、リファクタ対象だろうな。
+    // InsertTx との共通処理の割り出しが必要という意味。
+    // コンストラクタとしてはプライマリキを仮引数に取る方が良さそう。
     UpdateTx(const unsigned int& pk,SAMPLE_DATA* pdata) {
         try {
-            // この処理と
-            string spk = to_string(pk);
-            spk = spk + ".bin";
-            char cpk[16] = {"\0"};
-            memcpy(cpk,spk.data(),spk.size());
-            cpk[spk.size()] = '\0';
-            int size = strlen(filePath) + strlen(cpk);
-
-            // この処理は関数化できるよね。
-            string slk = to_string(pk);
-            slk = slk + ".loc";
-            char clk[16] = {"\0"};
-            memcpy(clk,slk.data(),slk.size());
-            clk[slk.size()] = '\0';            
-            // 次の処理と下の lsize の判定は冗長かもしれない。
-            int lsize = strlen(filePath) + strlen(clk);
-
-            if(size <= 32 && lsize <= 32) {
-                strcat(filePath,cpk);  // 第一引数のサイズが第二引数と連結されたサイズ以下だとエラー。。。らしい。
-                strcat(lfilePath,clk);
+            int size = makeFilePath(pk);
+            int lsize = makeLFilePath(pk);
+            if(size <= FILE_PATH_SIZE && lsize <= FILE_PATH_SIZE) {
                 printf("DEBUG: filePath is %s\n",filePath);
                 printf("DEBUG: lfilePath is %s\n",lfilePath);
                 pd = pdata;
