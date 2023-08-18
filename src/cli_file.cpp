@@ -266,6 +266,9 @@ public:
     virtual int rollback() const = 0;
     virtual ~ITransaction() {}
 };
+/**
+    新規登録のトランザクション処理クラス。
+*/
 class InsertTx final : public virtual ITransaction {
 private:
     mutable FILE* fp = NULL;
@@ -288,7 +291,6 @@ public:
             cerr << e.what() << endl;
             exit(1);
         }
-
     }
     InsertTx(const InsertTx& own) {
         (*this) = own;
@@ -360,8 +362,8 @@ public:
         }
     }
     /**
-        問題が生じた際、Begin 以前の状態を担保する。
-        Insert に関して言えば仮登録されたデータを削除する。
+        問題が生じた際、Begin 以前の状態を担保する。        
+        現状は何も行っていない。
     */
     virtual int rollback() const override {
         try {
@@ -371,6 +373,54 @@ public:
             cerr << e.what() << endl;
             return -1;
         }
+    }
+};
+/**
+    更新のトランザクション処理クラス。
+    Fix しないといけない問題、PK の更新を許可するかということ。
+    アプリケーションで考えた場合は NG だが一般的なシステムとういう観点では OK 。
+    PK の更新とは現状の作りでは、ファイルの Delete and Insert になる。
+    これは少し特殊なので、更新処理に直接組み込むかは保留する。
+*/
+class UpdateTx final : public virtual ITransaction {
+private:
+    mutable FILE* fp = NULL;
+    char filePath[32] = {"../tmp/"};
+    SAMPLE_DATA* pd = nullptr;
+    UpdateTx() {}
+public:
+    // この作り、DRY の原則からはずれてる、リファクタ対象だろうな。
+    UpdateTx(const char* fileName,SAMPLE_DATA* pdata) {
+        try {
+            int size = strlen(filePath) + strlen(fileName);
+            if(size <= 32) {
+                strcat(filePath,fileName);  // 第一引数のサイズが第二引数と連結されたサイズ以下だとエラー。。。らしい。
+                pd = pdata;
+            } else {
+                // 例外は、これが一般的で一番簡単かもしれない。
+                throw runtime_error("Error: file path size 32 but over.");
+            }
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            exit(1);
+        }
+    }
+    UpdateTx(const UpdateTx& own) {
+        (*this) = own;
+    }
+    ~UpdateTx() {
+        if(fp != NULL) {
+            fclose(fp);
+        }
+    }
+    virtual int begin() const override {
+        return 0;
+    }
+    virtual int commit() const override {
+        return 0;
+    }
+    virtual int rollback() const override {
+        return 0;
     }
 };
 class Transaction final {
