@@ -413,12 +413,26 @@ public:
             fclose(fp);
         }
     }
+    /**
+        更新対象のファイルを Lock する。
+        [PK].lock ファイルを作成する。
+        すでに作成されていた場合は処理を保留する。
+        Lock ファイルが削除処理の場合もあるので、その場合は [PK].bin ファイルの有無に注意すること。
+    */
     virtual int begin() const override {
         return 0;
     }
+    /**
+        更新処理の実行。
+        ファイルの内容の書き換えを行う。
+        "wb+"
+    */
     virtual int commit() const override {
         return 0;
     }
+    /**
+        現状は特にないはず：）
+    */
     virtual int rollback() const override {
         return 0;
     }
