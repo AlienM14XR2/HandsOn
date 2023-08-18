@@ -354,8 +354,10 @@ public:
                 fwrite(pd,sizeof(SAMPLE_DATA),1,fp);
                 fclose(fp);
                 fp = NULL;
+                return 0;
+            } else {
+                throw runtime_error("Error: File pointer is NULL.");
             }
-            return 0;
         } catch(exception& e) {
             cerr << e.what() << endl;
             return -1;
@@ -386,15 +388,35 @@ class UpdateTx final : public virtual ITransaction {
 private:
     mutable FILE* fp = NULL;
     char filePath[32] = {"../tmp/"};
+    char lfilePath[32] = {"../tmp/"};
     SAMPLE_DATA* pd = nullptr;
     UpdateTx() {}
 public:
     // この作り、DRY の原則からはずれてる、リファクタ対象だろうな。
-    UpdateTx(const char* fileName,SAMPLE_DATA* pdata) {
+    UpdateTx(const unsigned int& pk,SAMPLE_DATA* pdata) {
         try {
-            int size = strlen(filePath) + strlen(fileName);
-            if(size <= 32) {
-                strcat(filePath,fileName);  // 第一引数のサイズが第二引数と連結されたサイズ以下だとエラー。。。らしい。
+            // この処理と
+            string spk = to_string(pk);
+            spk = spk + ".bin";
+            char cpk[16] = {"\0"};
+            memcpy(cpk,spk.data(),spk.size());
+            cpk[spk.size()] = '\0';
+            int size = strlen(filePath) + strlen(cpk);
+
+            // この処理は関数化できるよね。
+            string slk = to_string(pk);
+            slk = slk + ".loc";
+            char clk[16] = {"\0"};
+            memcpy(clk,slk.data(),slk.size());
+            clk[slk.size()] = '\0';            
+            // 次の処理と下の lsize の判定は冗長かもしれない。
+            int lsize = strlen(filePath) + strlen(clk);
+
+            if(size <= 32 && lsize <= 32) {
+                strcat(filePath,cpk);  // 第一引数のサイズが第二引数と連結されたサイズ以下だとエラー。。。らしい。
+                strcat(lfilePath,clk);
+                printf("DEBUG: filePath is %s\n",filePath);
+                printf("DEBUG: lfilePath is %s\n",lfilePath);
                 pd = pdata;
             } else {
                 // 例外は、これが一般的で一番簡単かもしれない。
@@ -421,6 +443,7 @@ public:
     */
     virtual int begin() const override {
         // [PK].bin があり、[PK].lock がない場合に正常処理ができる。
+
         // [PK].lock ファイルを作成する。
         // 条件が満たされるまでループ。
         return 0;
@@ -496,6 +519,14 @@ int testInsertTransaction(const unsigned int& pk, const char* fname) {
         cerr << e.what() << endl;
         return -1;
     }
+}
+int testUpdateTransaction(const unsigned int& pk) {
+        cout << "--------- testUpdateTransaction" << endl;
+        SAMPLE_DATA sample[] = {{pk,"jack@loki.org"}};
+        UpdateTx* updateTx = new UpdateTx(pk,sample);
+        ITransaction* tx = static_cast<ITransaction*>(updateTx);
+        Transaction transaction(tx);
+        return transaction.proc();
 }
 /**
     トランザクション。。。Commit Rollback をInsert 時に実現しようとすると
@@ -578,6 +609,7 @@ int main(void) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... testInsertTransaction",testInsertTransaction(100,"100.bin"));
         // 例外確認を行っている、exit(1) で終了することを期待している。
         // ptr_lambda_debug<const string&,const int&>("Play and Result ... testInsertTransaction",testInsertTransaction(1,"100111111111111111111111111111111111111111111111111111111111.bin"));
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... testUpdateTransaction",testUpdateTransaction(100));
     }
     if(0) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... test_insert_system_data",test_insert_system_data("1.bin"));
