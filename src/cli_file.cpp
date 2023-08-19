@@ -279,6 +279,23 @@ int makeLFilePath(const unsigned int& pk, char* lfilePath) {
     }
     return size;
 }
+void checkFilePathSize(const unsigned int& pk,char* filePath,char* lfilePath) {
+    try {
+        int size = makeFilePath(pk,filePath);
+        int lsize = makeLFilePath(pk,lfilePath);
+        if(size <= FILE_PATH_SIZE && lsize <= FILE_PATH_SIZE) {
+            printf("DEBUG: filePath is %s\n",filePath);
+            printf("DEBUG: lfilePath is %s\n",lfilePath);
+//            pd = pdata;
+        } else {
+            // 例外は、これが一般的で一番簡単かもしれない。
+            throw runtime_error("Error: file path size 32 but over.");
+        }
+    } catch(exception& e) {
+        cerr << e.what() << endl;
+        exit(1);
+    }
+}
 
 class PrimaryKeyDuplicateException final {
 private:
@@ -435,21 +452,8 @@ public:
     // InsertTx との共通処理の割り出しが必要という意味。
     // コンストラクタとしてはプライマリキを仮引数に取る方が良さそう。
     UpdateTx(const unsigned int& pk,SAMPLE_DATA* pdata) {
-        try {
-            int size = makeFilePath(pk,filePath);
-            int lsize = makeLFilePath(pk,lfilePath);
-            if(size <= FILE_PATH_SIZE && lsize <= FILE_PATH_SIZE) {
-                printf("DEBUG: filePath is %s\n",filePath);
-                printf("DEBUG: lfilePath is %s\n",lfilePath);
-                pd = pdata;
-            } else {
-                // 例外は、これが一般的で一番簡単かもしれない。
-                throw runtime_error("Error: file path size 32 but over.");
-            }
-        } catch(exception& e) {
-            cerr << e.what() << endl;
-            exit(1);
-        }
+        checkFilePathSize(pk,filePath,lfilePath);
+        pd = pdata;
     }
     UpdateTx(const UpdateTx& own) {
         (*this) = own;
