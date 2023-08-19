@@ -336,6 +336,7 @@ int checkFiles(const char* filePath, const char* lfilePath) {
         return -1;
     }
 }
+// 上記の関数は ITransaction にカプセル化したほうがいいかもしれない。
 
 class PrimaryKeyDuplicateException final {
 private:
@@ -519,42 +520,6 @@ public:
         } else {
             return -1;
         }
-        // try {
-        //     // [PK].bin があり、[PK].lock がない場合に正常処理ができる。
-        //     if(exist_file(filePath)) {
-        //         printf("DEBUG: %s exist.\n",filePath);
-        //         if(exist_file(lfilePath) == 0) {    // 現在 Lock している処理がない場合
-        //             printf("DEBUG: no lock file. \n");
-        //             // [PK].lock ファイルを作成する。
-        //             lfp = fopen(lfilePath,"w");
-        //         } else {    // 問題はこっちをどうするか、処理を止めるか一定時間待機するのか
-        //             clock_t start = clock();
-        //             while(1) {
-        //                 clock_t end = clock();
-        //                 double elapsed = (double)(end-start)/CLOCKS_PER_SEC;
-        //                 if(elapsed >= TRANSACTION_TIMEOUT) {
-        //                     throw runtime_error("Error: Transaction timeout.");
-        //                 } else {
-        //                     // 他の処理が終了して、Lock ファイルがないか確認する。ない場合は Lock ファイルを作成しループを終了する。
-        //                     // ただし、Delete が先行していた場合はその後の Update は無効にすること。
-        //                     if(exist_file(lfilePath) == 0) {
-        //                         if(exist_file(filePath)) {  // 対象のデータファイルがあるかチェック。
-        //                             // [PK].lock ファイルを作成する。
-        //                             lfp = fopen(lfilePath,"w");
-        //                             break;
-        //                         } else {
-        //                             throw runtime_error("Error: Data has already deleted.");
-        //                         }
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        //     return 0;
-        // } catch(exception& e) {
-        //     cerr << e.what() << endl;
-        //     return -1;
-        // }
     }
     /**
         更新処理の実行。
@@ -624,24 +589,48 @@ public:
             fclose(lfp);
         }
     }
+    /**
+        Lock ファイルの作成を行う。
+    */
     virtual int begin() const override {
-        try {
+        if(checkFiles(filePath,lfilePath) == 0) {
+            lfp = fopen(lfilePath,"w");
             return 0;
-        } catch(exception& e) {
-            cerr << e.what() << endl;
+        } else {
             return -1;
         }
     }
+    /**
+        データファイルの削除を行う。
+    */
     virtual int commit() const override {
         try {
-            return 0;
+            if(lfp != NULL) {
+                // データファイルを削除する。
+                delete_file(filePath);
+                // 最後に Lock ファイルを削除する。
+                fclose(lfp);
+                lfp = NULL;
+                delete_file(lfilePath);
+                return 0;
+            } else {
+                throw runtime_error("Error: Lock file pointer is NULL.");
+            }
         } catch(exception& e) {
             cerr << e.what() << endl;
             return -1;
         }
     }
+    /**
+        Lock ファイルがある場合は削除する。
+    */
     virtual int rollback() const override {
         try {
+            if(lfp != NULL) {   // 自分でOpen したLock ファイルを削除しないといけない。
+                fclose(lfp);
+                lfp = NULL;
+                delete_file(lfilePath);
+            }
             return 0;
         } catch(exception& e) {
             cerr << e.what() << endl;
