@@ -296,6 +296,46 @@ void checkFilePathSize(const unsigned int& pk,char* filePath,char* lfilePath) {
         exit(1);
     }
 }
+int checkFiles(const char* filePath, const char* lfilePath) {
+    try {
+        // [PK].bin があり、[PK].lock がない場合に正常処理ができる。
+        if(exist_file(filePath)) {
+            printf("DEBUG: %s exist.\n",filePath);
+            if(exist_file(lfilePath) == 0) {    // 現在 Lock している処理がない場合
+                printf("DEBUG: no lock file. \n");
+                // [PK].lock ファイルを作成する。
+//                lfp = fopen(lfilePath,"w");
+            } else {    // 問題はこっちをどうするか、処理を止めるか一定時間待機するのか
+                clock_t start = clock();
+                while(1) {
+                    clock_t end = clock();
+                    double elapsed = (double)(end-start)/CLOCKS_PER_SEC;
+                    if(elapsed >= TRANSACTION_TIMEOUT) {
+                        throw runtime_error("Error: Transaction timeout.");
+                    } else {
+                        // 他の処理が終了して、Lock ファイルがないか確認する。ない場合は Lock ファイルを作成しループを終了する。
+                        // ただし、Delete が先行していた場合はその後の Update は無効にすること。
+                        if(exist_file(lfilePath) == 0) {
+                            if(exist_file(filePath)) {  // 対象のデータファイルがあるかチェック。
+                                // [PK].lock ファイルを作成する。
+//                                lfp = fopen(lfilePath,"w");
+                                break;
+                            } else {
+                                throw runtime_error("Error: Data has already deleted.");
+                            }
+                        }
+                    }
+                }
+            }
+            return 0;
+        } else {
+            throw runtime_error("Error: Data file don't exist.");
+        }
+    } catch(exception& e) {
+        cerr << e.what() << endl;
+        return -1;
+    }
+}
 
 class PrimaryKeyDuplicateException final {
 private:
@@ -473,42 +513,48 @@ public:
         Lock ファイルが削除処理の場合もあるので、その場合は [PK].bin ファイルの有無に注意すること。
     */
     virtual int begin() const override {
-        try {
-            // [PK].bin があり、[PK].lock がない場合に正常処理ができる。
-            if(exist_file(filePath)) {
-                printf("DEBUG: %s exist.\n",filePath);
-                if(exist_file(lfilePath) == 0) {    // 現在 Lock している処理がない場合
-                    printf("DEBUG: no lock file. \n");
-                    // [PK].lock ファイルを作成する。
-                    lfp = fopen(lfilePath,"w");
-                } else {    // 問題はこっちをどうするか、処理を止めるか一定時間待機するのか
-                    clock_t start = clock();
-                    while(1) {
-                        clock_t end = clock();
-                        double elapsed = (double)(end-start)/CLOCKS_PER_SEC;
-                        if(elapsed >= TRANSACTION_TIMEOUT) {
-                            throw runtime_error("Error: Transaction timeout.");
-                        } else {
-                            // 他の処理が終了して、Lock ファイルがないか確認する。ない場合は Lock ファイルを作成しループを終了する。
-                            // ただし、Delete が先行していた場合はその後の Update は無効にすること。
-                            if(exist_file(lfilePath) == 0) {
-                                if(exist_file(filePath)) {  // 対象のデータファイルがあるかチェック。
-                                    // [PK].lock ファイルを作成する。
-                                    lfp = fopen(lfilePath,"w");
-                                    break;
-                                } else {
-                                    throw runtime_error("Error: Data has already deleted.");
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        if(checkFiles(filePath,lfilePath) == 0) {
+            lfp = fopen(lfilePath,"w");
             return 0;
-        } catch(exception& e) {
-            cerr << e.what() << endl;
+        } else {
             return -1;
         }
+        // try {
+        //     // [PK].bin があり、[PK].lock がない場合に正常処理ができる。
+        //     if(exist_file(filePath)) {
+        //         printf("DEBUG: %s exist.\n",filePath);
+        //         if(exist_file(lfilePath) == 0) {    // 現在 Lock している処理がない場合
+        //             printf("DEBUG: no lock file. \n");
+        //             // [PK].lock ファイルを作成する。
+        //             lfp = fopen(lfilePath,"w");
+        //         } else {    // 問題はこっちをどうするか、処理を止めるか一定時間待機するのか
+        //             clock_t start = clock();
+        //             while(1) {
+        //                 clock_t end = clock();
+        //                 double elapsed = (double)(end-start)/CLOCKS_PER_SEC;
+        //                 if(elapsed >= TRANSACTION_TIMEOUT) {
+        //                     throw runtime_error("Error: Transaction timeout.");
+        //                 } else {
+        //                     // 他の処理が終了して、Lock ファイルがないか確認する。ない場合は Lock ファイルを作成しループを終了する。
+        //                     // ただし、Delete が先行していた場合はその後の Update は無効にすること。
+        //                     if(exist_file(lfilePath) == 0) {
+        //                         if(exist_file(filePath)) {  // 対象のデータファイルがあるかチェック。
+        //                             // [PK].lock ファイルを作成する。
+        //                             lfp = fopen(lfilePath,"w");
+        //                             break;
+        //                         } else {
+        //                             throw runtime_error("Error: Data has already deleted.");
+        //                         }
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
+        //     return 0;
+        // } catch(exception& e) {
+        //     cerr << e.what() << endl;
+        //     return -1;
+        // }
     }
     /**
         更新処理の実行。
@@ -565,7 +611,7 @@ private:
     DeleteTx() {}
 public:
     DeleteTx(const unsigned int& pk) {
-
+        checkFilePathSize(pk,filePath,lfilePath);
     }
     DeleteTx(const DeleteTx& own) {
         (*this) = own;
