@@ -42,9 +42,11 @@
 #include "stdlib.h"
 #include "string.h"
 #include "sys/stat.h"
+#include "time.h"
 
 using namespace std;
 #define FILE_PATH_SIZE                32
+#define TRANSACTION_TIMEOUT           10     // sec.
 
 template<class M,class D>
 void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
@@ -318,12 +320,12 @@ public:
         try {
             ptr_lambda_debug<const string&,const int&>("InsertTx ... begin.",0);
             if(exist_file(filePath)) {
-                printf("DEBUG: %s exist\n",filePath);
+                printf("DEBUG: %s exist.\n",filePath);
                 throw PrimaryKeyDuplicateException();
             }
             fp = fopen(filePath,"wb+");
             if(fp != NULL) {
-                printf("DEBUG: It's open file. mode is \"wb+\" file path is %s\n",filePath);
+                printf("DEBUG: It's open file. mode is \"wb+\" file path is %s.\n",filePath);
             }
             return 0;
         } catch(PrimaryKeyDuplicateException& e) {
@@ -348,9 +350,9 @@ public:
             // データの保存を行う、プライマリキの重複の最終確認を行う。
             ptr_lambda_debug<const string&,const int&>("InsertTx ... commit.",0);
             if(fp != NULL) {
-                printf("DEBUG: id is %d, email is %s\n",pd[0].id,pd[0].email);
-                printf("DEBUG: sizeof(SAMPLE_DATA) is %ld\n",sizeof(SAMPLE_DATA));
-                printf("DEBUG: sizeof(pd) is %ld\n",sizeof(pd));
+                printf("DEBUG: id is %d, email is %s.\n",pd[0].id,pd[0].email);
+                printf("DEBUG: sizeof(SAMPLE_DATA) is %ld.\n",sizeof(SAMPLE_DATA));
+                printf("DEBUG: sizeof(pd) is %ld.\n",sizeof(pd));
                 fwrite(pd,sizeof(SAMPLE_DATA),1,fp);
                 fclose(fp);
                 fp = NULL;
@@ -453,11 +455,32 @@ public:
         Lock ファイルが削除処理の場合もあるので、その場合は [PK].bin ファイルの有無に注意すること。
     */
     virtual int begin() const override {
-        // [PK].bin があり、[PK].lock がない場合に正常処理ができる。
-
-        // [PK].lock ファイルを作成する。
-        // 条件が満たされるまでループ。
-        return 0;
+        try {
+            // [PK].bin があり、[PK].lock がない場合に正常処理ができる。
+            if(exist_file(filePath)) {
+                printf("DEBUG: %s exist.\n",filePath);
+                if(exist_file(lfilePath) == 0) {    // 現在 Lock している処理がない場合
+                    printf("DEBUG: no lock file. \n");
+                    // [PK].lock ファイルを作成する。
+                } else {    // 問題はこっちをどうするか、処理を止めるか一定時間待機するのか
+                    clock_t start = clock();
+                    while(1) {
+                        clock_t end = clock();
+                        double elapsed = (double)(end-start)/CLOCKS_PER_SEC;
+                        if(elapsed >= TRANSACTION_TIMEOUT) {
+                            throw runtime_error("Error: Transaction timeout.");
+                        } else {
+                            // 他の処理が終了して、Lock ファイルがないか確認する。ない場合は Lock ファイルを作成しループを終了する。
+                            // [PK].lock ファイルを作成する。
+                        }
+                    }
+                }
+            }
+            return 0;
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
     }
     /**
         更新処理の実行。
@@ -465,13 +488,23 @@ public:
         "wb+"
     */
     virtual int commit() const override {
-        return 0;
+        try {
+            return 0;
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
     }
     /**
         現状は特にないはず：）
     */
     virtual int rollback() const override {
-        return 0;
+        try {
+            return 0;
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
     }
 };
 class Transaction final {
