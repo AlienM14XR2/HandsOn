@@ -46,7 +46,7 @@
 
 using namespace std;
 #define FILE_PATH_SIZE                32
-#define TRANSACTION_TIMEOUT           10     // sec.
+#define TRANSACTION_TIMEOUT            5     // sec.
 
 template<class M,class D>
 void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
@@ -246,7 +246,15 @@ int exist_file(const char* path) {
     // S_ISREG(st.st_mode); の方がシンプルだが、Visual Studio では使えない。
     return (st.st_mode & S_IFMT) == S_IFREG;
 }
+/*
+    ファイルを削除する。
 
+    file_name: 削除するファイルの名前
+    戻り値:   成功したら 0以外、失敗したら 0
+*/
+int delete_file(const char* file_name) {
+    return !(remove(file_name));
+}
 class PrimaryKeyDuplicateException final {
 private:
     const char* defaultErrMsg = "Error: Primary Key is Duplicated.";
@@ -358,7 +366,7 @@ public:
                 fp = NULL;
                 return 0;
             } else {
-                throw runtime_error("Error: File pointer is NULL.");
+                throw runtime_error("Error: Data file pointer is NULL.");
             }
         } catch(exception& e) {
             cerr << e.what() << endl;
@@ -382,13 +390,15 @@ public:
 /**
     更新のトランザクション処理クラス。
     Fix しないといけない問題、PK の更新を許可するかということ。
-    アプリケーションで考えた場合は NG だが一般的なシステムとういう観点では OK 。
-    PK の更新とは現状の作りでは、ファイルの Delete and Insert になる。
+    アプリケーションで考えた場合は NG だが（今回のPK はシステム管理でありユーザ定義ではないため）
+    一般的なシステムとういう観点では OK 。
+    PK の更新とは現状の作りでは、ファイルの 削除と新規作成になる。
     これは少し特殊なので、更新処理に直接組み込むかは保留する。
 */
 class UpdateTx final : public virtual ITransaction {
 private:
     mutable FILE* fp = NULL;
+    mutable FILE* lfp = NULL;
     char filePath[FILE_PATH_SIZE] = {"../tmp/"};
     char lfilePath[FILE_PATH_SIZE] = {"../tmp/"};
     SAMPLE_DATA* pd = nullptr;
@@ -447,6 +457,9 @@ public:
         if(fp != NULL) {
             fclose(fp);
         }
+        if(lfp != NULL) {
+            fclose(lfp);
+        }
     }
     /**
         更新対象のファイルを Lock する。
@@ -462,6 +475,7 @@ public:
                 if(exist_file(lfilePath) == 0) {    // 現在 Lock している処理がない場合
                     printf("DEBUG: no lock file. \n");
                     // [PK].lock ファイルを作成する。
+                    lfp = fopen(lfilePath,"w");
                 } else {    // 問題はこっちをどうするか、処理を止めるか一定時間待機するのか
                     clock_t start = clock();
                     while(1) {
@@ -471,7 +485,16 @@ public:
                             throw runtime_error("Error: Transaction timeout.");
                         } else {
                             // 他の処理が終了して、Lock ファイルがないか確認する。ない場合は Lock ファイルを作成しループを終了する。
-                            // [PK].lock ファイルを作成する。
+                            // ただし、Delete が先行していた場合はその後の Update は無効にすること。
+                            if(exist_file(lfilePath) == 0) {
+                                if(exist_file(filePath)) {  // 対象のデータファイルがあるかチェック。
+                                    // [PK].lock ファイルを作成する。
+                                    lfp = fopen(lfilePath,"w");
+                                    break;
+                                } else {
+                                    throw runtime_error("Error: Data has already deleted.");
+                                }
+                            }
                         }
                     }
                 }
@@ -489,17 +512,38 @@ public:
     */
     virtual int commit() const override {
         try {
-            return 0;
+            if(lfp != NULL) {
+                fp = fopen(filePath,"wb+");
+                if(fp != NULL) {
+                    fwrite(pd,sizeof(SAMPLE_DATA),1,fp);
+                    fclose(fp);
+                    fp = NULL;
+                    // 最後に Lock ファイルを削除する。
+                    fclose(lfp);
+                    lfp = NULL;
+                    delete_file(lfilePath);
+                    return 0;
+                } else {
+                    throw runtime_error("Error: Data file pointer is NULL.");
+                }
+            } else {
+                throw runtime_error("Error: Lock file pointer is NULL.");
+            }
         } catch(exception& e) {
             cerr << e.what() << endl;
             return -1;
         }
     }
     /**
-        現状は特にないはず：）
+        Lock ファイルがある場合は削除する。
     */
     virtual int rollback() const override {
         try {
+            if(lfp != NULL) {   // 自分でOpen したLock ファイルを削除しないといけない。
+                fclose(lfp);
+                lfp = NULL;
+                delete_file(lfilePath);
+            }
             return 0;
         } catch(exception& e) {
             cerr << e.what() << endl;
@@ -566,7 +610,7 @@ int testInsertTransaction(const unsigned int& pk, const char* fname) {
 }
 int testUpdateTransaction(const unsigned int& pk) {
         cout << "--------- testUpdateTransaction" << endl;
-        SAMPLE_DATA sample[] = {{pk,"jack@loki.org"}};
+        SAMPLE_DATA sample[] = {{pk,"delek@loki.org"}};
         UpdateTx* updateTx = new UpdateTx(pk,sample);
         ITransaction* tx = static_cast<ITransaction*>(updateTx);
         Transaction transaction(tx);
