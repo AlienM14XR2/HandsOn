@@ -255,6 +255,31 @@ int exist_file(const char* path) {
 int delete_file(const char* file_name) {
     return !(remove(file_name));
 }
+int makeFilePath(const unsigned int& pk, char* filePath) {
+    string spk = to_string(pk);
+    spk = spk + ".bin";
+    char cpk[16] = {"\0"};
+    memcpy(cpk,spk.data(),spk.size());
+    cpk[spk.size()] = '\0';
+    int size = strlen(filePath) + strlen(cpk);
+    if( size <= FILE_PATH_SIZE ) {
+        strcat(filePath,cpk);  // 第一引数のサイズが第二引数と連結されたサイズ以下だとエラー。。。らしい。
+    }
+    return size;
+}
+int makeLFilePath(const unsigned int& pk, char* lfilePath) {
+    string spk = to_string(pk);
+    spk = spk + ".loc";
+    char cpk[16] = {"\0"};
+    memcpy(cpk,spk.data(),spk.size());
+    cpk[spk.size()] = '\0';
+    int size = strlen(lfilePath) + strlen(cpk);
+    if( size <= FILE_PATH_SIZE ) {
+        strcat(lfilePath,cpk);  // 第一引数のサイズが第二引数と連結されたサイズ以下だとエラー。。。らしい。
+    }
+    return size;
+}
+
 class PrimaryKeyDuplicateException final {
 private:
     const char* defaultErrMsg = "Error: Primary Key is Duplicated.";
@@ -404,30 +429,6 @@ private:
     SAMPLE_DATA* pd = nullptr;
 
     UpdateTx() {}
-    int makeFilePath(const unsigned int& pk) {
-        string spk = to_string(pk);
-        spk = spk + ".bin";
-        char cpk[16] = {"\0"};
-        memcpy(cpk,spk.data(),spk.size());
-        cpk[spk.size()] = '\0';
-        int size = strlen(filePath) + strlen(cpk);
-        if( size <= FILE_PATH_SIZE ) {
-            strcat(filePath,cpk);  // 第一引数のサイズが第二引数と連結されたサイズ以下だとエラー。。。らしい。
-        }
-        return size;
-    }
-    int makeLFilePath(const unsigned int& pk) {
-        string spk = to_string(pk);
-        spk = spk + ".loc";
-        char cpk[16] = {"\0"};
-        memcpy(cpk,spk.data(),spk.size());
-        cpk[spk.size()] = '\0';
-        int size = strlen(lfilePath) + strlen(cpk);
-        if( size <= FILE_PATH_SIZE ) {
-            strcat(lfilePath,cpk);  // 第一引数のサイズが第二引数と連結されたサイズ以下だとエラー。。。らしい。
-        }
-        return size;
-    }
 
 public:
     // この作り、DRY の原則からはずれてる、リファクタ対象だろうな。
@@ -435,8 +436,8 @@ public:
     // コンストラクタとしてはプライマリキを仮引数に取る方が良さそう。
     UpdateTx(const unsigned int& pk,SAMPLE_DATA* pdata) {
         try {
-            int size = makeFilePath(pk);
-            int lsize = makeLFilePath(pk);
+            int size = makeFilePath(pk,filePath);
+            int lsize = makeLFilePath(pk,lfilePath);
             if(size <= FILE_PATH_SIZE && lsize <= FILE_PATH_SIZE) {
                 printf("DEBUG: filePath is %s\n",filePath);
                 printf("DEBUG: lfilePath is %s\n",lfilePath);
@@ -550,6 +551,31 @@ public:
             return -1;
         }
     }
+};
+class DeleteTx final : public virtual ITransaction {
+private:
+    mutable FILE* fp = NULL;
+    mutable FILE* lfp = NULL;
+    char filePath[FILE_PATH_SIZE] = {"../tmp/"};
+    char lfilePath[FILE_PATH_SIZE] = {"../tmp/"};
+    SAMPLE_DATA* pd = nullptr;
+    DeleteTx() {}
+public:
+    DeleteTx(const unsigned int& pk, SAMPLE_DATA* pdata) {
+
+    }
+    DeleteTx(const DeleteTx& own) {
+        (*this) = own;
+    }
+    ~DeleteTx() {
+        if(fp != NULL) {
+            fclose(fp);
+        }
+        if(lfp != NULL) {
+            fclose(lfp);
+        }
+    }
+
 };
 class Transaction final {
 private:
