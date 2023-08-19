@@ -558,10 +558,9 @@ private:
     mutable FILE* lfp = NULL;
     char filePath[FILE_PATH_SIZE] = {"../tmp/"};
     char lfilePath[FILE_PATH_SIZE] = {"../tmp/"};
-    SAMPLE_DATA* pd = nullptr;
     DeleteTx() {}
 public:
-    DeleteTx(const unsigned int& pk, SAMPLE_DATA* pdata) {
+    DeleteTx(const unsigned int& pk) {
 
     }
     DeleteTx(const DeleteTx& own) {
@@ -575,7 +574,30 @@ public:
             fclose(lfp);
         }
     }
-
+    virtual int begin() const override {
+        try {
+            return 0;
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+    }
+    virtual int commit() const override {
+        try {
+            return 0;
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+    }
+    virtual int rollback() const override {
+        try {
+            return 0;
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+    }
 };
 class Transaction final {
 private:
@@ -641,6 +663,13 @@ int testUpdateTransaction(const unsigned int& pk) {
         ITransaction* tx = static_cast<ITransaction*>(updateTx);
         Transaction transaction(tx);
         return transaction.proc();
+}
+int testDeleteTransaction(const unsigned int& pk) {
+    cout << "--------- testDeleteTransaction" << endl;
+    DeleteTx* deleteTx = new DeleteTx(pk);
+    ITransaction* tx = static_cast<ITransaction*>(deleteTx);
+    Transaction transaction(tx);
+    return transaction.proc();
 }
 /**
     トランザクション。。。Commit Rollback をInsert 時に実現しようとすると
@@ -724,6 +753,7 @@ int main(void) {
         // 例外確認を行っている、exit(1) で終了することを期待している。
         // ptr_lambda_debug<const string&,const int&>("Play and Result ... testInsertTransaction",testInsertTransaction(1,"100111111111111111111111111111111111111111111111111111111111.bin"));
         ptr_lambda_debug<const string&,const int&>("Play and Result ... testUpdateTransaction",testUpdateTransaction(100));
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... testDeleteTransaction",testDeleteTransaction(100));
     }
     if(0) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... test_insert_system_data",test_insert_system_data("1.bin"));
