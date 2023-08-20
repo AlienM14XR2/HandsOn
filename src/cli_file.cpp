@@ -240,6 +240,14 @@ typedef struct {
     unsigned int id;
     char email[256];
 } SAMPLE_DATA;
+/**
+    サンプル・テスト用データB。
+*/
+typedef struct {
+    unsigned int id;
+    char email[256];
+    char end;
+} SAMPLE_B_DATA;
 /*
     ファイルの存在を確認する。
 
@@ -809,6 +817,11 @@ int main(void) {
     if(0) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... test_insert_system_data",test_insert_system_data("1.bin"));
         ptr_lambda_debug<const string&,const int&>("Play and Result ... test_insert_system_data",test_insert_system_data("2.bin"));
+    }
+    // 自分が知らないという事実を正しく理解し、それを理解できるようにする取り組み。
+    // 次の新たな課題だな、ファイルの中身の操作、これの無知をどれだけ無くせるのか、そんなこと：）
+    if(2.0) {
+        ptr_lambda_debug<const string&,const int&>("Let's try file operations.",0);
     }
     cout << "=============== cli_file END" << endl;
     return 0;
