@@ -799,6 +799,43 @@ int test_delete_system_data() {
     return 0;
 }
 
+/**
+    分からないことをどこまで無くせるのか。
+    まずはバイナリファイルの一行インサートを行う。
+    扱うデータは SAMPLE_B_DATA 。
+
+    分かったこと、バイナリにおける改行コード、それもバイナリに過ぎないという当たり前すぎる事実。
+    つまりたいした価値がないとも言える。
+*/
+int test_insert_sample_b() {
+    try {
+        char filePath[] = {"../tmp/sample_b.bin"};
+        FILE* fp = NULL;
+        fp = fopen(filePath,"wb+");
+        if(fp != NULL) {
+            SAMPLE_B_DATA samples[] = {
+                {1,"jack@loki.org",'A'},
+                {2,"alice@loki.org",'B'},
+                {3,"jabberwock@loki.org",'C'},
+                {4,"cheshire@loki.org",'D'},
+                {5,"rabbit@loki.org",'E'},
+                {6,"derek@loki.org",'F'},
+            };
+            fwrite(samples,sizeof(SAMPLE_B_DATA),sizeof(samples)/sizeof(samples[0]),fp);
+            fclose(fp);            
+        } else {
+            throw runtime_error("Error: File pointer is null.");
+        }
+        return 0;
+    } catch(exception& e) {
+        cerr << e.what() << endl;
+        return -1;
+    }
+}
+/**
+    fseek ? 
+*/
+
 int main(void) {
     cout << "START cli_file ===============" << endl;
     if(0.1) {
@@ -822,6 +859,7 @@ int main(void) {
     // 次の新たな課題だな、ファイルの中身の操作、これの無知をどれだけ無くせるのか、そんなこと：）
     if(2.0) {
         ptr_lambda_debug<const string&,const int&>("Let's try file operations.",0);
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... test_insert_sample_b",test_insert_sample_b());
     }
     cout << "=============== cli_file END" << endl;
     return 0;
