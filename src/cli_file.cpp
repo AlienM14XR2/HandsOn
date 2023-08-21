@@ -232,6 +232,22 @@ int testOpenClose() {
         return -1;
     }
 }
+/*
+    ファイルの存在を確認する。
+
+    path:   ファイルパス。
+    戻り値: 存在したら 0以外、存在しなければ 0
+*/
+int exist_file(const char* path) {  // 簡易テストで利用してるからこれは消せなかった。
+    struct stat st;
+    // これは Linux でしか使えない、Win は別のヘッダファイルの関数を利用する必要がある（https://programming-place.net/ppp/contents/c/rev_res/file000.html#way2）
+    if (stat(path, &st) != 0) { 
+        return 0;
+    }
+    // ファイルかどうか
+    // S_ISREG(st.st_mode); の方がシンプルだが、Visual Studio では使えない。
+    return (st.st_mode & S_IFMT) == S_IFREG;
+}
 
 /**
     サンプル・テスト用データ。
@@ -248,116 +264,10 @@ typedef struct {
     char email[256];
     char end;
 } SAMPLE_B_DATA;
-/*
-    ファイルの存在を確認する。
 
-    path:   ファイルパス。
-    戻り値: 存在したら 0以外、存在しなければ 0
+/**
+    プライマリキの重複例外クラス。
 */
-int exist_file(const char* path) {
-    struct stat st;
-
-    // これは Linux でしか使えない、Win は別のヘッダファイルの関数を利用する必要がある（https://programming-place.net/ppp/contents/c/rev_res/file000.html#way2）
-    if (stat(path, &st) != 0) { 
-        return 0;
-    }
-
-    // ファイルかどうか
-    // S_ISREG(st.st_mode); の方がシンプルだが、Visual Studio では使えない。
-    return (st.st_mode & S_IFMT) == S_IFREG;
-}
-/*
-    ファイルを削除する。
-
-    file_name: 削除するファイルの名前
-    戻り値:   成功したら 0以外、失敗したら 0
-*/
-int delete_file(const char* file_name) {
-    return !(remove(file_name));
-}
-int makeFilePath(const unsigned int& pk, char* filePath) {
-    string spk = to_string(pk);
-    spk = spk + ".bin";
-    char cpk[16] = {"\0"};
-    memcpy(cpk,spk.data(),spk.size());
-    cpk[spk.size()] = '\0';
-    int size = strlen(filePath) + strlen(cpk);
-    if( size <= FILE_PATH_SIZE ) {
-        strcat(filePath,cpk);  // 第一引数のサイズが第二引数と連結されたサイズ以下だとエラー。。。らしい。
-    }
-    return size;
-}
-int makeLFilePath(const unsigned int& pk, char* lfilePath) {
-    string spk = to_string(pk);
-    spk = spk + ".loc";
-    char cpk[16] = {"\0"};
-    memcpy(cpk,spk.data(),spk.size());
-    cpk[spk.size()] = '\0';
-    int size = strlen(lfilePath) + strlen(cpk);
-    if( size <= FILE_PATH_SIZE ) {
-        strcat(lfilePath,cpk);  // 第一引数のサイズが第二引数と連結されたサイズ以下だとエラー。。。らしい。
-    }
-    return size;
-}
-void checkFilePathSize(const unsigned int& pk,char* filePath,char* lfilePath) {
-    try {
-        int size = makeFilePath(pk,filePath);
-        int lsize = makeLFilePath(pk,lfilePath);
-        if(size <= FILE_PATH_SIZE && lsize <= FILE_PATH_SIZE) {
-            printf("DEBUG: filePath is %s\n",filePath);
-            printf("DEBUG: lfilePath is %s\n",lfilePath);
-//            pd = pdata;
-        } else {
-            // 例外は、これが一般的で一番簡単かもしれない。
-            throw runtime_error("Error: file path size 32 but over.");
-        }
-    } catch(exception& e) {
-        cerr << e.what() << endl;
-        exit(1);
-    }
-}
-int checkFiles(const char* filePath, const char* lfilePath) {
-    try {
-        // [PK].bin があり、[PK].lock がない場合に正常処理ができる。
-        if(exist_file(filePath)) {
-            printf("DEBUG: %s exist.\n",filePath);
-            if(exist_file(lfilePath) == 0) {    // 現在 Lock している処理がない場合
-                printf("DEBUG: no lock file. \n");
-                // [PK].lock ファイルを作成する。
-//                lfp = fopen(lfilePath,"w");
-            } else {    // 問題はこっちをどうするか、処理を止めるか一定時間待機するのか
-                clock_t start = clock();
-                while(1) {
-                    clock_t end = clock();
-                    double elapsed = (double)(end-start)/CLOCKS_PER_SEC;
-                    if(elapsed >= TRANSACTION_TIMEOUT) {
-                        throw runtime_error("Error: Transaction timeout.");
-                    } else {
-                        // 他の処理が終了して、Lock ファイルがないか確認する。ない場合は Lock ファイルを作成しループを終了する。
-                        // ただし、Delete が先行していた場合はその後の Update は無効にすること。
-                        if(exist_file(lfilePath) == 0) {
-                            if(exist_file(filePath)) {  // 対象のデータファイルがあるかチェック。
-                                // [PK].lock ファイルを作成する。
-//                                lfp = fopen(lfilePath,"w");
-                                break;
-                            } else {
-                                throw runtime_error("Error: Data has already deleted.");
-                            }
-                        }
-                    }
-                }
-            }
-            return 0;
-        } else {
-            throw runtime_error("Error: Data file don't exist.");
-        }
-    } catch(exception& e) {
-        cerr << e.what() << endl;
-        return -1;
-    }
-}
-// 上記の関数は ITransaction にカプセル化したほうがいいかもしれない。
-
 class PrimaryKeyDuplicateException final {
 private:
     const char* defaultErrMsg = "Error: Primary Key is Duplicated.";
@@ -372,7 +282,17 @@ public:
     const char* what() { return defaultErrMsg; }
 
 };
+/**
+    トランザクション・インタフェースクラス。
+*/
 class ITransaction {
+protected:
+    virtual int exist_file(const char* path) const = 0;
+    virtual int delete_file(const char* file_name) const = 0;
+    virtual int makeFilePath(const unsigned int& pk, char* filePath) const = 0;
+    virtual int makeLFilePath(const unsigned int& pk, char* lfilePath) const = 0;
+    virtual void checkFilePathSize(const unsigned int& pk,char* filePath,char* lfilePath) const = 0;
+    virtual int checkFiles(const char* filePath, const char* lfilePath) const = 0;
 public:
     virtual int begin() const = 0;
     virtual int commit() const = 0;
@@ -380,9 +300,124 @@ public:
     virtual ~ITransaction() {}
 };
 /**
+    トランザクション・抽象クラス。
+    共通処理の具象化を行っている。
+*/
+class ATransaction : public virtual ITransaction {
+protected:
+    /*
+        ファイルの存在を確認する。
+
+        path:   ファイルパス。
+        戻り値: 存在したら 0以外、存在しなければ 0
+    */
+    virtual int exist_file(const char* path) const override {
+        struct stat st;
+
+        // これは Linux でしか使えない、Win は別のヘッダファイルの関数を利用する必要がある（https://programming-place.net/ppp/contents/c/rev_res/file000.html#way2）
+        if (stat(path, &st) != 0) { 
+            return 0;
+        }
+
+        // ファイルかどうか
+        // S_ISREG(st.st_mode); の方がシンプルだが、Visual Studio では使えない。
+        return (st.st_mode & S_IFMT) == S_IFREG;
+    }
+    /*
+        ファイルを削除する。
+
+        file_name: 削除するファイルの名前
+        戻り値:   成功したら 0以外、失敗したら 0
+    */
+    virtual int delete_file(const char* file_name) const override {
+        return !(remove(file_name));
+    }
+    virtual int makeFilePath(const unsigned int& pk, char* filePath) const override {
+        string spk = to_string(pk);
+        spk = spk + ".bin";
+        char cpk[16] = {"\0"};
+        memcpy(cpk,spk.data(),spk.size());
+        cpk[spk.size()] = '\0';
+        int size = strlen(filePath) + strlen(cpk);
+        if( size <= FILE_PATH_SIZE ) {
+            strcat(filePath,cpk);  // 第一引数のサイズが第二引数と連結されたサイズ以下だとエラー。。。らしい。
+        }
+        return size;
+    }
+    virtual int makeLFilePath(const unsigned int& pk, char* lfilePath) const override {
+        string spk = to_string(pk);
+        spk = spk + ".loc";
+        char cpk[16] = {"\0"};
+        memcpy(cpk,spk.data(),spk.size());
+        cpk[spk.size()] = '\0';
+        int size = strlen(lfilePath) + strlen(cpk);
+        if( size <= FILE_PATH_SIZE ) {
+            strcat(lfilePath,cpk);  // 第一引数のサイズが第二引数と連結されたサイズ以下だとエラー。。。らしい。
+        }
+        return size;
+    }
+    virtual void checkFilePathSize(const unsigned int& pk,char* filePath,char* lfilePath) const override {
+        try {
+            int size = makeFilePath(pk,filePath);
+            int lsize = makeLFilePath(pk,lfilePath);
+            if(size <= FILE_PATH_SIZE && lsize <= FILE_PATH_SIZE) {
+                printf("DEBUG: filePath is %s\n",filePath);
+                printf("DEBUG: lfilePath is %s\n",lfilePath);
+    //            pd = pdata;
+            } else {
+                // 例外は、これが一般的で一番簡単かもしれない。
+                throw runtime_error("Error: file path size 32 but over.");
+            }
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            exit(1);
+        }
+    }
+    virtual int checkFiles(const char* filePath, const char* lfilePath) const override {
+        try {
+            // [PK].bin があり、[PK].lock がない場合に正常処理ができる。
+            if(exist_file(filePath)) {
+                printf("DEBUG: %s exist.\n",filePath);
+                if(exist_file(lfilePath) == 0) {    // 現在 Lock している処理がない場合
+                    printf("DEBUG: no lock file. \n");
+                    // [PK].lock ファイルを作成する。
+    //                lfp = fopen(lfilePath,"w");
+                } else {    // 問題はこっちをどうするか、処理を止めるか一定時間待機するのか
+                    clock_t start = clock();
+                    while(1) {
+                        clock_t end = clock();
+                        double elapsed = (double)(end-start)/CLOCKS_PER_SEC;
+                        if(elapsed >= TRANSACTION_TIMEOUT) {
+                            throw runtime_error("Error: Transaction timeout.");
+                        } else {
+                            // 他の処理が終了して、Lock ファイルがないか確認する。ない場合は Lock ファイルを作成しループを終了する。
+                            // ただし、Delete が先行していた場合はその後の Update は無効にすること。
+                            if(exist_file(lfilePath) == 0) {
+                                if(exist_file(filePath)) {  // 対象のデータファイルがあるかチェック。
+                                    // [PK].lock ファイルを作成する。
+    //                                lfp = fopen(lfilePath,"w");
+                                    break;
+                                } else {
+                                    throw runtime_error("Error: Data has already deleted.");
+                                }
+                            }
+                        }
+                    }
+                }
+                return 0;
+            } else {
+                throw runtime_error("Error: Data file don't exist.");
+            }
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            return -1;
+        }
+    }
+};
+/**
     新規登録のトランザクション処理クラス。
 */
-class InsertTx final : public virtual ITransaction {
+class InsertTx final : public virtual ATransaction {
 private:
     mutable FILE* fp = NULL;
     char filePath[32] = {"../tmp/"};
@@ -498,7 +533,7 @@ public:
     PK の更新とは現状の作りでは、ファイルの 削除と新規作成になる。
     これは少し特殊なので、更新処理に直接組み込むかは保留する。
 */
-class UpdateTx final : public virtual ITransaction {
+class UpdateTx final : public virtual ATransaction {
 private:
     mutable FILE* fp = NULL;
     mutable FILE* lfp = NULL;
@@ -587,7 +622,7 @@ public:
         }
     }
 };
-class DeleteTx final : public virtual ITransaction {
+class DeleteTx final : public virtual ATransaction {
 private:
     mutable FILE* fp = NULL;
     mutable FILE* lfp = NULL;
