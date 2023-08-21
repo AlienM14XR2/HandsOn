@@ -592,8 +592,11 @@ public:
                     // 最後に Lock ファイルを削除する。
                     fclose(lfp);
                     lfp = NULL;
-                    delete_file(lfilePath);
-                    return 0;
+                    if(delete_file(lfilePath)) {
+                        return 0;
+                    } else {
+                        throw runtime_error("Error: Failed ... remove loc file.");
+                    }
                 } else {
                     throw runtime_error("Error: Data file pointer is NULL.");
                 }
@@ -613,7 +616,9 @@ public:
             if(lfp != NULL) {   // 自分でOpen したLock ファイルを削除しないといけない。
                 fclose(lfp);
                 lfp = NULL;
-                delete_file(lfilePath);
+                if(!delete_file(lfilePath)){
+                    throw runtime_error("Error: Failed ... remove loc file.");
+                }
             }
             return 0;
         } catch(exception& e) {
@@ -662,11 +667,15 @@ public:
         try {
             if(lfp != NULL) {
                 // データファイルを削除する。
-                delete_file(filePath);
+                if(!delete_file(filePath)) {
+                    throw runtime_error("Error: Failed ... remove data file.");
+                }
                 // 最後に Lock ファイルを削除する。
                 fclose(lfp);
                 lfp = NULL;
-                delete_file(lfilePath);
+                if(!delete_file(lfilePath)) {
+                    throw runtime_error("Error: Failed ... remove loc file.");
+                }
                 return 0;
             } else {
                 throw runtime_error("Error: Lock file pointer is NULL.");
@@ -684,7 +693,9 @@ public:
             if(lfp != NULL) {   // 自分でOpen したLock ファイルを削除しないといけない。
                 fclose(lfp);
                 lfp = NULL;
-                delete_file(lfilePath);
+                if(!delete_file(lfilePath)) {
+                    throw runtime_error("Error: Failed ... remove loc file.");
+                }
             }
             return 0;
         } catch(exception& e) {
