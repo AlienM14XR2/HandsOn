@@ -907,6 +907,42 @@ int test_insert_sample_b() {
     そして、各カラム毎にデータベースディレクトリ配下にカラム・ディレクトリを作る。
     こんなイメージを持っている。
     検索を行う前に、まずこれを実現してみたくなった。
+    ```
+    CREATE TABLE db_name
+    ```
+    
+    # CREATE TABLE に関する考察
+
+    PK は NOT NULL で重複不可のカラム・オプションをさす。
+    UK は NULL を許可した重複不可のカラム・オプションをさす。（NULL 値は重複可とみなす）
+    ```
+    CREATE TABLE テーブル名 (
+        カラム名 データ型 オプション,
+        ～～～
+    );
+    ```
+    ```
+    CREATE TABLE PointList (
+        ID       INT(3)       NOT NULL PRIMARY KEY,
+        Name     VARCHAR(50)  NOT NULL,
+        Class    VARCHAR(1),
+        Japanese INT(3)       DEFAULT '0',
+        Math     INT(3)       DEFAULT '0', 
+        English  INT(3)       DEFAULT '0'
+    );
+
+    // 出来上がったテーブルがこちら
+    +----------+-------------+------+-----+---------+-------+
+    | Field    | Type        | Null | Key | Default | Extra |
+    +----------+-------------+------+-----+---------+-------+
+    | ID       | int(3)      | NO   | PRI | NULL    |       |
+    | Name     | varchar(50) | NO   |     | NULL    |       |
+    | Class    | varchar(1)  | YES  |     | NULL    |       |
+    | Japanese | int(3)      | YES  |     | 0       |       |←デフォルト値0が設定されている
+    | Math     | int(3)      | YES  |     | 0       |       |←デフォルト値0が設定されている
+    | English  | int(3)      | YES  |     | 0       |       |←デフォルト値0が設定されている
+    +----------+-------------+------+-----+---------+-------+
+```
 */
 
 
