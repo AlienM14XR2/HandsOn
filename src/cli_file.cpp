@@ -926,6 +926,14 @@ int test_insert_sample_b() {
 
     重複可能なデータをただしく検索できるようにするためには、カラム・ディレクトリの配下に PK ディレクトリ
     あるいは、ファイル名が重複しない仕組みが必要と考える。
+    具体的な方法に関しては保留する。
+
+    テーブルディレクトリ配下にカラム・ディレクトリを持つ。
+    テーブルディレクトリの直下に テーブル定義ファイル、tbl_definition.bin を作る。
+    テーブル定義ファイルにそのテーブルに関するデータ構造を記載する（カラム名、データ型、オプション）。
+    テーブル定義ファイルは CLI システム起動時に随時読み込まれ、メモリに展開されるものになる。
+    これで、異なるテーブルに対する処理が可能になるはず。
+    テーブル定義ファイルはシステムの初期データとも言える。
     ```
     CREATE TABLE テーブル名 (
         カラム名 データ型 オプション,
@@ -941,6 +949,7 @@ int test_insert_sample_b() {
         Math     INT(3)       DEFAULT '0', 
         English  INT(3)       DEFAULT '0'
     );
+    最大で 3 のデータ構造で表現可能だと思う。
 
     // 出来上がったテーブルがこちら
     +----------+-------------+------+-----+---------+-------+
@@ -964,13 +973,24 @@ int test_insert_sample_b() {
     - db_definition.bin を作成する。（現状空ファイルなのでいらないかもしれない）
 */
 int test_create_database(const char* dbName) {
-    printf("dbName is %s\n",dbName);
+    printf("DEBUG: dbName is %s\n",dbName);
     if(mkdir(dbName, 0777)==0) {    // すでに同一名であってもエラーにはならない。
-        printf("succeed mkdir. it's %s\n",dbName);
+        printf("DEBUG: succeed mkdir. it's %s\n",dbName);
     }
     return 0;
 }
+/**
+    Table ディレクトリの作成を行う。
+    Table ディレクトリの上位はDB ディレクトリになる。
 
+    - コマンドのパースは無視する（ここでは行わない）。
+    - struct の構造体にコマンドのカラム名、データ型、オプションを入力（設定）する。
+    - 構造体を元にディレクトリを作成する。
+*/
+int test_create_table(const char* dbName) {
+    printf("DEBUG: dbName is %s\n",dbName);
+    return 0;
+}
 int main(void) {
     cout << "START cli_file ===============" << endl;
     if(0.1) {
@@ -998,6 +1018,7 @@ int main(void) {
     }
     if(3.0) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... test_create_database",test_create_database("../tmp/test"));
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... test_create_table",test_create_table("../tmp/test"));
     }
     cout << "=============== cli_file END" << endl;
     return 0;
