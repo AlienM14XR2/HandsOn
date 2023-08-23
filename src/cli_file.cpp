@@ -950,6 +950,9 @@ int test_insert_sample_b() {
 */
 int test_create_database(const char* dbName) {
     printf("dbName is %s\n",dbName);
+    if(mkdir(dbName, 0777)==0) {    // すでに同一名であってもエラーにはならない。
+        printf("succeed mkdir. it's %s\n",dbName);
+    }
     return 0;
 }
 
@@ -979,7 +982,7 @@ int main(void) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... test_insert_sample_b",test_insert_sample_b());
     }
     if(3.0) {
-        ptr_lambda_debug<const string&,const int&>("Play and Result ... test_create_database",test_create_database("test"));
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... test_create_database",test_create_database("../tmp/test"));
     }
     cout << "=============== cli_file END" << endl;
     return 0;
