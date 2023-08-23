@@ -910,6 +910,10 @@ int test_insert_sample_b() {
     ```
     CREATE TABLE db_name
     ```
+    - コマンドを半角スペースで分割する。
+    - データベース名を取得する。
+    - データベース名のディレクトリを作成する。
+    - db_definition.bin を作成する。（現状空ファイルなのでいらないかもしれない）
     
     # CREATE TABLE に関する考察
 
@@ -944,7 +948,10 @@ int test_insert_sample_b() {
     +----------+-------------+------+-----+---------+-------+
 ```
 */
-
+int test_create_database(const char* dbName) {
+    printf("dbName is %s\n",dbName);
+    return 0;
+}
 
 int main(void) {
     cout << "START cli_file ===============" << endl;
@@ -970,6 +977,9 @@ int main(void) {
     if(2.0) {
         ptr_lambda_debug<const string&,const int&>("Let's try file operations.",0);
         ptr_lambda_debug<const string&,const int&>("Play and Result ... test_insert_sample_b",test_insert_sample_b());
+    }
+    if(3.0) {
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... test_create_database",test_create_database("test"));
     }
     cout << "=============== cli_file END" << endl;
     return 0;
