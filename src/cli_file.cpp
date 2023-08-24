@@ -979,13 +979,23 @@ int test_create_database(const char* dbName) {
     }
     return 0;
 }
+
+typedef struct {
+    char columnName[256] = {"\0"};
+    char type[32] = {"\0"};
+    char option[512] = {"\0"};
+} TABLE_COLUMN;
 /**
     Table ディレクトリの作成を行う。
     Table ディレクトリの上位はDB ディレクトリになる。
 
     - コマンドのパースは無視する（ここでは行わない）。
     - struct の構造体にコマンドのカラム名、データ型、オプションを入力（設定）する。
+        - データ型に関しては厳密に定義する必要があるが今回は省く。
+        - オプションに関しても同様に省く。
+    - tbl_definition.bin（構造体のI/O） と tbl_definition.txt（ユーザ入力コマンドのコピ） を作成する。
     - 構造体を元にディレクトリを作成する。
+
 */
 int test_create_table(const char* dbName) {
     printf("DEBUG: dbName is %s\n",dbName);
