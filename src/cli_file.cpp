@@ -982,10 +982,18 @@ int test_create_database(const char* dbName) {
 }
 
 typedef struct {
-    char columnName[256] = {"\0"};
+    char column[256] = {"\0"};
     char type[32] = {"\0"};
     char option[512] = {"\0"};
 } TABLE_COLUMN;
+
+int initArray(char* array, const int& size) {
+    for(int i=0; i<size; i++) {
+        array[i] = '\0';
+    }
+    return 0;
+}
+
 /**
     Table ディレクトリの作成を行う。
     Table ディレクトリの上位はDB ディレクトリになる。
@@ -1023,7 +1031,14 @@ int test_create_table(const char* dbName, const char* tblName) {    // 前提条
     // 入力チェック、結局指定したバイト数を超えてなければOK でいいのかな。
 
     // テーブル・ディレクトリを作成する。
-
+    char tblDir[256] = {"\0"};
+    strcat(tblDir,dbName);
+    strcat(tblDir,"/");
+    strcat(tblDir,tblName);
+    printf("tblDir is %s\n",tblDir);
+    if(mkdir(tblDir, 0777)==0) {
+        printf("DEBUG: succeed mkdir. it's %s\n",tblDir);
+    }
     TABLE_COLUMN tblCols[4] = {
         {"ID","INT","NOT NULL PRIMARY KEY"},
         {"EMAIL","VARCHAR(256)","NOT NULL"},
@@ -1032,11 +1047,20 @@ int test_create_table(const char* dbName, const char* tblName) {    // 前提条
     };
     // 配列で要素数が明確な場合は次の計算ができる、まぁする必要もないけど。
     printf("there are %ld cols.\n",sizeof(tblCols)/sizeof(tblCols[0]));
+    tblDir[strlen(tblDir)] = '/';
+    tblDir[strlen(tblDir)+1] = '\0';    // これがカラムのベースになるディレクトリ階層。
+    char tmp[256] = {"\0"};
     for(int i=0; i<sizeof(tblCols)/sizeof(tblCols[0]); i++) {
         // カラム・ディレクトリを作成する。
         printf("i is %d\n",i);
+        memcpy(tmp,tblDir,strlen(tblDir));
+        strcat(tmp,tblCols[i].column);
+        printf("tmp is %s\n",tmp);
+        if(mkdir(tmp, 0777)==0) {
+            printf("DEBUG: succeed mkdir. it's %s\n",tmp);    
+        }
+        initArray(tmp,256);
     }
-
     return 0;
 }
 int main(void) {
