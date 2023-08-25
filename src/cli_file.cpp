@@ -949,6 +949,7 @@ int test_insert_sample_b() {
         Math     INT(3)       DEFAULT '0', 
         English  INT(3)       DEFAULT '0'
     );
+    クリエイト・テーブル構文のパースも厄介だな、これはこれで時間をとってじっくりやりたい。
     最大で 3 のデータ構造で表現可能だと思う。
 
     // 出来上がったテーブルがこちら
@@ -996,9 +997,29 @@ typedef struct {
     - tbl_definition.bin（構造体のI/O） と tbl_definition.txt（ユーザ入力コマンドのコピ） を作成する。
     - 構造体を元にディレクトリを作成する。
 
+    e.g. 次のコマンドのパースが成功したものとして、ディレクトリ階層を作ること。 
+    ```
+        - ID        システム自動設定、  INT             NOT NULL PRIMARY KEY        0。
+        - EMAIL     ユーザ入力、        VARCHAR(256)    NOT NULL                    1。
+        - NAME      ユーザ入力、        VARCHAR(128)    NOT NULL                    2。
+        - PHONE_1   ユーザ入力、        VARCHAR(16)     NOT NULL                    3。
+    ```
+    非常に些細なことだが、マルチバイト文字と半角文字におけるLength が気になる。
+    C/C++ ではこれはどのようにカウントされるのだろうか。
+    これがはっきりしないとValidation も VARCHAR() 設定も正しく理解できない。
+    という訳でまずはこれを確認したい。
 */
 int test_create_table(const char* dbName) {
     printf("DEBUG: dbName is %s\n",dbName);
+
+    char cname[] = {"鈴木 一郎"};
+    string sname = "鈴木 一郎";
+    int len = strlen(cname);
+    printf("len is %d\n",len);
+    printf("size is %ld\n",sname.size());
+    printf("length is %ld\n",sname.length());
+    // つまりマルチバイトでは 2 bytes 消費している。
+    // 入力チェック、結局指定したバイト数を超えてなければOK でいいのかな。
     return 0;
 }
 int main(void) {
