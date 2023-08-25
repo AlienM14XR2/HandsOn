@@ -1071,26 +1071,32 @@ int main(void) {
     if(0) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... testOpenClose",testOpenClose());
     }
-    if(1.1) {
-        ptr_lambda_debug<const string&,const int&>("Play and Result ... testInsertTransaction",testInsertTransaction(100,"100.bin"));
-        // 例外確認を行っている、exit(1) で終了することを期待している。
-        // ptr_lambda_debug<const string&,const int&>("Play and Result ... testInsertTransaction",testInsertTransaction(1,"100111111111111111111111111111111111111111111111111111111111.bin"));
-        ptr_lambda_debug<const string&,const int&>("Play and Result ... testUpdateTransaction",testUpdateTransaction(100));
-        ptr_lambda_debug<const string&,const int&>("Play and Result ... testDeleteTransaction",testDeleteTransaction(100));
-    }
     if(0) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... test_insert_system_data",test_insert_system_data("1.bin"));
         ptr_lambda_debug<const string&,const int&>("Play and Result ... test_insert_system_data",test_insert_system_data("2.bin"));
     }
     // 自分が知らないという事実を正しく理解し、それを理解できるようにする取り組み。
-    // 次の新たな課題だな、ファイルの中身の操作、これの無知をどれだけ無くせるのか、そんなこと：）
-    if(2.0) {
+    // 次の新たな課題だな、ファイルの中身の操作、この無知をどれだけ無くせるのか、そんなところ：）
+    if(0) {
         ptr_lambda_debug<const string&,const int&>("Let's try file operations.",0);
         ptr_lambda_debug<const string&,const int&>("Play and Result ... test_insert_sample_b",test_insert_sample_b());
     }
     if(3.0) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... test_create_database",test_create_database("../tmp/test"));
         ptr_lambda_debug<const string&,const int&>("Play and Result ... test_create_table",test_create_table("../tmp/test","address_book"));
+    }
+    // カラム・ディレクトの作成はできた。
+    // Create Database と Create Table のコマンドは保留した。
+    // 現状できていること 、登録・更新系の修正だろう。
+    // つまり、カラム・ディレクト内にプライマリキ・ディレクトを作成して、そこにカラム・ファイル（email_val.bin）を
+    // 作成すること、中身は空で構わない。
+    // 3.1 で上記の修正を行う予定。
+    if(3.1) {
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... testInsertTransaction",testInsertTransaction(100,"100.bin"));
+        // 例外確認を行っている、exit(1) で終了することを期待している。
+        // ptr_lambda_debug<const string&,const int&>("Play and Result ... testInsertTransaction",testInsertTransaction(1,"100111111111111111111111111111111111111111111111111111111111.bin"));
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... testUpdateTransaction",testUpdateTransaction(100));
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... testDeleteTransaction",testDeleteTransaction(100));
     }
     cout << "=============== cli_file END" << endl;
     return 0;
