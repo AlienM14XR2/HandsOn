@@ -264,6 +264,20 @@ typedef struct {
     char email[256];
     char end;
 } SAMPLE_B_DATA;
+/**
+    テーブルカラム情報。
+*/
+typedef struct {
+    char column[256] = {"\0"};
+    char type[32] = {"\0"};
+    char option[512] = {"\0"};
+} TABLE_COLUMN;
+/**
+    テーブルの値
+*/
+typedef struct {
+    char value[1024] = {"\0"};
+} TABLE_VALUE;
 
 /**
     プライマリキの重複例外クラス。
@@ -420,20 +434,52 @@ protected:
 class InsertTx final : public virtual ATransaction {
 private:
     mutable FILE* fp = NULL;
-    char filePath[32] = {"../tmp/"};
+    char filePath[64] = {"../tmp/"};
     // データ用の struct 構造体をメンバ変数に持ち、コンストラクタの引数で代入すること。
     SAMPLE_DATA* pd = nullptr;
+    TABLE_COLUMN* ptblColumn = nullptr;
+    TABLE_VALUE* ptblValue = nullptr;
     InsertTx() {}
 public:
+    /**
+        コンストラクタ
+
+        - fileName 数値、e.g., 1,2,3... 100.
+        - pdata 登録されるデータ。
+    */
     InsertTx(const char* fileName,SAMPLE_DATA* pdata) {
         try {
             int size = strlen(filePath) + strlen(fileName);
-            if(size <= 32) {
+            if(size <= 64) {
                 strcat(filePath,fileName);  // 第一引数のサイズが第二引数と連結されたサイズ以下だとエラー。。。らしい。
                 pd = pdata;
             } else {
                 // 例外は、これが一般的で一番簡単かもしれない。
-                throw runtime_error("Error: file path size 32 but over.");
+                throw runtime_error("Error: file path size 64 but over.");
+            }
+        } catch(exception& e) {
+            cerr << e.what() << endl;
+            exit(1);
+        }
+    }
+    /**
+        コンストラクタ
+
+        - fileName 文字列、e.g., [db_name]/[tbl_name]/[column_name]/[pkey] .
+        - cdata カラム情報。
+        - pdata カラムに対応した値。
+    */
+    InsertTx(const char* fileName,TABLE_COLUMN* cdata,TABLE_VALUE* pdata) {
+        try {
+            // ../tmp/[db_name]/[tbl_name]/[column_name]/[pkey]
+            // これがこのコンストラクタで管理するディレクトリ階層になる。
+            int size = strlen(filePath) + strlen(fileName);
+            if( size <= 64 ) {
+                strcat(filePath,fileName);
+                ptblColumn = cdata;
+                ptblValue = pdata;
+            } else {
+                throw runtime_error("Error: file path size 64 but over.");
             }
         } catch(exception& e) {
             cerr << e.what() << endl;
@@ -980,12 +1026,6 @@ int test_create_database(const char* dbName) {
     }
     return 0;
 }
-
-typedef struct {
-    char column[256] = {"\0"};
-    char type[32] = {"\0"};
-    char option[512] = {"\0"};
-} TABLE_COLUMN;
 
 int initArray(char* array, const int& size) {
     for(int i=0; i<size; i++) {
