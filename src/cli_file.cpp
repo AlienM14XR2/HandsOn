@@ -1009,8 +1009,9 @@ typedef struct {
     これがはっきりしないとValidation も VARCHAR() 設定も正しく理解できない。
     という訳でまずはこれを確認したい。
 */
-int test_create_table(const char* dbName) {
+int test_create_table(const char* dbName, const char* tblName) {    // 前提条件として、DB名 と Tbl名 が定義されていて、DB ディレクトリがあること。
     printf("DEBUG: dbName is %s\n",dbName);
+    printf("DEBUG: tblName is %s\n",tblName);
 
     char cname[] = {"鈴木 一郎"};
     string sname = "鈴木 一郎";
@@ -1020,6 +1021,22 @@ int test_create_table(const char* dbName) {
     printf("length is %ld\n",sname.length());
     // つまりマルチバイトでは 2 bytes 消費している。
     // 入力チェック、結局指定したバイト数を超えてなければOK でいいのかな。
+
+    // テーブル・ディレクトリを作成する。
+
+    TABLE_COLUMN tblCols[4] = {
+        {"ID","INT","NOT NULL PRIMARY KEY"},
+        {"EMAIL","VARCHAR(256)","NOT NULL"},
+        {"NAME","VARCHAR(128)","NOT NULL"},
+        {"PHONE_1","VARCHAR(128)","NOT NULL"},
+    };
+    // 配列で要素数が明確な場合は次の計算ができる、まぁする必要もないけど。
+    printf("there are %ld cols.\n",sizeof(tblCols)/sizeof(tblCols[0]));
+    for(int i=0; i<sizeof(tblCols)/sizeof(tblCols[0]); i++) {
+        // カラム・ディレクトリを作成する。
+        printf("i is %d\n",i);
+    }
+
     return 0;
 }
 int main(void) {
@@ -1049,7 +1066,7 @@ int main(void) {
     }
     if(3.0) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... test_create_database",test_create_database("../tmp/test"));
-        ptr_lambda_debug<const string&,const int&>("Play and Result ... test_create_table",test_create_table("../tmp/test"));
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... test_create_table",test_create_table("../tmp/test","address_book"));
     }
     cout << "=============== cli_file END" << endl;
     return 0;
