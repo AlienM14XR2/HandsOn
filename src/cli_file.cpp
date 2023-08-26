@@ -465,20 +465,26 @@ public:
     /**
         コンストラクタ
 
-        - fileName 文字列、e.g., [db_name]/[tbl_name]/[column_name]/[pkey] .
-        - cdata カラム情報。
-        - pdata カラムに対応した値。
+        - fileName 文字列、e.g., [db_name]/[tbl_name]/ .
+        - pkey 数値。
+        - cdata カラム情報。[column_name]
+        - vdata カラムに対応した値。
     */
-    InsertTx(const char* fileName,TABLE_COLUMN* cdata,TABLE_VALUE* pdata) {
+    InsertTx(const char* fileName,unsigned int pkey,TABLE_COLUMN* cdata,TABLE_VALUE* vdata) {
         try {
             // ../tmp/[db_name]/[tbl_name]/[column_name]/[pkey]
             // これがこのコンストラクタで管理するディレクトリ階層になる。
+            // データを登録する際は、[column_name] を動的に切り替えて [column_value.bin] ファイルを [pkey] ディレクトリ
+            // の配下に作成する。
             int size = strlen(filePath) + strlen(fileName);
             if( size <= 64 ) {
-                strcat(filePath,fileName);
+                strcat(filePath,fileName);  // ../tmp/[db_name]/[tbl_name]/ になるようにする。
                 ptblColumn = cdata;
-                ptblValue = pdata;
+                ptblValue = vdata;
             } else {
+                // カラム名を動的に切り替える必要があるのでこれが決して発生しない仕組みが必要かな。
+                // ../tmp/[db_name]/[tbl_name]/ までは、外部で担保して、[column_name]/[pkey] のみを管理する。
+                // 根本的な解決ではないかもしれないが、問題を切り分けられるようにはなる。
                 throw runtime_error("Error: file path size 64 but over.");
             }
         } catch(exception& e) {
