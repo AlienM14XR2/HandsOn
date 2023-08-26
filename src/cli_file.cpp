@@ -548,13 +548,20 @@ public:
             // データの保存を行う、プライマリキの重複の最終確認を行う。
             ptr_lambda_debug<const string&,const int&>("InsertTx ... commit.",0);
             if(fp != NULL) {
-                printf("DEBUG: id is %d, email is %s.\n",pd[0].id,pd[0].email);
-                printf("DEBUG: sizeof(SAMPLE_DATA) is %ld.\n",sizeof(SAMPLE_DATA));
-                printf("DEBUG: sizeof(pd) is %ld.\n",sizeof(pd));
-                fwrite(pd,sizeof(SAMPLE_DATA),1,fp);
-                fclose(fp);
-                fp = NULL;
-                return 0;
+                if(pd != nullptr) {
+                    printf("DEBUG: id is %d, email is %s.\n",pd[0].id,pd[0].email);
+                    printf("DEBUG: sizeof(SAMPLE_DATA) is %ld.\n",sizeof(SAMPLE_DATA));
+                    printf("DEBUG: sizeof(pd) is %ld.\n",sizeof(pd));
+                    fwrite(pd,sizeof(SAMPLE_DATA),1,fp);
+                    fclose(fp);
+                    fp = NULL;
+                    return 0;
+                }
+                // 各カラム・ディレクトリ配下にファイルを新規作成する。
+                if(ptblColumn != nullptr && ptblValue != nullptr) {
+                    return 0;
+                }
+                return -1;
             } else {
                 throw runtime_error("Error: Data file pointer is NULL.");
             }
