@@ -1185,6 +1185,9 @@ int main(void) {
     // 3.2 で上記の修正を行う予定。
     if(3.2) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... testInsertTransaction_v2",testInsertTransaction_v2(200,"test/address_book/200.bin"));
+        // CREATE DATABASE
+        // CREATE TABLE 
+        // cli.cpp ... この2つを次はやるかもしれない。
     }
     cout << "=============== cli_file END" << endl;
     return 0;
