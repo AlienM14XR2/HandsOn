@@ -276,7 +276,9 @@ typedef struct {
     テーブルの値
 */
 typedef struct {
-    char value[1024] = {"\0"};
+    unsigned int id = 0;
+    char email[256] = {"\0"};
+    char name[256] = {"\0"};
 } TABLE_VALUE;
 
 /**
@@ -439,6 +441,7 @@ private:
     SAMPLE_DATA* pd = nullptr;
     unsigned int pkey = 0;
     int colCount = 0;   // TABLE_COLUMN* の参照先になる TABLE_COLUMN 配列の要素数。
+    int valCount = 0;   // TABLE_VALUE* の参照先になる TABLE_VALUE 配列の要素数。
     TABLE_COLUMN* ptblColumn = nullptr;
     TABLE_VALUE* ptblValue = nullptr;
     InsertTx() {}
@@ -473,7 +476,7 @@ public:
         - cdata カラム情報。[column_name]
         - vdata カラムに対応した値。
     */
-    InsertTx(const char* fileName,unsigned int key,int ccount,TABLE_COLUMN* cdata,TABLE_VALUE* vdata) {
+    InsertTx(const char* fileName,unsigned int key,TABLE_COLUMN* cdata,int ccount,TABLE_VALUE* vdata,int vcount) {
         try {
             // ../tmp/[db_name]/[tbl_name]/[column_name]/[pkey]
             // これがこのコンストラクタで管理するディレクトリ階層になる。
@@ -482,10 +485,12 @@ public:
             int size = strlen(filePath) + strlen(fileName);
             if( size <= 64 ) {
                 strcat(filePath,fileName);  // ../tmp/[db_name]/[tbl_name]/ になるようにする。
+                printf("filePath is %s\n",filePath);
                 pkey = key;
-                colCount = ccount;
                 ptblColumn = cdata;
+                colCount = ccount;
                 ptblValue = vdata;
+                valCount = vcount;
             } else {
                 // カラム名を動的に切り替える必要があるのでこれが決して発生しない仕組みが必要かな。
                 // ../tmp/[db_name]/[tbl_name]/ までは、外部で担保して、[column_name]/[pkey] のみを管理する。
@@ -528,7 +533,7 @@ public:
             }
             fp = fopen(filePath,"wb+");
             if(fp != NULL) {
-                printf("DEBUG: It's open file. mode is \"wb+\" file path is %s.\n",filePath);
+                printf("DEBUG: It's open file. mode is \"wb+\" file path is %s \n",filePath);
             }
             return 0;
         } catch(PrimaryKeyDuplicateException& e) {
@@ -818,6 +823,27 @@ int testInsertTransaction(const unsigned int& pk, const char* fname) {
         cout << "--------- testInsertTransaction" << endl;
         SAMPLE_DATA sample[] = {{pk,"jack@loki.org"}};
         InsertTx* insertTx = new InsertTx(fname,sample);
+        ITransaction* tx = static_cast<ITransaction*>(insertTx);
+        Transaction transaction(tx);
+        return transaction.proc();
+    } catch(exception& e) {
+        cerr << e.what() << endl;
+        return -1;
+    }
+}
+// const char* fileName,unsigned int key,int ccount,TABLE_COLUMN* cdata,TABLE_VALUE* vdata
+int testInsertTransaction_v2(const unsigned int& key, const char* fileName) {
+    try {
+        TABLE_COLUMN tblCols[3] = {
+            {"ID","INT","NOT NULL PRIMARY KEY"},
+            {"EMAIL","VARCHAR(256)","NOT NULL"},
+            {"NAME","VARCHAR(256)",""},
+        };
+        TABLE_VALUE tblVals[2] = {
+            {1,"jack@loki.org","jack"},
+            {2,"alice@loki.org",""},
+        };
+        InsertTx* insertTx = new InsertTx(fileName,key,tblCols,3,tblVals,2);
         ITransaction* tx = static_cast<ITransaction*>(insertTx);
         Transaction transaction(tx);
         return transaction.proc();
@@ -1144,18 +1170,21 @@ int main(void) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... test_create_database",test_create_database("../tmp/test"));
         ptr_lambda_debug<const string&,const int&>("Play and Result ... test_create_table",test_create_table("../tmp/test","address_book"));
     }
-    // カラム・ディレクトの作成はできた。
-    // Create Database と Create Table のコマンドは保留した。
-    // 現状できていること 、登録・更新系の修正だろう。
-    // つまり、カラム・ディレクト内にプライマリキ・ディレクトを作成して、そこにカラム・ファイル（email_val.bin）を
-    // 作成すること、中身は空で構わない。
-    // 3.1 で上記の修正を行う予定。
     if(3.1) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... testInsertTransaction",testInsertTransaction(100,"100.bin"));
         // 例外確認を行っている、exit(1) で終了することを期待している。
         // ptr_lambda_debug<const string&,const int&>("Play and Result ... testInsertTransaction",testInsertTransaction(1,"100111111111111111111111111111111111111111111111111111111111.bin"));
         ptr_lambda_debug<const string&,const int&>("Play and Result ... testUpdateTransaction",testUpdateTransaction(100));
         ptr_lambda_debug<const string&,const int&>("Play and Result ... testDeleteTransaction",testDeleteTransaction(100));
+    }
+    // カラム・ディレクトの作成はできた。
+    // Create Database と Create Table のコマンドは保留した。
+    // 現状できていること 、登録・更新系の修正だろう。
+    // つまり、カラム・ディレクト内にプライマリキ・ディレクトを作成して、そこにカラム・ファイル（email_val.bin）を
+    // 作成すること、中身は空で構わない。
+    // 3.2 で上記の修正を行う予定。
+    if(3.2) {
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... testInsertTransaction_v2",testInsertTransaction_v2(200,"test/address_book/200.bin"));
     }
     cout << "=============== cli_file END" << endl;
     return 0;
