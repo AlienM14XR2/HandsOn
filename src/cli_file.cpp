@@ -437,6 +437,8 @@ private:
     char filePath[64] = {"../tmp/"};
     // データ用の struct 構造体をメンバ変数に持ち、コンストラクタの引数で代入すること。
     SAMPLE_DATA* pd = nullptr;
+    unsigned int pkey = 0;
+    int colCount = 0;   // TABLE_COLUMN* の参照先になる TABLE_COLUMN 配列の要素数。
     TABLE_COLUMN* ptblColumn = nullptr;
     TABLE_VALUE* ptblValue = nullptr;
     InsertTx() {}
@@ -444,7 +446,7 @@ public:
     /**
         コンストラクタ
 
-        - fileName 数値、e.g., 1,2,3... 100.
+        - fileName 数値+.bin、e.g., 1,2,3... 100.bin
         - pdata 登録されるデータ。
     */
     InsertTx(const char* fileName,SAMPLE_DATA* pdata) {
@@ -465,12 +467,13 @@ public:
     /**
         コンストラクタ
 
-        - fileName 文字列、e.g., [db_name]/[tbl_name]/ .
-        - pkey 数値。
+        - fileName 文字列、e.g., [db_name]/[tbl_name]/[pkey].bin
+        - key 数値 プライマリキ。
+        - ccount カラム情報配列の要素数。
         - cdata カラム情報。[column_name]
         - vdata カラムに対応した値。
     */
-    InsertTx(const char* fileName,unsigned int pkey,TABLE_COLUMN* cdata,TABLE_VALUE* vdata) {
+    InsertTx(const char* fileName,unsigned int key,int ccount,TABLE_COLUMN* cdata,TABLE_VALUE* vdata) {
         try {
             // ../tmp/[db_name]/[tbl_name]/[column_name]/[pkey]
             // これがこのコンストラクタで管理するディレクトリ階層になる。
@@ -479,6 +482,8 @@ public:
             int size = strlen(filePath) + strlen(fileName);
             if( size <= 64 ) {
                 strcat(filePath,fileName);  // ../tmp/[db_name]/[tbl_name]/ になるようにする。
+                pkey = key;
+                colCount = ccount;
                 ptblColumn = cdata;
                 ptblValue = vdata;
             } else {
@@ -559,6 +564,7 @@ public:
                 }
                 // 各カラム・ディレクトリ配下にファイルを新規作成する。
                 if(ptblColumn != nullptr && ptblValue != nullptr) {
+                    // ファイルポインタを使いまわして、カラム・ファイルを作る。
                     return 0;
                 }
                 return -1;
