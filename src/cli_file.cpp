@@ -248,6 +248,12 @@ int exist_file(const char* path) {  // 簡易テストで利用してるから�
     // S_ISREG(st.st_mode); の方がシンプルだが、Visual Studio では使えない。
     return (st.st_mode & S_IFMT) == S_IFREG;
 }
+int initArray(char* array, const int& size) {
+    for(int i=0; i<size; i++) {
+        array[i] = '\0';
+    }
+    return 0;
+}
 
 /**
     サンプル・テスト用データ。
@@ -437,6 +443,7 @@ class InsertTx final : public virtual ATransaction {
 private:
     mutable FILE* fp = NULL;
     char filePath[64] = {"../tmp/"};
+    char tablePath[64] = {"../tmp/"};
     // データ用の struct 構造体をメンバ変数に持ち、コンストラクタの引数で代入すること。
     SAMPLE_DATA* pd = nullptr;
     unsigned int pkey = 0;
@@ -476,7 +483,7 @@ public:
         - cdata カラム情報。[column_name]
         - vdata カラムに対応した値。
     */
-    InsertTx(const char* fileName,unsigned int key,TABLE_COLUMN* cdata,int ccount,TABLE_VALUE* vdata,int vcount) {
+    InsertTx(const char* fileName,const char* tblName,unsigned int key,TABLE_COLUMN* cdata,int ccount,TABLE_VALUE* vdata,int vcount) {
         try {
             // ../tmp/[db_name]/[tbl_name]/[column_name]/[pkey]
             // これがこのコンストラクタで管理するディレクトリ階層になる。
@@ -486,7 +493,10 @@ public:
             if( size <= 64 ) {
                 strcat(filePath,fileName);  // ../tmp/[db_name]/[tbl_name]/ になるようにする。
                 printf("filePath is %s\n",filePath);
+                strcat(tablePath,tblName);
+                printf("tablePath is %s\n",tablePath);
                 pkey = key;
+                printf("pkey is %d\n",pkey);
                 ptblColumn = cdata;
                 colCount = ccount;
                 ptblValue = vdata;
@@ -569,7 +579,26 @@ public:
                 }
                 // 各カラム・ディレクトリ配下にファイルを新規作成する。
                 if(ptblColumn != nullptr && ptblValue != nullptr) {
+                    fwrite(ptblValue,sizeof(TABLE_VALUE),1,fp);
+                    fclose(fp);
+                    fp = NULL;
                     // ファイルポインタを使いまわして、カラム・ファイルを作る。
+                    // ../tmp/test/address_book/
+                    // 引数なり、動的な仕組みで [system_current_dir]/[db_name]/[table_name]/ を取得できないといけない。
+                    FILE* cfp = NULL;
+                    char tmpDir[64] = {"\0"};
+                    char buf[16];
+                    snprintf(buf, 16, "%d", pkey);
+                    for(int i=0; i<colCount; i++) {
+                        printf("DEBUG: column is %s\n",ptblColumn[i].column);
+                        strcat(tmpDir,tablePath);
+                        strcat(tmpDir,ptblColumn[i].column);
+                        strcat(tmpDir,"/");
+                        strcat(tmpDir,buf);
+                        printf("DEBUG: tmpDir is %s\n",tmpDir); // この配下に[value.bin]（空ファイル）を作成する。
+                        initArray(tmpDir,64);
+                    }
+
                     return 0;
                 }
                 return -1;
@@ -832,18 +861,19 @@ int testInsertTransaction(const unsigned int& pk, const char* fname) {
     }
 }
 // const char* fileName,unsigned int key,int ccount,TABLE_COLUMN* cdata,TABLE_VALUE* vdata
-int testInsertTransaction_v2(const unsigned int& key, const char* fileName) {
+int testInsertTransaction_v2(const unsigned int& key, const char* fileName, const char* tblName) {
     try {
         TABLE_COLUMN tblCols[3] = {
             {"ID","INT","NOT NULL PRIMARY KEY"},
             {"EMAIL","VARCHAR(256)","NOT NULL"},
             {"NAME","VARCHAR(256)",""},
         };
-        TABLE_VALUE tblVals[2] = {
+        TABLE_VALUE tblVals[3] = {
             {1,"jack@loki.org","jack"},
-            {2,"alice@loki.org",""},
-        };
-        InsertTx* insertTx = new InsertTx(fileName,key,tblCols,3,tblVals,2);
+            {2,"alice@loki.org","alice"},
+            {3,"alice@loki.co.jp","alice"},
+        };  // 今気がついたけど、こればBatch Insert になるからNG だな。通常は一行Insert になる。
+        InsertTx* insertTx = new InsertTx(fileName,tblName,key,tblCols,3,tblVals,3);
         ITransaction* tx = static_cast<ITransaction*>(insertTx);
         Transaction transaction(tx);
         return transaction.proc();
@@ -1072,12 +1102,6 @@ int test_create_database(const char* dbName) {
     return 0;
 }
 
-int initArray(char* array, const int& size) {
-    for(int i=0; i<size; i++) {
-        array[i] = '\0';
-    }
-    return 0;
-}
 
 /**
     Table ディレクトリの作成を行う。
@@ -1184,7 +1208,7 @@ int main(void) {
     // 作成すること、中身は空で構わない。
     // 3.2 で上記の修正を行う予定。
     if(3.2) {
-        ptr_lambda_debug<const string&,const int&>("Play and Result ... testInsertTransaction_v2",testInsertTransaction_v2(200,"test/address_book/200.bin"));
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... testInsertTransaction_v2",testInsertTransaction_v2(200,"test/address_book/200.bin","test/address_book/"));
         // CREATE DATABASE
         // CREATE TABLE 
         // cli.cpp ... この2つを次はやるかもしれない。
