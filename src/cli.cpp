@@ -403,8 +403,14 @@ protected:
         Values までをtoUpper する。
         values がシステムの予約語になったということでいいのか。（Yes そうなる。
         insert もそうなるのか。（Yes そうなる。
+
+        この考え方が良くない気がしている。
+        () で囲まれた中を無視する方が色々と使い勝手とともに都合がいいと思うが。
     */
     virtual int toUpper() const override {
+        // for(int i=0; i<cmdMaxIndex; i++) {
+        //     printf("val is %s\n",cmdData[i].data);
+        // }
         int ignore = 0;
         for(int i=0;i < cmdMaxIndex; i++) {
             cmdUpData[i].no = cmdData[i].no;
@@ -776,6 +782,7 @@ public:
 int test_Command_Insert() {
     cout << "------------------------------------ test_Command_Insert" << endl;
     // テストデータがよくない、半角スペースを入れたものに変えて以降の動作確認は行うこと。   DONE.
+    // これ values の間に半角スペースがないと正しく動作しないんじゃなかな。
     const string cmd = "insert into file_name(name,email,memo) values (\"  I'm Jack. \", \"   jack@loki.org   \",   \"\\\"What's up ?\\\"     \");";
 //    const string cmd = "insert into file_name(col_1,col_2) values ('I\\'m Jack.', '\\'What\\'s up ?\\'');";
     ptr_lambda_debug<const string&,const string&>("cmd is ",cmd);
@@ -788,7 +795,7 @@ int test_Command_Insert() {
 int monitoring();
 int main(void) {
     cout << "START CLI ===============" << endl;
-    if(1.0) {
+    if(0) {
         ptr_lambda_debug<const string&,const int&>("Yeah here we go.",0);
         println("It's println. C/C++.");
         int x = 3;
@@ -800,7 +807,9 @@ int main(void) {
         const char cstr[] = {"It's my PRIDE."};
         ptr_cstr_debug("const char cstr is ",cstr);
     }
-    if(1.10) {
+    if(1.1) {
+        // 久しぶりに自分のコードを眺めて気づいたが、色々いい加減なところがあるな。
+        // toUpper に関してもいい出来とは思えないし。
         ptr_lambda_debug<const string&,const int&>("Play and Result ... ",test_Command_Insert());
     }
     if(0) {
@@ -809,7 +818,12 @@ int main(void) {
     cout << "=============== CLI END" << endl;
     return 0;
 }
-
+/**
+ コマンドを掘り下げて考えてみる必要が今後はある。
+ CREATE DATABASE や CREATE TABLE を実装するにあたりそもそもコネクションという概念が必要になるだろう。
+ 文字列操作とコマンドの選別方法ももう少し考える必要がある。
+ 例えば、半角スペースで分割した後に toupper するなど。
+*/
 int handler(char*);
 int cmd_exit(char*);
 int cmd_create(char*);
@@ -843,6 +857,11 @@ int init_cmd(char* cmd) {
     Values はユーザの任意なので、これを大文字に強制的に変換してしまうのは違う。
     したがって、別途、Values 以降の（）内の値は無視するものが必要だ。
     
+    この仕組みは自分の首を絞めるかもな。
+    CREATE DATABASE db_name;
+    CREATE TABLE tbl_name (...);
+
+    この関数の前に、半角スペースで分割した方が何かと便利ではなかろうか。
 */
 int upper_str(const char* in, char* out) {
     int i = 0;
