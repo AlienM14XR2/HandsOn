@@ -21,7 +21,9 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
 */
 class FlyBehavior {
 public:
-    virtual ~FlyBehavior() {}
+    virtual ~FlyBehavior() {
+        ptr_lambda_debug<const string&,const int&>("DEBUG: Done FlyBehavior destructor.",0);
+    }
     virtual void fly() const = 0;
 };
 
@@ -30,7 +32,9 @@ public:
 */
 class QuackBehavior {
 public:
-    virtual ~QuackBehavior() {}
+    virtual ~QuackBehavior() {
+        ptr_lambda_debug<const string&,const int&>("DEBUG: Done QuackBehavior destructor.",0);        
+    }
     virtual void quack() const = 0;
 };
 
@@ -51,6 +55,11 @@ public:
     }
 };
 
+/**
+ * 飛び方の具象化クラス
+ * 
+ * 飛べない。
+*/
 class FlyNoWay final : public virtual FlyBehavior {
 public:
     FlyNoWay() noexcept {}
@@ -63,11 +72,64 @@ public:
     }
 };
 
+/**
+ * 鳴き方の具象化クラス
+ * 
+ * ガーガー鳴く。
+*/
+class Quack final : public virtual QuackBehavior {
+public:
+    Quack() noexcept {}
+    Quack(const Quack& own) noexcept {
+        (*this) = own;
+    }
+    ~Quack() noexcept {}
+    virtual void quack() const override {
+        puts("ガーガー");
+    }
+};
+
+/**
+ * 鳴き方の具象化クラス
+ * 
+ * 沈黙（Mute）。
+*/
+class MuteQuack final : public virtual QuackBehavior {
+public:
+    MuteQuack() noexcept {}
+    MuteQuack(const MuteQuack& own) noexcept {
+        (*this) = own;
+    }
+    ~MuteQuack() noexcept {}
+    virtual void quack() const override {
+        puts("<<沈黙>>");
+    }
+};
+
+/**
+ * 鳴き方の具象化クラス
+ * 
+ * キューキュー鳴く。
+*/
+class Squeak final : public virtual QuackBehavior {
+public:
+    Squeak() noexcept {}
+    Squeak(const Squeak& own) noexcept {
+        (*this) = own;
+    }
+    ~Squeak() noexcept {}
+    virtual void quack() const override {
+        puts("キューキュー");
+    }
+};
 
 /**
  * Duck（カモ） 抽象クラス
 */
 class Duck {
+protected:
+    FlyBehavior* flyBehavior;
+    QuackBehavior* quackBehavior;
 public:
     Duck() noexcept {}
     Duck(const Duck& own) {
@@ -78,6 +140,18 @@ public:
     virtual void display() const = 0;
     void swim() {
         puts("すべてのカモは浮きます、おとりのカモでも！");
+    }
+    void setFlyBehavior(FlyBehavior* const fb) noexcept {
+        flyBehavior = fb;
+    }
+    void setQuackBehavior(QuackBehavior* const qb) noexcept {
+        quackBehavior = qb;
+    }
+    void performFly() {
+        flyBehavior->fly();
+    }
+    void performQuack() {
+        quackBehavior->quack();
     }
 };
 
@@ -102,6 +176,16 @@ int testMallardDuck() {
     try {
         MallardDuck mallardDuck;
         mallardDuck.display();
+
+        FlyWithWing flyWithWing;
+        FlyBehavior* flyBehavior = static_cast<FlyBehavior*>(&flyWithWing);
+        Quack quack;
+//        QuackBehavior* quackBehavior = static_cast<QuackBehavior*>(&quack);
+        mallardDuck.setFlyBehavior(flyBehavior);
+        mallardDuck.setQuackBehavior(&quack);   // インタフェースを利用しなくても問題ない。
+
+        mallardDuck.performFly();
+        mallardDuck.performQuack();
     } catch(exception& e) {
         cout << e.what() << endl;
         return 1;
