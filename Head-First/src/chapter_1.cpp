@@ -22,7 +22,7 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
 class FlyBehavior {
 public:
     virtual ~FlyBehavior() {
-        ptr_lambda_debug<const string&,const int&>("DEBUG: Done FlyBehavior destructor.",0);
+        ptr_lambda_debug<const string&,const int&>("Done FlyBehavior destructor.",0);
     }
     virtual void fly() const = 0;
 };
@@ -33,7 +33,7 @@ public:
 class QuackBehavior {
 public:
     virtual ~QuackBehavior() {
-        ptr_lambda_debug<const string&,const int&>("DEBUG: Done QuackBehavior destructor.",0);        
+        ptr_lambda_debug<const string&,const int&>("Done QuackBehavior destructor.",0);        
     }
     virtual void quack() const = 0;
 };
@@ -177,8 +177,8 @@ int testMallardDuck() {
         MallardDuck mallardDuck;
         mallardDuck.display();
 
-        FlyWithWing flyWithWing;
-        FlyBehavior* flyBehavior = static_cast<FlyBehavior*>(&flyWithWing);
+        FlyWithWing* flyWithWing = new FlyWithWing();
+        FlyBehavior* flyBehavior = static_cast<FlyBehavior*>(flyWithWing);
         Quack quack;
 //        QuackBehavior* quackBehavior = static_cast<QuackBehavior*>(&quack);
         mallardDuck.setFlyBehavior(flyBehavior);
@@ -186,6 +186,8 @@ int testMallardDuck() {
 
         mallardDuck.performFly();
         mallardDuck.performQuack();
+
+        delete flyWithWing;
     } catch(exception& e) {
         cout << e.what() << endl;
         return 1;
