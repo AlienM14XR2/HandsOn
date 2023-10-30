@@ -2,6 +2,9 @@
  * Head First デザインパターン
  * １章 デザインパターン入門
  * 
+ * 振る舞い... アルゴリズムを別のクラスにカプセル化しそのインタフェースを利用するクラスではコンポジットして利用する。
+ * 「Strategy」パターン。
+ * 
  * ```
  * e.g. コンパイル
  * g++ -O3 -std=c++20 -pedantic-errors -Wall -Werror chapter_1.cpp -o ../bin/main
