@@ -9,6 +9,30 @@
  * すべてのオブジェクトに自動的に通知され更新されるようにするという、オブジェクト間の１ 対 多
  * の依存関係が定義されている。
  * 
+ * Subject インタフェース
+ * このSubject インタフェースを利用して、オブジェクトはオブザーバとしての登録やオブザーバからの削除を行う。
+ * - registerObserver()
+ * - removeObserver()
+ * - notifyObserers()
+ * 
+ * ConcreteSubject
+ * 具象サブジェクトは必ずSubject インタフェースを実装する。具象サブジェクトは登録メソッドと削除メソッドの他に、
+ * 状態が変わるたびに現在のすべてのオブザーバを更新する notifiObservers() メソッドを実装する。
+ * - registerObserver() {...}
+ * - removeObserver() {...}
+ * - notifyObserers() {...}
+ * - getState()
+ * - setState()
+ * 
+ * Observer インタフェース
+ * オブザーバになる可能性のあるオブジェクトはすべて、Observer インタフェースを実装する必要がある。
+ * Observer インタフェースには、Subject の状態が変わると呼び出される update() というメソッドが１つだけある。
+ * - update() 
+ * 
+ * ConcreteObserver
+ * 具象オブザーバは、Observer インタフェースを実装した任意のクラスです。オブザーバは更新情報を受け取るために
+ * 具象サブジェクトに登録します。
+ * 
  * 
  * ```
  * e.g. コンパイル
