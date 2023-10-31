@@ -51,6 +51,8 @@ void (*ptr_labmda_debug)(M,D) = [](auto message, auto debug) -> void {
 };
 
 class Observer {
+protected:
+    size_t index;
 public:
     Observer() {}
     Observer(const Observer& own) {
@@ -58,6 +60,12 @@ public:
     }
     virtual ~Observer() {}
     virtual void update(const double temp, const double humidity, const double pressure) const = 0;     // 気温、湿度、気圧 ... 気象測定値に変化があるとObserver が Subject から取得される測定値です。
+    size_t getIndex() {
+        return index;
+    }
+    void setIndex(const size_t i) {
+        index = i;
+    }
 };
 
 class Subject {
@@ -97,9 +105,19 @@ public:
     }
     virtual void registerObserver(Observer* o) const override {
         observers->push_back(o);
+        o->setIndex(observers->size() - 1);
     }
     virtual void removeObserver(Observer* o) const override {
         // TODO vector erase の調査
+        // for(std::vector<Observer*>::iterator ite = observers->begin(); ite != observers->end();) {
+        // }
+        size_t size = observers->size();
+        for(size_t i = 0; i < size; i++) {
+           Observer* po = observers->at(i);
+           if(po == o) {
+                observers->erase(observers->begin() + i);
+           }
+        }
     }
     virtual void notifyObservers() const override {
         // TODO このメソッドの実装
