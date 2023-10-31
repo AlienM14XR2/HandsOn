@@ -41,33 +41,92 @@
  * ```
 */
 #include <iostream>
+#include <vector>
 
 using namespace std;
 
 template <class M, class D>
 void (*ptr_labmda_debug)(M,D) = [](auto message, auto debug) -> void {
-    cout << "DEBUG: " + message + '\t' + debug << endl;
+    cout << "DEBUG: " << message << '\t' << debug << endl;
 };
 
 class Observer {
 public:
+    Observer() {}
+    Observer(const Observer& own) {
+        *this = own;
+    }
+    virtual ~Observer() {}
     virtual void update(const double temp, const double humidity, const double pressure) const = 0;     // 気温、湿度、気圧 ... 気象測定値に変化があるとObserver が Subject から取得される測定値です。
 };
 
 class Subject {
 public:
-    virtual void registerObserver(Observer o) const = 0;
-    virtual void removeObserver(Observer o) const = 0;
+    Subject() {}
+    Subject(const Subject& own) {
+        *this = own;
+    }
+    virtual ~Subject() {}
+    virtual void registerObserver(Observer* o) const = 0;
+    virtual void removeObserver(Observer* o) const = 0;
     virtual void notifyObservers() const = 0;   // Subject の状態が変化すると、すべてのオブザーバに通知するためのメソッドが呼び出される。
 };
 
 class Display {     // Display インタフェースには display() メソッドが１つあり、表示要素を表示する必要のあるときに呼び出される。
 public:
+    virtual ~Display() {}
     virtual void display() const = 0;
 };
 
+/**
+ * WeatherData で Subject インタフェースを実装する。
+*/
+class WeatherData final : public virtual Subject {
+private:
+    vector<Observer*>* observers = nullptr;     // vector とインタフェース ... この扱いが難しい、現状の解釈ではコンパイルと通すため、インタフェースはポインタで扱い、 vector オブジェクトは new する必要がある。
+public:
+    WeatherData() {
+        observers = new vector<Observer*>();
+    }
+    WeatherData(const WeatherData& own) {
+        *this = own;
+    }
+    ~WeatherData() {
+        delete observers;
+        ptr_labmda_debug<const char*,const int&>("DONE. WeatherData Destructor.",0);
+    }
+    virtual void registerObserver(Observer* o) const override {
+        observers->push_back(o);
+    }
+    virtual void removeObserver(Observer* o) const override {
+        // TODO vector erase の調査
+    }
+    virtual void notifyObservers() const override {
+        // TODO このメソッドの実装
+    }
+
+};
+
+int test_WeatherData() {
+    puts("--- test_WeatherData");
+    try {
+        WeatherData wd;
+
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return -1;
+    }
+    return 0;
+}
+
 int main(void) {
     puts(" START ========= 2 章 Observer パターン");
+    if(1) {
+        ptr_labmda_debug<const char*,const int&>("debugger test.",0);
+    }
+    if(1.01) {
+        ptr_labmda_debug<const char*,const int&>("Play and Result ... ",test_WeatherData());
+    }
     puts("2 章 Observer パターン ========= END");
     return 0;
 }
