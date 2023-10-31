@@ -33,6 +33,7 @@
  * 具象オブザーバは、Observer インタフェースを実装した任意のクラスです。オブザーバは更新情報を受け取るために
  * 具象サブジェクトに登録します。
  * 
+ * ソース上では、気象観測所を実装していく。
  * 
  * ```
  * e.g. コンパイル
@@ -46,6 +47,23 @@ using namespace std;
 template <class M, class D>
 void (*ptr_labmda_debug)(M,D) = [](auto message, auto debug) -> void {
     cout << "DEBUG: " + message + '\t' + debug << endl;
+};
+
+class Observer {
+public:
+    virtual void update(const double temp, const double humidity, const double pressure) const = 0;     // 気温、湿度、気圧 ... 気象測定値に変化があるとObserver が Subject から取得される測定値です。
+};
+
+class Subject {
+public:
+    virtual void registerObserver(Observer o) const = 0;
+    virtual void removeObserver(Observer o) const = 0;
+    virtual void notifyObservers() const = 0;   // Subject の状態が変化すると、すべてのオブザーバに通知するためのメソッドが呼び出される。
+};
+
+class Display {     // Display インタフェースには display() メソッドが１つあり、表示要素を表示する必要のあるときに呼び出される。
+public:
+    virtual void display() const = 0;
 };
 
 int main(void) {
