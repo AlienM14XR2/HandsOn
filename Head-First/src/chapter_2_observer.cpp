@@ -85,6 +85,8 @@ public:
 class WeatherData final : public virtual Subject {
 private:
     vector<Observer*>* observers = nullptr;     // vector とインタフェース ... この扱いが難しい、現状の解釈ではコンパイルと通すため、インタフェースはポインタで扱い、 vector オブジェクトは new する必要がある。
+    double temperature, humidity, pressure;
+
 public:
     WeatherData() {
         observers = new vector<Observer*>();
@@ -112,7 +114,19 @@ public:
         }
     }
     virtual void notifyObservers() const override {
-        // TODO このメソッドの実装
+        size_t size = observers->size();
+        for(size_t i=0; i < size; i++) {
+            observers->at(i)->update(temperature, humidity, pressure);
+        }
+    }
+    void changedMessurements() {
+        notifyObservers();
+    }
+    void setMessurements(const double tmp, const double humid, const double press) {
+        temperature = tmp;
+        humidity = humid;
+        pressure = press;
+        changedMessurements();
     }
 
 };
