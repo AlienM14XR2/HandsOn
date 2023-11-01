@@ -58,6 +58,7 @@ public:
         *this = own;
     }
     virtual ~Observer() {}
+    // TODO 次の仮引数はひとつの構造体にまとめた方がいいと思う。
     virtual void update(const double temp, const double humidity, const double pressure) const = 0;     // 気温、湿度、気圧 ... 気象測定値に変化があるとObserver が Subject から取得される測定値です。
 };
 
@@ -129,6 +130,29 @@ public:
         changedMessurements();
     }
 
+};
+
+class CurrentConditionsDisplay final : public virtual Observer, Display {
+private:
+    double temperature, humidity, pressure;
+    WeatherData weatherData;
+    CurrentConditionsDisplay() {}
+
+public:
+    CurrentConditionsDisplay(const WeatherData& wd) {
+        weatherData = wd;
+        weatherData.registerObserver(this);
+    }
+    CurrentConditionsDisplay(const CurrentConditionsDisplay& own) {
+        *this = own;
+    }
+    ~CurrentConditionsDisplay() {}
+    virtual void update(const double temp, const double humidity, const double pressure) const override {
+        // TODO 実装
+    }
+    virtual void display() const override {
+        // TODO 実装
+    }
 };
 
 int test_WeatherData() {
