@@ -134,7 +134,7 @@ public:
 
 class CurrentConditionsDisplay final : public virtual Observer, Display {
 private:
-    double temperature, humidity, pressure;
+    mutable double temperature, humidity, pressure;
     WeatherData weatherData;
     CurrentConditionsDisplay() {}
 
@@ -147,11 +147,14 @@ public:
         *this = own;
     }
     ~CurrentConditionsDisplay() {}
-    virtual void update(const double temp, const double humidity, const double pressure) const override {
-        // TODO 実装
+    virtual void update(const double temp, const double humid, const double press) const override {
+        temperature = temp;
+        humidity = humid;
+        pressure = press;
+        display();
     }
     virtual void display() const override {
-        // TODO 実装
+        cout << "温度：" << temperature << "\t湿度：" << humidity << "\t気圧：" << pressure << endl;
     }
 };
 
