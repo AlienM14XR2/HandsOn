@@ -91,6 +91,9 @@ private:
 public:
     WeatherData() {
         observers = new vector<Observer*>();
+        temperature = 0;
+        humidity = 0;
+        pressure = 0;
     }
     WeatherData(const WeatherData& own) {
         *this = own;
@@ -146,7 +149,9 @@ public:
     CurrentConditionsDisplay(const CurrentConditionsDisplay& own) {
         *this = own;
     }
-    ~CurrentConditionsDisplay() {}
+    ~CurrentConditionsDisplay() {
+        ptr_labmda_debug<const char*,const int&>("DONE. CurrentConditionsDisplay Destructor.",0);
+    }
     virtual void update(const double temp, const double humid, const double press) const override {
         temperature = temp;
         humidity = humid;
@@ -161,8 +166,12 @@ public:
 int test_WeatherData() {
     puts("--- test_WeatherData");
     try {
-        WeatherData wd;
-
+        WeatherData* wd = new WeatherData();    // WeatherData をポインタではなくインスタンスオブジェクトにしてもコアダンプになる、おそらく二重開放が原因と思われる。
+        CurrentConditionsDisplay currentConditions(*wd);
+        wd->setMessurements(24.5,8.26,10.09);
+        wd->removeObserver(&currentConditions);
+        wd->setMessurements(33.0,60.0,9.99);    // これは出力されない。
+//        delete wd;    // この行のコメントを外すとコアダンプになる、おそらく二重開放が原因と思われる。
     } catch(exception& e) {
         cout << e.what() << endl;
         return -1;
