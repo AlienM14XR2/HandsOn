@@ -46,7 +46,7 @@
 using namespace std;
 
 template <class M, class D>
-void (*ptr_labmda_debug)(M,D) = [](auto message, auto debug) -> void {
+void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
     cout << "DEBUG: " << message << '\t' << debug << endl;
 };
 
@@ -100,7 +100,7 @@ public:
     }
     ~WeatherData() {
         delete observers;
-        ptr_labmda_debug<const char*,const int&>("DONE. WeatherData Destructor.",0);
+        ptr_lambda_debug<const char*,const int&>("DONE. WeatherData Destructor.",0);
     }
     virtual void registerObserver(Observer* o) const override {
         observers->push_back(o);
@@ -150,7 +150,7 @@ public:
         *this = own;
     }
     ~CurrentConditionsDisplay() {
-        ptr_labmda_debug<const char*,const int&>("DONE. CurrentConditionsDisplay Destructor.",0);
+        ptr_lambda_debug<const char*,const int&>("DONE. CurrentConditionsDisplay Destructor.",0);
     }
     virtual void update(const double temp, const double humid, const double press) const override {
         temperature = temp;
@@ -182,10 +182,10 @@ int test_WeatherData() {
 int main(void) {
     puts(" START ========= 2 章 Observer パターン");
     if(1) {
-        ptr_labmda_debug<const char*,const int&>("debugger test.",0);
+        ptr_lambda_debug<const char*,const int&>("debugger test.",0);
     }
     if(1.01) {
-        ptr_labmda_debug<const char*,const int&>("Play and Result ... ",test_WeatherData());
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_WeatherData());
     }
     puts("2 章 Observer パターン ========= END");
     return 0;
