@@ -100,6 +100,22 @@ public:
     }
 };
 
+/**
+ * TODO 豆乳
+ * 調味料の具象クラス
+*/
+class Soy final : public virtual CondimentDecorator {
+
+};
+
+/**
+ * TODO ホイップ
+ * 調味料の具象クラス
+*/
+class Whip final : public virtual CondimentDecorator {
+    
+};
+
 int main(void) {
     puts("START 3 章 Decorator =========");
     if(1) {
