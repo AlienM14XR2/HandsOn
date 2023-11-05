@@ -4,6 +4,11 @@
  * g++ -O3 -std=c++20 -pedantic-errors -Wall -Werror chapter_3_decorator.cpp -o ../bin/main
  * 
  * オブジェクトの装飾
+ * 
+ * 開放・閉鎖原則、既存コードの修正は行わず（閉鎖）に拡張性（開放）を持つ設計のこと。
+ * 
+ * Decorator パターンはオブジェクトに追加の責務を動的に付与する。デコレータは、サブクラス化の
+ * 代替となる、柔軟な機能拡張手段を備えている。
 */
 #include <iostream>
 
