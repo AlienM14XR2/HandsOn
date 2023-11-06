@@ -144,19 +144,63 @@ public:
     }
 };
 
+/**
+ * 飲物とそのデコレーションの動作確認
+*/
 int test_Beverages() {
     try {
         puts("--- test_Beverage");
+        // エスプレッソ（豆乳）の動作確認
         Espresso espresso;
         Soy soy(espresso);
         ptr_lambda_debug<const string&, const string&>("soy(espresso) ... description is ",soy.getDescription());
         ptr_lambda_debug<const string&, const double&>("soy(espresso) ... cost is ",soy.cost());
         assert(soy.cost() == 2.59);    // 1.99 + 0.60
+
+        // ハウスブレンド（モカ）の動作確認
+        HouseBlend houseBlend;
+        Mocha mocha(houseBlend);
+        ptr_lambda_debug<const string&, const string&>("mocha(houseBlend) ... description is ",mocha.getDescription());
+        ptr_lambda_debug<const string&, const double&>("mocha(houseBlend) ... cost is ",mocha.cost());
+        assert(mocha.cost() == 1.09);
+
+        // ハウスブレンド（ホイップ）の動作確認
+        Whip whip(houseBlend);
+        ptr_lambda_debug<const string&, const string&>("whip(houseBlend) ... description is ",whip.getDescription());
+        ptr_lambda_debug<const string&, const double&>("whip(houseBlend) ... cost is ",whip.cost());
+        assert(whip.cost() == 2.09);
         return 0;
     } catch(exception& e) {
         cout << e.what() << endl;
         return -1;
     }
+}
+int test_Beverages2() {
+    try {
+        puts("--- test_Beverages2");
+        HouseBlend hb;
+        Mocha mocha1 = Mocha(hb);
+        Mocha mocha2 = Mocha(mocha1);   // これでは意図した結果にはならない、その理由をよく考えてみよう。Java とは違うのだよ、Java とは。
+        ptr_lambda_debug<const string&, const string&>("mocha2 ... description is ",mocha2.getDescription());
+        ptr_lambda_debug<const string&, const double&>("mocha2 ... cost is ",mocha2.cost());
+        return 0;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return -1;
+    }
+}
+int test_Beverages3() {
+    puts("--- test_Beverages3");
+    HouseBlend* hb = new HouseBlend();
+    Mocha* mocha1 = new Mocha(*hb);
+    // Java のサンプルと同じ意図したものを表現するには、調味料のコンストラクタを新たに追加する必要があるのかもしれない、これはTry and Error を行って確認するしかない。
+    Mocha* mocha2 = new Mocha(*mocha1); // ポインタにしてもそのインスタンスの生成時はやはり 2 と同じなので、結果も同じ。
+    ptr_lambda_debug<const string&, const string&>("mocha2 ... description is ",mocha2->getDescription());
+    ptr_lambda_debug<const string&, const double&>("mocha2 ... cost is ",mocha2->cost());
+    delete hb;
+    delete mocha1;
+    delete mocha2;
+    return 0;
 }
 
 int main(void) {
@@ -167,6 +211,12 @@ int main(void) {
     }
     if(1.01) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Beverages());
+    }
+    if(1.02) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Beverages2());
+    }
+    if(1.03) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Beverages3());
     }
     puts("========= END 3 章 Decorator ");
     return 0;
