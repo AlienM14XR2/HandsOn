@@ -48,6 +48,12 @@ protected:
     Beverage* beverage;
 public:
     ~CondimentDecorator() {}
+    Beverage* getBeverage() noexcept {
+        return beverage;
+    }
+    void setBeverage(Beverage* b) noexcept {
+        beverage = b;
+    }
     virtual string getDescription() const = 0; 
 };
 
@@ -89,11 +95,19 @@ class Mocha final : public virtual CondimentDecorator {
 public:
     Mocha(Beverage& b) {
         beverage = &b;
+        printf("&b addr is %p\n",(void*)&b);
     }
     Mocha(const Mocha& own) {*this = own;}
     ~Mocha() {}
 
+    string getDescription(CondimentDecorator& cd) {
+        return cd.getDescription() + "、モカ";
+    }
+    string getDescription(string s) {
+        return s + "、モカ";
+    }
     virtual string getDescription() const override {
+        printf("beverage addr is %p\n",(void*)beverage);
         string result = beverage->getDescription() + "、モカ";
         return result;
     }
@@ -180,9 +194,12 @@ int test_Beverages2() {
         puts("--- test_Beverages2");
         HouseBlend hb;
         Mocha mocha1 = Mocha(hb);
-        Mocha mocha2 = Mocha(mocha1);   // これでは意図した結果にはならない、その理由をよく考えてみよう。Java とは違うのだよ、Java とは。
-        ptr_lambda_debug<const string&, const string&>("mocha2 ... description is ",mocha2.getDescription());
+        Mocha mocha2 = Mocha(hb);   // これでは意図した結果にはならない、その理由をよく考えてみよう。Java とは違うのだよ、Java とは。
+        Mocha mocha3 = Mocha(hb);
+        mocha2.setBeverage(mocha1.getBeverage());   // これでも駄目だね：）
+        ptr_lambda_debug<const string&, const string&>("mocha2 ... description is ",mocha2.getDescription(mocha1)); // これで狙い通りにはなったかな。
         ptr_lambda_debug<const string&, const double&>("mocha2 ... cost is ",mocha2.cost());
+        ptr_lambda_debug<const string&, const string&>("mocha3 ... description is ",mocha3.getDescription(mocha2.getDescription(mocha1))); // これで狙い通りにはなったかな、なるほどねやりたいことがより明確にはなった、つまり文字列を渡して編集可能にしてやればいいのか。
         return 0;
     } catch(exception& e) {
         cout << e.what() << endl;
