@@ -27,6 +27,7 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
 /**
  * サイズを表現した enum
  * e.g. 豆乳の場合はそれぞれ、10, 15, 20 セントの上乗せとする。
+ * Strategy パターンの利用を考えてみてもいいかもしれない：）
 */
 enum struct CUP_SIZE {
     TALL,               // S サイズ
