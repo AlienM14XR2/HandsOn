@@ -2,7 +2,8 @@
  * 3 章 Decorator
  * 
  * g++ -O3 -std=c++20 -pedantic-errors -Wall -Werror chapter_3_decorator.cpp -o ../bin/main
- * g++ -O3 -std=c++20 -pedantic-errors -Wall -Werror -D NDEBUG chapter_3_decorator.cpp -o ../bin/main
+ * g++ -O3 -std=c++20 -pedantic-errors -Wall -Werror -DNDEBUG chapter_3_decorator.cpp -o ../bin/main
+ * g++ -O3 -std=c++20 -pedantic-errors -Wall -Werror -DDEBUG chapter_3_decorator.cpp -o ../bin/main
  * 
  * オブジェクトの装飾
  * 
@@ -54,7 +55,9 @@ public:
     void setBeverage(Beverage* b) noexcept {
         beverage = b;
     }
-    virtual string getDescription() const = 0; 
+    virtual string getDescription() const = 0;
+    virtual string getDescription(string s) const = 0;
+    virtual double cost(double cost) const = 0;
 };
 
 /**
@@ -92,6 +95,8 @@ public:
  * 調味料の具象クラス
 */
 class Mocha final : public virtual CondimentDecorator {
+private:
+    double price = 0.20;
 public:
     Mocha(Beverage& b) {
         beverage = &b;
@@ -103,7 +108,8 @@ public:
     string getDescription(CondimentDecorator& cd) {
         return cd.getDescription() + "、モカ";
     }
-    string getDescription(string s) {
+    
+    virtual string getDescription(string s) const override {
         return s + "、モカ";
     }
     virtual string getDescription() const override {
@@ -112,7 +118,10 @@ public:
         return result;
     }
     virtual double cost() const override {
-        return beverage->cost() + 0.20;
+        return beverage->cost() + price;
+    }
+    virtual double cost(double cost) const override {
+        return cost + price;
     }
 };
 
@@ -121,6 +130,8 @@ public:
  * 調味料の具象クラス
 */
 class Soy final : public virtual CondimentDecorator {
+private:
+    double price = 0.60;
 public:
     Soy(Beverage& b) {
         beverage = &b;
@@ -132,8 +143,14 @@ public:
         string result = beverage->getDescription() + "、豆乳";
         return result;
     }
+    virtual string getDescription(string s) const override {
+        return s + "、豆乳";
+    }
     virtual double cost() const override {
-        return beverage->cost() + 0.60;
+        return beverage->cost() + price;
+    }
+    virtual double cost(double cost) const override {
+        return cost + price;
     }
 };
 
@@ -142,6 +159,8 @@ public:
  * 調味料の具象クラス
 */
 class Whip final : public virtual CondimentDecorator {
+private:
+    double price = 1.20;
 public:
     Whip(Beverage& b) {
         beverage = &b;
@@ -153,8 +172,14 @@ public:
         string result = beverage->getDescription() + "、ホイップ";
         return result;
     }
+    virtual string getDescription(string s) const override {
+        return s + "、ホイップ";
+    }
     virtual double cost() const override {
-        return beverage->cost() + 1.20;
+        return beverage->cost() + price;
+    }
+    virtual double cost(double cost) const override {
+        return cost + price;
     }
 };
 
@@ -208,15 +233,14 @@ int test_Beverages2() {
 }
 int test_Beverages3() {
     puts("--- test_Beverages3");
-    HouseBlend* hb = new HouseBlend();
-    Mocha* mocha1 = new Mocha(*hb);
-    // Java のサンプルと同じ意図したものを表現するには、調味料のコンストラクタを新たに追加する必要があるのかもしれない、これはTry and Error を行って確認するしかない。
-    Mocha* mocha2 = new Mocha(*mocha1); // ポインタにしてもそのインスタンスの生成時はやはり 2 と同じなので、結果も同じ。
-    ptr_lambda_debug<const string&, const string&>("mocha2 ... description is ",mocha2->getDescription());
-    ptr_lambda_debug<const string&, const double&>("mocha2 ... cost is ",mocha2->cost());
-    delete hb;
-    delete mocha1;
-    delete mocha2;
+    HouseBlend hb;
+    Whip whip1 = Whip(hb);
+    Whip whip2 = Whip(hb);
+    Whip whip3 = Whip(hb);
+    double total = whip1.cost();
+    total = whip2.cost(total);
+    // ((1.20)*3) + 0.89
+    ptr_lambda_debug<const string&,const double&>("whip3.cost(total) is ",whip3.cost(total));
     return 0;
 }
 
