@@ -25,6 +25,16 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
 };
 
 /**
+ * サイズを表現した enum
+ * e.g. 豆乳の場合はそれぞれ、10, 15, 20 セントの上乗せとする。
+*/
+enum struct CUP_SIZE {
+    TALL,               // S サイズ
+    GRANDE,             // M サイズ
+    VENTI               // L サイズ
+};
+
+/**
  * 飲み物の基底クラス
  * 飲み物の抽象クラス
 */
