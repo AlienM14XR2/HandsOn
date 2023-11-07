@@ -35,6 +35,47 @@ enum struct CUP_SIZE {
     VENTI               // L サイズ
 };
 
+class SizeFee {
+public:
+    virtual ~SizeFee() {}
+    virtual double calculation(const double& price) const = 0; 
+};
+
+class SoyTallSizeFee final : public virtual SizeFee {
+private:
+    double fee = 0.10;
+public:
+    SoyTallSizeFee() {}
+    SoyTallSizeFee(const SoyTallSizeFee& own){*this = own;}
+    ~SoyTallSizeFee() {}
+    virtual double calculation(const double& price) const override {
+        return price + fee;
+    }
+};
+
+class SoyGrandeSizeFee final : public virtual SizeFee {
+private:
+    double fee = 0.15;
+public:
+    SoyGrandeSizeFee() {}
+    SoyGrandeSizeFee(const SoyGrandeSizeFee& own) {*this = own;}
+    ~SoyGrandeSizeFee() {}
+    virtual double calculation(const double& price) const override {
+        return price + fee;
+    }
+};
+
+class SoyVentiSizeFee final : public virtual SizeFee {
+private:
+    double fee = 0.20;
+public:
+    SoyVentiSizeFee() {}
+    SoyVentiSizeFee(const SoyVentiSizeFee& own){*this = own;}
+    ~SoyVentiSizeFee() {}
+    virtual double calculation(const double& price) const override {
+        return price + fee;
+    }
+};
 /**
  * 飲み物の基底クラス
  * 飲み物の抽象クラス
@@ -57,7 +98,8 @@ public:
 */
 class CondimentDecorator : public virtual Beverage {
 protected:
-    Beverage* beverage;
+    Beverage* beverage = nullptr;
+    SizeFee* sizeFee = nullptr;
 public:
     ~CondimentDecorator() {}
     Beverage* getBeverage() noexcept {
@@ -147,6 +189,10 @@ public:
     Soy(Beverage& b) {
         beverage = &b;
     }
+    Soy(Beverage& b, SizeFee& sf) {
+        beverage = &b;
+        sizeFee = &sf;
+    }
     Soy(const Soy& own) {*this = own;}
     ~Soy() {}
 
@@ -158,7 +204,12 @@ public:
         return s + "、豆乳";
     }
     virtual double cost() const override {
-        return beverage->cost() + price;
+        if(sizeFee) {
+            printf("beverage->cost() + price = %lf\n",beverage->cost() + price);
+            return sizeFee->calculation(beverage->cost() + price);
+        } else {
+            return beverage->cost() + price;
+        }
     }
     virtual double cost(double cost) const override {
         return cost + price;
@@ -254,7 +305,15 @@ int test_Beverages3() {
     ptr_lambda_debug<const string&,const double&>("whip3.cost(total) is ",whip3.cost(total));
     return 0;
 }
-
+int test_Beverages4() {
+    puts("--- test_Beverages4");
+    HouseBlend hb;
+    SoyVentiSizeFee soyVenti;
+    Soy soy = Soy(hb,soyVenti);
+    // 0.89 + 0.60 + 0.20
+    ptr_lambda_debug<const char*,const double&>("soy ... cost is ",soy.cost());
+    return 0;
+}
 int main(void) {
     puts("START 3 章 Decorator =========");
     if(1) {
@@ -269,6 +328,9 @@ int main(void) {
     }
     if(1.03) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Beverages3());
+    }
+    if(1.04) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Beverages4());
     }
     puts("========= END 3 章 Decorator ");
     return 0;
