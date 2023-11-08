@@ -24,6 +24,7 @@ public:
     virtual void bake() const = 0;
     virtual void cut() const = 0;
     virtual void box() const = 0;
+    virtual void display() const = 0;
 };
 
 class NYStyleCheesePizza final : public virtual Pizza {
@@ -43,37 +44,49 @@ public:
     virtual void box() const override {
         ptr_lambda_debug<const char*,const int&>("box ... NYStyleCheesePizza",0);
     }
+    virtual void display() const override {
+        puts("NY スタイル チーズ ピザ");
+    }
 };
-class NYStyleVeggiPizza final : public virtual Pizza {
+class NYStyleVeggiePizza final : public virtual Pizza {
 public:
-    NYStyleVeggiPizza() {}
-    NYStyleVeggiPizza(const NYStyleCheesePizza& own) {*this = own;}
-    ~NYStyleVeggiPizza() {}
+    NYStyleVeggiePizza() {}
+    NYStyleVeggiePizza(const NYStyleCheesePizza& own) {*this = own;}
+    ~NYStyleVeggiePizza() {}
     virtual void prepare() const override {
-        ptr_lambda_debug<const char*,const int&>("prepare ... NYStyleVeggiPizza",0);
+        ptr_lambda_debug<const char*,const int&>("prepare ... NYStyleVeggiePizza",0);
     }
     virtual void bake() const override {
-        ptr_lambda_debug<const char*,const int&>("bake ... NYStyleVeggiPizza",0);
+        ptr_lambda_debug<const char*,const int&>("bake ... NYStyleVeggiePizza",0);
     }
     virtual void cut() const override {
-        ptr_lambda_debug<const char*,const int&>("cut ... NYStyleVeggiPizza",0);
+        ptr_lambda_debug<const char*,const int&>("cut ... NYStyleVeggiePizza",0);
     }
     virtual void box() const override {
-        ptr_lambda_debug<const char*,const int&>("box ... NYStyleVeggiPizza",0);
+        ptr_lambda_debug<const char*,const int&>("box ... NYStyleVeggiePizza",0);
+    }
+    virtual void display() const override {
+        puts("NY スタイル 野菜 ピザ");
     }
 };
 
 class PizzaStore {
+private:
 protected:
-    Pizza* pizza = nullptr;
-    virtual Pizza& createPizza(const string& type) const = 0;
-public:
     PizzaStore() {}
+    mutable Pizza* pizza = nullptr;
+//    virtual void createPizza(const string& type) const = 0;
+public:
+    PizzaStore(Pizza* const p) {
+        pizza = p;
+    }
     PizzaStore(const PizzaStore& own) {*this = own;}
     virtual ~PizzaStore() {}
-    Pizza& orderPizza(const string& type) {
-        *pizza = createPizza(type);
+
+    Pizza& orderPizza() {
         pizza->prepare();
+        // asm volatile("" ::: "memory");
+        // asm volatile("mfence" ::: "memory");
         pizza->bake();
         pizza->cut();
         pizza->box();
@@ -82,17 +95,82 @@ public:
 };
 
 class NYPizzaStore final : public virtual PizzaStore {
+private:
+    NYPizzaStore() {}
 protected:
-    // virtual Pizza& createPizza(const string& type) const override {
-    // }
-public:    
+public:
+    NYPizzaStore(Pizza* const p) {
+        pizza = p;
+    }
+    NYPizzaStore(const NYPizzaStore& own) {*this = own;}
+    ~NYPizzaStore() {}
 };
+
+void createPizza(const string& type, Pizza* pizza) {
+    if(type == "cheese") {
+//    printf("BBBBBBBBBBBBBBBB\n");
+        NYStyleCheesePizza cheese;      // これはローカル変数、結局関数を抜けたら破壊される：）つまり、システム起動時に存在している必要がある。
+//    printf("CCCCCCCCCCCCCCCC\n");
+        pizza = move(static_cast<Pizza*>(&cheese));
+   printf("DDDDDDDDDDDDDDDD\n");
+    } else if(type == "veggie") {
+        NYStyleVeggiePizza veggie;
+        pizza = move(static_cast<Pizza*>(&veggie));
+    }
+}
+
+NYStyleCheesePizza cheese;
+NYStyleVeggiePizza veggie;
+
+void createPizzaV2(const string& type, Pizza* pizza) {
+    if(type == "cheese") {
+        pizza = move(static_cast<Pizza*>(&cheese));
+   printf("DDDDDDDDDDDDDDDD\n");
+    } else if(type == "veggie") {
+        pizza = move(static_cast<Pizza*>(&veggie));
+    }
+}
+
+Pizza* createPizzaV3(const string& type) {  // ここまで来てやっと理想にたどり着いた、現状の私の理解ではこれが理想的なファクトリ、サンプルのようにすると開放が疎かになる：）
+    if(type == "cheese") {
+        return new NYStyleCheesePizza();
+    } else if(type == "veggie") {
+        return new NYStyleVeggiePizza();
+    }
+    return NULL;
+}
+
+int test_NYPizzaStore(const string type) {
+    puts("--- test_NYPizzaStore");
+    try {
+        Pizza* pizza = nullptr;
+        pizza = createPizzaV3(type);
+        // createPizzaV2(type, pizza);
+    //    createPizza(type, pizza);
+        // 次の２行は createPizza の一部を抜粋したもの。
+        // NYStyleCheesePizza cheese;
+        // pizza = static_cast<Pizza*>(&cheese);
+
+        NYPizzaStore store(pizza);
+        printf("AAAAAAAAAAAAAAAAAAA\n");
+        store.orderPizza();
+
+        delete pizza;
+        return 0;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return -1;
+    }
+}
 
 int main() {
     puts("START 4 章 Factory パターン =========");
     if(1) {
         double pi = 3.14159;
         ptr_lambda_debug<const char*,const double&>("pi is ",pi);
+    }
+    if(1.01) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_NYPizzaStore("cheese"));
     }
     puts("========= 4 章 Factory パターン END");
     return 0;
