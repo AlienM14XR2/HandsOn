@@ -26,6 +26,43 @@ public:
     virtual void box() const = 0;
 };
 
+class NYStyleCheesePizza final : public virtual Pizza {
+public:
+    NYStyleCheesePizza() {}
+    NYStyleCheesePizza(const NYStyleCheesePizza& own) {*this = own;}
+    ~NYStyleCheesePizza() {}
+    virtual void prepare() const override {
+        ptr_lambda_debug<const char*,const int&>("prepare ... NYStyleCheesePizza",0);
+    }
+    virtual void bake() const override {
+        ptr_lambda_debug<const char*,const int&>("bake ... NYStyleCheesePizza",0);
+    }
+    virtual void cut() const override {
+        ptr_lambda_debug<const char*,const int&>("cut ... NYStyleCheesePizza",0);
+    }
+    virtual void box() const override {
+        ptr_lambda_debug<const char*,const int&>("box ... NYStyleCheesePizza",0);
+    }
+};
+class NYStyleVeggiPizza final : public virtual Pizza {
+public:
+    NYStyleVeggiPizza() {}
+    NYStyleVeggiPizza(const NYStyleCheesePizza& own) {*this = own;}
+    ~NYStyleVeggiPizza() {}
+    virtual void prepare() const override {
+        ptr_lambda_debug<const char*,const int&>("prepare ... NYStyleVeggiPizza",0);
+    }
+    virtual void bake() const override {
+        ptr_lambda_debug<const char*,const int&>("bake ... NYStyleVeggiPizza",0);
+    }
+    virtual void cut() const override {
+        ptr_lambda_debug<const char*,const int&>("cut ... NYStyleVeggiPizza",0);
+    }
+    virtual void box() const override {
+        ptr_lambda_debug<const char*,const int&>("box ... NYStyleVeggiPizza",0);
+    }
+};
+
 class PizzaStore {
 protected:
     Pizza* pizza = nullptr;
@@ -42,6 +79,13 @@ public:
         pizza->box();
         return *pizza;
     }    
+};
+
+class NYPizzaStore final : public virtual PizzaStore {
+protected:
+    // virtual Pizza& createPizza(const string& type) const override {
+    // }
+public:    
 };
 
 int main() {
