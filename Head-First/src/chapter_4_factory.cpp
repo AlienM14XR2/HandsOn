@@ -152,7 +152,6 @@ int test_NYPizzaStore(const string type) {
         NYPizzaStore store(pizza);
         store.orderPizza();
         pizza->display();
-
         delete pizza;
         return 0;
     } catch(exception& e) {
@@ -169,6 +168,7 @@ int main() {
     }
     if(1.01) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_NYPizzaStore("cheese"));
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_NYPizzaStore("veggie"));
     }
     puts("========= 4 章 Factory パターン END");
     return 0;
