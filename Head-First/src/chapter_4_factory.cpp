@@ -138,7 +138,7 @@ Pizza* createPizzaV3(const string& type) {  // ここまで来てやっと理想
     return NULL;
 }
 
-int test_NYPizzaStore(const string type) {
+int test_NYPizzaStore(const string& type) {
     puts("--- test_NYPizzaStore");
     try {
         Pizza* pizza = nullptr;
@@ -160,6 +160,25 @@ int test_NYPizzaStore(const string type) {
     }
 }
 
+int test_NYPizzaStoreV2(const string& type) {
+    puts("--- test_NYPizzaStoreV2");
+    try {
+        Pizza* pizza = nullptr;
+        pizza = createPizzaV3(type);
+        NYPizzaStore store(pizza);
+        Pizza& maked = store.orderPizza();
+        // ここで少し気になることを確認してみる。
+        printf("pizza addr is %p\n",(void*)pizza);
+        printf("maked addr is %p\n",(void*)&maked);
+        maked.display();
+        delete pizza;   // これは二重開放になる？ ... ならなかった：）
+        return 0;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return -1;
+    }
+}
+
 int main() {
     puts("START 4 章 Factory パターン =========");
     if(1) {
@@ -169,6 +188,9 @@ int main() {
     if(1.01) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_NYPizzaStore("cheese"));
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_NYPizzaStore("veggie"));
+    }
+    if(1.02) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_NYPizzaStoreV2("cheese"));
     }
     puts("========= 4 章 Factory パターン END");
     return 0;
