@@ -129,6 +129,11 @@ void createPizzaV2(const string& type, Pizza* pizza) {
     }
 }
 
+/**
+ * サンプルではこのメソッドは PizzaStore のPure Virtual Method として定義され
+ * PizzaStore の具象クラスで個別に実装されている。
+ * したがって、他のストアができる度にこのようなメソッドが必要になる。 
+*/
 Pizza* createPizzaV3(const string& type) {  // ここまで来てやっと理想にたどり着いた、現状の私の理解ではこれが理想的なファクトリ、サンプルのようにすると開放が疎かになる：）
     if(type == "cheese") {
         return new NYStyleCheesePizza();
