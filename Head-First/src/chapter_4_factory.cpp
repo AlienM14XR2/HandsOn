@@ -85,8 +85,6 @@ public:
 
     Pizza& orderPizza() {
         pizza->prepare();
-        // asm volatile("" ::: "memory");
-        // asm volatile("mfence" ::: "memory");
         pizza->bake();
         pizza->cut();
         pizza->box();
@@ -152,8 +150,8 @@ int test_NYPizzaStore(const string type) {
         // pizza = static_cast<Pizza*>(&cheese);
 
         NYPizzaStore store(pizza);
-        printf("AAAAAAAAAAAAAAAAAAA\n");
         store.orderPizza();
+        pizza->display();
 
         delete pizza;
         return 0;
