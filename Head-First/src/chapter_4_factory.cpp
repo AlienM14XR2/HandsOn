@@ -104,6 +104,13 @@ public:
     ~NYPizzaStore() {}
 };
 
+enum struct PIZZA_TYPE {
+    CHEESE,
+    VEGGIE,
+    CLAM,
+};
+
+
 void createPizza(const string& type, Pizza* pizza) {
     if(type == "cheese") {
 //    printf("BBBBBBBBBBBBBBBB\n");
@@ -134,16 +141,16 @@ void createPizzaV2(const string& type, Pizza* pizza) {
  * PizzaStore の具象クラスで個別に実装されている。
  * したがって、他のストアができる度にこのようなメソッドが必要になる。 
 */
-Pizza* createPizzaV3(const string& type) {  // ここまで来てやっと理想にたどり着いた、現状の私の理解ではこれが理想的なファクトリ、サンプルのようにすると開放が疎かになる：）
-    if(type == "cheese") {
+Pizza* createPizzaV3(const PIZZA_TYPE& type) {  // ここまで来てやっと理想にたどり着いた、現状の私の理解ではこれが理想的なファクトリ、サンプルのようにすると開放が疎かになる：）
+    if(type == PIZZA_TYPE::CHEESE) {
         return new NYStyleCheesePizza();
-    } else if(type == "veggie") {
+    } else if(type == PIZZA_TYPE::VEGGIE) {
         return new NYStyleVeggiePizza();
     }
     return NULL;
 }
 
-int test_NYPizzaStore(const string& type) {
+int test_NYPizzaStore(const PIZZA_TYPE& type) {
     puts("--- test_NYPizzaStore");
     try {
         Pizza* pizza = nullptr;
@@ -165,7 +172,7 @@ int test_NYPizzaStore(const string& type) {
     }
 }
 
-int test_NYPizzaStoreV2(const string& type) {
+int test_NYPizzaStoreV2(const PIZZA_TYPE& type) {
     puts("--- test_NYPizzaStoreV2");
     try {
         Pizza* pizza = nullptr;
@@ -191,11 +198,11 @@ int main() {
         ptr_lambda_debug<const char*,const double&>("pi is ",pi);
     }
     if(1.01) {
-        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_NYPizzaStore("cheese"));
-        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_NYPizzaStore("veggie"));
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_NYPizzaStore(PIZZA_TYPE::CHEESE));
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_NYPizzaStore(PIZZA_TYPE::VEGGIE));
     }
     if(1.02) {
-        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_NYPizzaStoreV2("cheese"));
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_NYPizzaStoreV2(PIZZA_TYPE::CHEESE));
     }
     puts("========= 4 章 Factory パターン END");
     return 0;
