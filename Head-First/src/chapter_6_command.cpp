@@ -96,10 +96,11 @@ public:
 int test_SimpleRemoteControl() {
     puts("--- test_SimpleRemoteControl");
     try {
-        Light light;
-        LightCommand lightCmd(light);
+        Light* light = new Light();
+        LightCommand lightCmd(*light);
         SimpleRemoteControl control(lightCmd);
         control.buttonWasPressed();
+        delete light;
         return 0;
     } catch(exception& e) {
         cout << e.what() << endl;
