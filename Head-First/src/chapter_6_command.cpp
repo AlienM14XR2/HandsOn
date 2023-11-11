@@ -68,6 +68,43 @@ public:
 };
 
 /**
+ * ガレージドア
+*/
+class GarageDoor {
+public:
+    GarageDoor() {}
+    GarageDoor(const GarageDoor& own) {*this = own;}
+    ~GarageDoor() {
+        ptr_lambda_debug<const char*,const int>("DONE. GarageDoor Destructor.",0);
+    }
+    void up() {
+        puts("Open GarageDoor.");
+    }
+    void down() {
+        puts("Close GarageDoor.");
+    }
+};
+
+/**
+ * ガレージドア・オープンコマンド
+*/
+class GarageDoorOpenCommand final : public virtual Command {
+private:
+    mutable GarageDoor garadeDoor;
+    GarageDoorOpenCommand() {}
+public:
+    GarageDoorOpenCommand(const GarageDoor& gd) {
+        garadeDoor = gd;
+    }
+    GarageDoorOpenCommand(const GarageDoorOpenCommand& own) {*this = own;}
+    ~GarageDoorOpenCommand() {}
+
+    virtual void execute() const override {
+        garadeDoor.up();
+    }
+};
+
+/**
  * コマンドオブジェクトを使用する。
 */
 class SimpleRemoteControl {
@@ -85,6 +122,9 @@ public:
         ptr_lambda_debug<const char*,const int&>("DONE. SimpleRemoteControl Destructor.",0);
     }
 
+    void setCommand(Command& cmd) {
+        slot = &cmd;
+    }
     void buttonWasPressed() {
         slot->execute();
     }
