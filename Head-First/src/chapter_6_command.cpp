@@ -35,7 +35,9 @@ class Light {
 public:
     Light() {}
     Light(const Light& own) {*this = own;}
-    ~Light() {}
+    ~Light() {
+        ptr_lambda_debug<const char*,const int&>("DONE. Light Destructor.",0);
+    }
     void on() {
         ptr_lambda_debug<const char*,const int&>("Light on",0);
     }
@@ -56,7 +58,9 @@ public:
         light = l;
     }
     LightCommand(const LightCommand& own) {*this = own;}
-    ~LightCommand() {}
+    ~LightCommand() {
+        ptr_lambda_debug<const char*,const int&>("DONE. LightCommand Destructor.",0);
+    }
     
     virtual void execute() const override {
         light.on();
@@ -77,7 +81,9 @@ public:
     SimpleRemoteControl(const SimpleRemoteControl& own) {
         *this = own;
     }
-    ~SimpleRemoteControl() {}
+    ~SimpleRemoteControl() {
+        ptr_lambda_debug<const char*,const int&>("DONE. SimpleRemoteControl Destructor.",0);
+    }
 
     void buttonWasPressed() {
         slot->execute();
