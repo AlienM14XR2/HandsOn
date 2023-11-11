@@ -7,6 +7,8 @@
  * 呼び出しのカプセル化
  * 
  * リモコン API をサンプルにする。
+ * 7 つのスロットがあり、ON/OFF と最後に押されたものをUndo するボタンがある。
+ * デバイスは任意で設定可能とする。
 */
 #include <iostream>
 
@@ -61,11 +63,52 @@ public:
     }
 };
 
+/**
+ * コマンドオブジェクトを使用する。
+*/
+class SimpleRemoteControl {
+private:
+    Command* slot = nullptr;
+    SimpleRemoteControl():slot{nullptr} {}
+public:
+    SimpleRemoteControl(Command& cmd) {
+        slot = &cmd;
+    }
+    SimpleRemoteControl(const SimpleRemoteControl& own) {
+        *this = own;
+    }
+    ~SimpleRemoteControl() {}
+
+    void buttonWasPressed() {
+        slot->execute();
+    }
+};
+
+/**
+ * リモコンを使う簡単なテストを実施する。
+*/
+int test_SimpleRemoteControl() {
+    puts("--- test_SimpleRemoteControl");
+    try {
+        Light light;
+        LightCommand lightCmd(light);
+        SimpleRemoteControl control(lightCmd);
+        control.buttonWasPressed();
+        return 0;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return -1;
+    }
+}
+
 int main(void) {
     puts("START 6 章 Command パターン =========");
-    if(1) {
+    if(0) {
         double pi = 3.14159;
         ptr_lambda_debug<const char*,const double&>("pi is ",pi);
+    }
+    if(1.01) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_SimpleRemoteControl());
     }
     puts("========= 6 章 Command パターン END");
     return 0;
