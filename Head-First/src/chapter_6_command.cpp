@@ -6,6 +6,9 @@
  * 
  * 呼び出しのカプセル化
  * 
+ * Command パターンは、リクエストをオブジェクトとしてカプセル化し、その結果、他のオブジェクトを
+ * 様々なリクエスト、キュー、またはログリクエストでパラメータ化でき、アンドゥ可能な操作もサポートする。
+ * 
  * リモコン API をサンプルにする。
  * 7 つのスロットがあり、ON/OFF と最後に押されたものをUndo するボタンがある。
  * デバイスは任意で設定可能とする。
@@ -66,6 +69,22 @@ public:
         light.on();
     }
 };
+/**
+ * 照明を消すコマンドを実装する。
+*/
+class LightOffCommand final : public virtual Command {
+private: 
+    mutable Light light;
+    LightOffCommand() {}
+public:
+    LightOffCommand(const Light& l) {light = l;}
+    LightOffCommand(const LightOffCommand& own) {*this = own;}
+    ~LightOffCommand() {}
+
+    virtual void execute() const override {
+        light.off();
+    }
+};
 
 /**
  * ガレージドア
@@ -105,6 +124,8 @@ public:
 };
 
 /**
+ * リモコンクラス
+ * コマンドインタフェースのポインタをメンバ変数に持つ。
  * コマンドオブジェクトを使用する。
 */
 class SimpleRemoteControl {
@@ -140,6 +161,12 @@ int test_SimpleRemoteControl() {
         LightCommand lightCmd(*light);
         SimpleRemoteControl control(lightCmd);
         control.buttonWasPressed();
+
+        GarageDoor gd;
+        GarageDoorOpenCommand gdOpenCmd(gd);
+        control.setCommand(gdOpenCmd);
+        control.buttonWasPressed();
+
         delete light;
         return 0;
     } catch(exception& e) {
