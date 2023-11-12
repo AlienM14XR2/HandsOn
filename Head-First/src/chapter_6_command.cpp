@@ -32,6 +32,14 @@ public:
 };
 
 /**
+ * 未設定のスロットを表現する、何もしないコマンドクラス
+*/
+class NoCommand final : public virtual Command {
+public:
+    virtual void execute() const override {}
+};
+
+/**
  * 照明クラス
 */
 class Light {
