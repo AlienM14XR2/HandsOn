@@ -14,6 +14,7 @@
  * デバイスは任意で設定可能とする。
 */
 #include <iostream>
+#include <vector>
 
 using namespace std;
 
@@ -36,6 +37,9 @@ public:
 */
 class NoCommand final : public virtual Command {
 public:
+    ~NoCommand() {
+        ptr_lambda_debug<const char*,const int&>("DONE. NoCommand Destructor.",0);
+    }
     virtual void execute() const override {}
 };
 
@@ -183,6 +187,40 @@ int test_SimpleRemoteControl() {
     }
 }
 
+/**
+ * リモコンを実装する
+ * リモコンクラス
+*/
+class RemoteControl final {
+private:
+    vector<Command*> onCommands;
+    vector<Command*> offCommands;
+    Command* noCommand = nullptr;
+public:
+    RemoteControl() {
+        noCommand = new NoCommand();
+        for(size_t i = 0; i < 7; i++) {
+            onCommands.push_back(noCommand);
+            offCommands.push_back(noCommand);
+        }
+    }
+    RemoteControl(const RemoteControl& own) {*this = own;}
+    ~RemoteControl() {
+        delete noCommand;
+    }
+};
+
+int test_RemoteControl() {
+    puts("--- test_RemoteControl");
+    try {
+        RemoteControl control;
+        return 0;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return -1;
+    }
+}
+
 int main(void) {
     puts("START 6 章 Command パターン =========");
     if(0) {
@@ -191,6 +229,9 @@ int main(void) {
     }
     if(1.01) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_SimpleRemoteControl());
+    }
+    if(1.02) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_RemoteControl());
     }
     puts("========= 6 章 Command パターン END");
     return 0;
