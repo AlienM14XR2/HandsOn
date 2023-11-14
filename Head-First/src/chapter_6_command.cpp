@@ -207,7 +207,7 @@ private:
     mutable Stereo stereo;
     StereoOffCommand() {}
 public:
-    StereoOffCommand(const Stereo s) {stereo = s;}
+    StereoOffCommand(const Stereo& s) {stereo = s;}
     StereoOffCommand(const StereoOffCommand& own) {*this = own;}
     ~StereoOffCommand() {}
 
@@ -374,6 +374,23 @@ int test_RemoteControl_GarageDoor_Open_Close() {
     }
 }
 
+int test_RemoteControl_Stereo_On_Off() {
+    puts("--- test_RemoteControl_Stereo_On_Off");
+    try {
+        RemoteControl ctrl;
+        Stereo stereo;
+        StereoOnCommand onCmd(stereo);
+        StereoOffCommand offCmd(stereo);
+        ctrl.setCommand(0,&onCmd,&offCmd);
+        ctrl.onButtonWasPushed(0);
+        ctrl.offButtonWasPushed(0);
+        return 0;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return -1;
+    }
+}
+
 int main(void) {
     puts("START 6 章 Command パターン =========");
     if(0) {
@@ -391,6 +408,9 @@ int main(void) {
     }
     if(1.04) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_RemoteControl_GarageDoor_Open_Close());
+    }
+    if(1.05) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_RemoteControl_Stereo_On_Off());
     }
     puts("========= 6 章 Command パターン END");
     return 0;
