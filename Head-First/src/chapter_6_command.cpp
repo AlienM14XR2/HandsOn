@@ -30,6 +30,7 @@ class Command {
 public:
     virtual ~Command() {}
     virtual void execute() const = 0;
+    virtual void undo() const = 0;
 };
 
 /**
@@ -41,6 +42,9 @@ public:
         ptr_lambda_debug<const char*,const int&>("DONE. NoCommand Destructor.",0);
     }
     virtual void execute() const override {
+        ptr_lambda_debug<const char*,const int&>("none.",0);
+    }
+    virtual void undo() const override {
         ptr_lambda_debug<const char*,const int&>("none.",0);
     }
 };
@@ -82,6 +86,9 @@ public:
     virtual void execute() const override {
         light.on();
     }
+    virtual void undo() const override {
+        light.off();
+    }
 };
 /**
  * 照明を消すコマンドを実装する。
@@ -97,6 +104,9 @@ public:
 
     virtual void execute() const override {
         light.off();
+    }
+    virtual void undo() const override {
+        light.on();
     }
 };
 
@@ -123,17 +133,20 @@ public:
 */
 class GarageDoorOpenCommand final : public virtual Command {
 private:
-    mutable GarageDoor garadeDoor;
+    mutable GarageDoor garageDoor;
     GarageDoorOpenCommand() {}
 public:
     GarageDoorOpenCommand(const GarageDoor& gd) {
-        garadeDoor = gd;
+        garageDoor = gd;
     }
     GarageDoorOpenCommand(const GarageDoorOpenCommand& own) {*this = own;}
     ~GarageDoorOpenCommand() {}
 
     virtual void execute() const override {
-        garadeDoor.up();
+        garageDoor.up();
+    }
+    virtual void undo() const override {
+        garageDoor.down();
     }
 };
 /**
@@ -150,6 +163,9 @@ public:
 
     virtual void execute() const override {
         garageDoor.down();
+    }
+    virtual void undo() const override {
+        garageDoor.up();
     }
 };
 
@@ -200,6 +216,9 @@ public:
         stereo.setMusic();
         stereo.setVolume(36);
     }
+    virtual void undo() const override {
+        stereo.off();
+    }
 };
 
 class StereoOffCommand final : public virtual Command {
@@ -213,6 +232,11 @@ public:
 
     virtual void execute() const override {
         stereo.off();
+    }
+    virtual void undo() const override {
+        stereo.on();
+        stereo.setMusic();
+        stereo.setVolume(36);
     }
 };
 
