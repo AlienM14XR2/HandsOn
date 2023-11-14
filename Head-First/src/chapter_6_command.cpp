@@ -154,6 +154,43 @@ public:
 };
 
 /**
+ * ステレオ
+*/
+class Stereo final {
+private:
+    unsigned int volume = 0;
+public:
+    Stereo() {
+        volume = 18;
+    }
+    Stereo(const unsigned int& vol) {
+        volume = vol;
+    }
+    Stereo(const Stereo& own) {*this = own;}
+    ~Stereo() {
+        ptr_lambda_debug<const char*,const int>("DONE. Stereo Destructor.",0);
+    }
+
+    void on() {
+        ptr_lambda_debug<const char*,const int>("Stereo ON.",0);
+    }
+    void off() {
+        ptr_lambda_debug<const char*,const int>("Stereo OFF.",0);
+    }
+    void setVolume(const unsigned int& vol) {
+        volume = vol;
+    }
+    void setMusic() {   // これは本来は引数で音楽オブジェクトを受け付けるはず。
+        ptr_lambda_debug<const char*,const int>("Stereo start music.",0);
+    }
+
+};
+
+class StereoOnCommand final : public virtual Command {
+
+};
+
+/**
  * リモコンクラス
  * コマンドインタフェースのポインタをメンバ変数に持つ。
  * コマンドオブジェクトを使用する。
