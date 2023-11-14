@@ -318,6 +318,7 @@ public:
             onCommands.push_back(noCommand);
             offCommands.push_back(noCommand);
         }
+        undoCommand = noCommand;
     }
     RemoteControl(const RemoteControl& own) {*this = own;}
     ~RemoteControl() {
@@ -335,13 +336,18 @@ public:
         if(isCorrectRange(slot)) {
             Command* cmd = onCommands.at(slot);
             cmd->execute();
+            undoCommand = cmd;
         }
     }
     void offButtonWasPushed(const int& slot) {
         if(isCorrectRange(slot)) {
             Command* cmd = offCommands.at(slot);
             cmd->execute();
+            undoCommand = cmd;
         }
+    }
+    void undoButtonWasPushed() {
+        undoCommand->undo();
     }
 };
 
