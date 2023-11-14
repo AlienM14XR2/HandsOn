@@ -156,8 +156,8 @@ public:
 /**
  * ステレオ
 */
-class Stereo final {
-private:
+class Stereo {
+protected:
     unsigned int volume = 0;
 public:
     Stereo() {
@@ -180,14 +180,40 @@ public:
     void setVolume(const unsigned int& vol) {
         volume = vol;
     }
-    void setMusic() {   // これは本来は引数で音楽オブジェクトを受け付けるはず。
+    void setMusic() {   // これは事前に音楽オブジェクトを受け付ける必要があるはず。
         ptr_lambda_debug<const char*,const int>("Stereo start music.",0);
     }
 
 };
 
 class StereoOnCommand final : public virtual Command {
+private:
+    mutable Stereo stereo;
+    StereoOnCommand() {}
+public:
+    StereoOnCommand(const Stereo& s) {stereo = s;}
+    StereoOnCommand(const StereoOnCommand& own) {*this = own;}
+    ~StereoOnCommand() {}
 
+    virtual void execute() const override {
+        stereo.on();
+        stereo.setMusic();
+        stereo.setVolume(36);
+    }
+};
+
+class StereoOffCommand final : public virtual Command {
+private:
+    mutable Stereo stereo;
+    StereoOffCommand() {}
+public:
+    StereoOffCommand(const Stereo s) {stereo = s;}
+    StereoOffCommand(const StereoOffCommand& own) {*this = own;}
+    ~StereoOffCommand() {}
+
+    virtual void execute() const override {
+        stereo.off();
+    }
 };
 
 /**
