@@ -136,6 +136,22 @@ public:
         garadeDoor.up();
     }
 };
+/**
+ * ガレージドア・クローズコマンド
+*/
+class GarageDoorCloseCommand final : public virtual Command {
+private:
+    mutable GarageDoor garageDoor;
+    GarageDoorCloseCommand() {}
+public:
+    GarageDoorCloseCommand(const GarageDoor& gd) {garageDoor = gd;}
+    GarageDoorCloseCommand(const GarageDoorCloseCommand& own) {*this = own;}
+    ~GarageDoorCloseCommand() {}
+
+    virtual void execute() const override {
+        garageDoor.down();
+    }
+};
 
 /**
  * リモコンクラス
@@ -278,6 +294,23 @@ int test_RemoteControl_Light_On_Off() {
     }
 }
 
+int test_RemoteControl_GarageDoor_Open_Close() {
+    puts("--- test_RemoteControl_GarageDoor_Open_Close");
+    try {
+        RemoteControl control;
+        GarageDoor gd;
+        GarageDoorOpenCommand openCmd(gd);
+        GarageDoorCloseCommand closeCmd(gd);
+        control.setCommand(1,&openCmd,&closeCmd);
+        control.onButtonWasPushed(1);
+        control.offButtonWasPushed(1);
+        return 0;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return -1;
+    }
+}
+
 int main(void) {
     puts("START 6 章 Command パターン =========");
     if(0) {
@@ -292,6 +325,9 @@ int main(void) {
     }
     if(1.03) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_RemoteControl_Light_On_Off());
+    }
+    if(1.04) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_RemoteControl_GarageDoor_Open_Close());
     }
     puts("========= 6 章 Command パターン END");
     return 0;
