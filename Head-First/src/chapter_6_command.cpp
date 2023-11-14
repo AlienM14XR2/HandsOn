@@ -422,6 +422,37 @@ int test_RemoteControl_Stereo_On_Off() {
     }
 }
 
+int test_RemoteControl_Devices() {
+    puts("--- test_RemoteControl_Devices");
+    try {
+        RemoteControl ctrl;
+        // ライト
+        Light light;
+        LightCommand lightCmd(light);
+        LightOffCommand lightOffCmd(light);
+        ctrl.setCommand(0,&lightCmd,&lightOffCmd);
+       // ガレージ
+        GarageDoor gd;
+        GarageDoorOpenCommand openCmd(gd);
+        GarageDoorCloseCommand closeCmd(gd);
+        ctrl.setCommand(1,&openCmd,&closeCmd);
+        // ステレオ
+        Stereo stereo;
+        StereoOnCommand onCmd(stereo);
+        StereoOffCommand offCmd(stereo);
+        ctrl.setCommand(2,&onCmd,&offCmd);
+
+        ctrl.onButtonWasPushed(0);
+        ctrl.onButtonWasPushed(1);
+        ctrl.onButtonWasPushed(2);
+        ctrl.undoButtonWasPushed();     // ステレオがOFF になるはず。      
+        return 0;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return -1;
+    }
+}
+
 int main(void) {
     puts("START 6 章 Command パターン =========");
     if(0) {
@@ -442,6 +473,9 @@ int main(void) {
     }
     if(1.05) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_RemoteControl_Stereo_On_Off());
+    }
+    if(1.06) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_RemoteControl_Devices());
     }
     puts("========= 6 章 Command パターン END");
     return 0;
