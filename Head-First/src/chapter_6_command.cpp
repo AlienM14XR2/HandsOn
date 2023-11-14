@@ -261,6 +261,23 @@ int test_RemoteControl() {
     }
 }
 
+int test_RemoteControl_Light_On_Off() {
+    puts("--- test_RemoteControl_Light_On_Off");
+    try {
+        RemoteControl control;
+        Light light;
+        LightCommand lightCmd(light);
+        LightOffCommand lightOffCmd(light);
+        control.setCommand(0,&lightCmd,&lightOffCmd);
+        control.onButtonWasPushed(0);
+        control.offButtonWasPushed(0);
+        return 0;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return -1;
+    }
+}
+
 int main(void) {
     puts("START 6 章 Command パターン =========");
     if(0) {
@@ -272,6 +289,9 @@ int main(void) {
     }
     if(1.02) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_RemoteControl());
+    }
+    if(1.03) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_RemoteControl_Light_On_Off());
     }
     puts("========= 6 章 Command パターン END");
     return 0;
