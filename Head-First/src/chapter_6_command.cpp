@@ -301,6 +301,7 @@ private:
     vector<Command*> onCommands;
     vector<Command*> offCommands;
     Command* noCommand = nullptr;
+    Command* undoCommand = nullptr;     // アンドゥボタン用に、最後に実行したコマンドを格納する。
 
     bool isCorrectRange(const int& slot) {
         if(slot >= 0 && slot < 7) {
