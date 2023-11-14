@@ -40,7 +40,9 @@ public:
     ~NoCommand() {
         ptr_lambda_debug<const char*,const int&>("DONE. NoCommand Destructor.",0);
     }
-    virtual void execute() const override {}
+    virtual void execute() const override {
+        ptr_lambda_debug<const char*,const int&>("none.",0);
+    }
 };
 
 /**
@@ -196,6 +198,15 @@ private:
     vector<Command*> onCommands;
     vector<Command*> offCommands;
     Command* noCommand = nullptr;
+
+    bool isCorrectRange(const int& slot) {
+        if(slot >= 0 && slot < 7) {
+            return true;
+        } else {
+            ptr_lambda_debug<const char*,const int&>("slot is out of range.",0);
+            return false;
+        } 
+    }
 public:
     RemoteControl() {
         noCommand = new NoCommand();
@@ -208,12 +219,41 @@ public:
     ~RemoteControl() {
         delete noCommand;
     }
+
+    void setCommand(const int& slot, Command* onCmd, Command* offCmd) {
+        // TODO vector の使い方の調査
+        if(isCorrectRange(slot)) {
+            onCommands[slot] = onCmd;
+            offCommands[slot] = offCmd;
+        }
+    }
+    void onButtonWasPushed(const int& slot) {
+        if(isCorrectRange(slot)) {
+            Command* cmd = onCommands.at(slot);
+            cmd->execute();
+        }
+    }
+    void offButtonWasPushed(const int& slot) {
+        if(isCorrectRange(slot)) {
+            Command* cmd = offCommands.at(slot);
+            cmd->execute();
+        }
+    }
 };
 
 int test_RemoteControl() {
     puts("--- test_RemoteControl");
     try {
         RemoteControl control;
+        control.onButtonWasPushed(-1);
+        control.onButtonWasPushed(0);
+        control.onButtonWasPushed(6);
+        control.onButtonWasPushed(7);
+
+        control.offButtonWasPushed(-1);
+        control.offButtonWasPushed(0);
+        control.offButtonWasPushed(6);
+        control.offButtonWasPushed(7);
         return 0;
     } catch(exception& e) {
         cout << e.what() << endl;
