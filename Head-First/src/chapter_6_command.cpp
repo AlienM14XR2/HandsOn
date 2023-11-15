@@ -287,6 +287,21 @@ public:
     }
 };
 
+class CeilingFanSpeedChecker {
+public:
+    void undoCheckAndExecute(const int& prevSpeed, CeilingFan* ceilingFan) {
+        if( prevSpeed == ceilingFan->getHigh() ) {
+            ceilingFan->high();
+        } else if( prevSpeed == ceilingFan->getMedium() ) {
+            ceilingFan->medium();
+        } else if( prevSpeed == ceilingFan->getLow() ) {
+            ceilingFan->low();
+        } else if(prevSpeed == ceilingFan->getOff()) {
+            ceilingFan->off();
+        }
+    }
+};
+
 /**
  * シーリングファンをHigh 設定にする。
 */
@@ -294,6 +309,7 @@ class CeilingFanHighCommand final : public virtual Command {
 private:
     mutable CeilingFan ceilingFan;
     mutable int prevSpeed = 0;
+    mutable CeilingFanSpeedChecker checker;
     CeilingFanHighCommand() {}
 public:
     CeilingFanHighCommand(const CeilingFan& cfan) {
@@ -307,16 +323,7 @@ public:
         ceilingFan.high();
     }
     virtual void undo() const override {
-        // このままだと DRY 原則に違反するな：）
-        if( prevSpeed == ceilingFan.getHigh() ) {
-            ceilingFan.high();
-        } else if( prevSpeed == ceilingFan.getMedium() ) {
-            ceilingFan.medium();
-        } else if( prevSpeed == ceilingFan.getLow() ) {
-            ceilingFan.low();
-        } else if(prevSpeed == ceilingFan.getOff()) {
-            ceilingFan.off();
-        }
+        checker.undoCheckAndExecute(prevSpeed,&ceilingFan);
     }
 };
 
