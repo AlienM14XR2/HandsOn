@@ -326,10 +326,73 @@ public:
         checker.undoCheckAndExecute(prevSpeed,&ceilingFan);
     }
 };
-
 /**
- * TODO シーリングファンをMedium Low Off に設定にする、各コマンドクラスを実装すること。
+ * シーリングファンをMedium Low Off に設定にする、各コマンドクラスを実装すること。
+ * DONE.
 */
+class CeilingFanMediumCommand final : public virtual Command {
+private:
+    mutable CeilingFan ceilingFan;
+    mutable int prevSpeed = 0;
+    mutable CeilingFanSpeedChecker checker;
+    CeilingFanMediumCommand() {}
+public:
+    CeilingFanMediumCommand(const CeilingFan cfan) {
+        ceilingFan = cfan;
+    }
+    CeilingFanMediumCommand(const CeilingFanMediumCommand& own) {*this = own;}
+    ~CeilingFanMediumCommand() {}
+
+    virtual void execute() const override {
+        prevSpeed = ceilingFan.getSpeed();
+        ceilingFan.medium();
+    }
+    virtual void undo() const override {
+        checker.undoCheckAndExecute(prevSpeed,&ceilingFan);
+    }
+};
+
+class CeilingFanLowCommand final : public virtual Command {
+private:
+    mutable CeilingFan ceilingFan;
+    mutable int prevSpeed = 0;
+    mutable CeilingFanSpeedChecker checker;
+    CeilingFanLowCommand() {}
+public:
+    CeilingFanLowCommand(const CeilingFan& cfan) {
+        ceilingFan = cfan;
+    }
+    CeilingFanLowCommand(const CeilingFanLowCommand& own) {*this = own;}
+    ~CeilingFanLowCommand() {}
+
+    virtual void execute() const override {
+        prevSpeed = ceilingFan.getSpeed();
+        ceilingFan.low();
+    }
+    virtual void undo() const override {
+        checker.undoCheckAndExecute(prevSpeed,&ceilingFan);
+    }
+};
+
+class CeilingFanOffCommand final : public virtual Command {
+private:
+    mutable CeilingFan ceilingFan;
+    mutable int prevSpeed = 0;
+    mutable CeilingFanSpeedChecker checker;
+    CeilingFanOffCommand() {}
+public:
+    CeilingFanOffCommand(const CeilingFan& cfan) {ceilingFan = cfan;}
+    CeilingFanOffCommand(const CeilingFanOffCommand& own) {*this = own;}
+    ~CeilingFanOffCommand() {}
+
+    virtual void execute() const override {
+        prevSpeed = ceilingFan.getSpeed();
+        ceilingFan.off();
+    }
+    virtual void undo() const override {
+        checker.undoCheckAndExecute(prevSpeed,&ceilingFan);
+    }
+};
 
 /**
  * リモコンクラス
