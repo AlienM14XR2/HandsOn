@@ -250,12 +250,28 @@ public:
         HIGH   = 3;
         MEDIUM = 2;
         LOW    = 1;
+        speed  = 0;
     }
     CeilingFan(const CeilingFan& own) {
         *this = own;
     }
     ~CeilingFan() {
         ptr_lambda_debug<const char*,const int>("DONE. CeilingFan Destructor.",0);
+    }
+    void high() noexcept {
+        speed = HIGH;
+    }
+    void medium() noexcept {
+        speed = MEDIUM;
+    }
+    void low() noexcept {
+        speed = LOW;
+    }
+    void off() noexcept {
+        speed = OFF;
+    }
+    int& getSpeed() noexcept {
+        return speed;
     }
 };
 
