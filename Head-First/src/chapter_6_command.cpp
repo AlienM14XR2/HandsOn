@@ -273,6 +273,15 @@ public:
     int& getSpeed() noexcept {
         return speed;
     }
+    int& getHigh() noexcept {
+        return HIGH;
+    }
+    int& getMedium() noexcept {
+        return MEDIUM;
+    }
+    int& getLow() noexcept {
+        return LOW;
+    }
 };
 
 /**
