@@ -240,6 +240,25 @@ public:
     }
 };
 
+class CeilingFan {
+private:
+    int HIGH = -1, MEDIUM = -1, LOW = -1, OFF = 0;
+    string location;
+    int speed = -1;
+public:
+    CeilingFan() {
+        HIGH   = 3;
+        MEDIUM = 2;
+        LOW    = 1;
+    }
+    CeilingFan(const CeilingFan& own) {
+        *this = own;
+    }
+    ~CeilingFan() {
+        ptr_lambda_debug<const char*,const int>("DONE. CeilingFan Destructor.",0);
+    }
+};
+
 /**
  * リモコンクラス
  * コマンドインタフェースのポインタをメンバ変数に持つ。
