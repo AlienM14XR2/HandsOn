@@ -54,8 +54,11 @@ public:
  * 照明クラス
 */
 class Light {
+private:
+    string place;
 public:
     Light() {}
+    Light(const string& p) {place = p;}
     Light(const Light& own) {*this = own;}
     ~Light() {
         ptr_lambda_debug<const char*,const int&>("DONE. Light Destructor.",0);
@@ -176,10 +179,12 @@ public:
 class Stereo {
 protected:
     unsigned int volume = 0;
+    string place;
 public:
     Stereo() {
         volume = 18;
     }
+    Stereo(const string& p) {place = p;}
     Stereo(const unsigned int& vol) {
         volume = vol;
     }
