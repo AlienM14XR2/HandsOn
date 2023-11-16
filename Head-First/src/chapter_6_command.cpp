@@ -15,6 +15,7 @@
 */
 #include <iostream>
 #include <vector>
+#include <cassert>
 
 using namespace std;
 
@@ -118,7 +119,7 @@ public:
     GarageDoor() {}
     GarageDoor(const GarageDoor& own) {*this = own;}
     ~GarageDoor() {
-        ptr_lambda_debug<const char*,const int>("DONE. GarageDoor Destructor.",0);
+        ptr_lambda_debug<const char*,const int&>("DONE. GarageDoor Destructor.",0);
     }
     void up() {
         puts("Open GarageDoor.");
@@ -184,20 +185,20 @@ public:
     }
     Stereo(const Stereo& own) {*this = own;}
     ~Stereo() {
-        ptr_lambda_debug<const char*,const int>("DONE. Stereo Destructor.",0);
+        ptr_lambda_debug<const char*,const int&>("DONE. Stereo Destructor.",0);
     }
 
     void on() {
-        ptr_lambda_debug<const char*,const int>("Stereo ON.",0);
+        ptr_lambda_debug<const char*,const int&>("Stereo ON.",0);
     }
     void off() {
-        ptr_lambda_debug<const char*,const int>("Stereo OFF.",0);
+        ptr_lambda_debug<const char*,const int&>("Stereo OFF.",0);
     }
     void setVolume(const unsigned int& vol) {
         volume = vol;
     }
     void setMusic() {   // これは事前に音楽オブジェクトを受け付ける必要があるはず。
-        ptr_lambda_debug<const char*,const int>("Stereo start music.",0);
+        ptr_lambda_debug<const char*,const int&>("Stereo start music.",0);
     }
 
 };
@@ -256,19 +257,23 @@ public:
         *this = own;
     }
     ~CeilingFan() {
-        ptr_lambda_debug<const char*,const int>("DONE. CeilingFan Destructor.",0);
+        ptr_lambda_debug<const char*,const int&>("DONE. CeilingFan Destructor.",0);
     }
     void high() noexcept {
         speed = HIGH;
+        ptr_lambda_debug<const char*,const int&>("speed is ",HIGH);
     }
     void medium() noexcept {
         speed = MEDIUM;
+        ptr_lambda_debug<const char*,const int&>("speed is ",MEDIUM);
     }
     void low() noexcept {
         speed = LOW;
+        ptr_lambda_debug<const char*,const int&>("speed is ",LOW);
     }
     void off() noexcept {
         speed = OFF;
+        ptr_lambda_debug<const char*,const int&>("speed is ",OFF);
     }
     int& getSpeed() noexcept {
         return speed;
@@ -307,23 +312,23 @@ public:
 */
 class CeilingFanHighCommand final : public virtual Command {
 private:
-    mutable CeilingFan ceilingFan;
+    mutable CeilingFan* ceilingFan;
     mutable int prevSpeed = 0;
     mutable CeilingFanSpeedChecker checker;
     CeilingFanHighCommand() {}
 public:
-    CeilingFanHighCommand(const CeilingFan& cfan) {
+    CeilingFanHighCommand(CeilingFan* cfan) {
         ceilingFan = cfan;
     }
     CeilingFanHighCommand(const CeilingFanHighCommand& own) {*this = own;}
     ~CeilingFanHighCommand() {}
 
     virtual void execute() const override {
-        prevSpeed = ceilingFan.getSpeed();
-        ceilingFan.high();
+        prevSpeed = ceilingFan->getSpeed();
+        ceilingFan->high();
     }
     virtual void undo() const override {
-        checker.undoCheckAndExecute(prevSpeed,&ceilingFan);
+        checker.undoCheckAndExecute(prevSpeed,ceilingFan);
     }
 };
 /**
@@ -332,65 +337,65 @@ public:
 */
 class CeilingFanMediumCommand final : public virtual Command {
 private:
-    mutable CeilingFan ceilingFan;
+    mutable CeilingFan* ceilingFan;
     mutable int prevSpeed = 0;
     mutable CeilingFanSpeedChecker checker;
     CeilingFanMediumCommand() {}
 public:
-    CeilingFanMediumCommand(const CeilingFan cfan) {
+    CeilingFanMediumCommand(CeilingFan* cfan) {
         ceilingFan = cfan;
     }
     CeilingFanMediumCommand(const CeilingFanMediumCommand& own) {*this = own;}
     ~CeilingFanMediumCommand() {}
 
     virtual void execute() const override {
-        prevSpeed = ceilingFan.getSpeed();
-        ceilingFan.medium();
+        prevSpeed = ceilingFan->getSpeed();
+        ceilingFan->medium();
     }
     virtual void undo() const override {
-        checker.undoCheckAndExecute(prevSpeed,&ceilingFan);
+        checker.undoCheckAndExecute(prevSpeed,ceilingFan);
     }
 };
 
 class CeilingFanLowCommand final : public virtual Command {
 private:
-    mutable CeilingFan ceilingFan;
+    mutable CeilingFan* ceilingFan;
     mutable int prevSpeed = 0;
     mutable CeilingFanSpeedChecker checker;
     CeilingFanLowCommand() {}
 public:
-    CeilingFanLowCommand(const CeilingFan& cfan) {
+    CeilingFanLowCommand(CeilingFan* cfan) {
         ceilingFan = cfan;
     }
     CeilingFanLowCommand(const CeilingFanLowCommand& own) {*this = own;}
     ~CeilingFanLowCommand() {}
 
     virtual void execute() const override {
-        prevSpeed = ceilingFan.getSpeed();
-        ceilingFan.low();
+        prevSpeed = ceilingFan->getSpeed();
+        ceilingFan->low();
     }
     virtual void undo() const override {
-        checker.undoCheckAndExecute(prevSpeed,&ceilingFan);
+        checker.undoCheckAndExecute(prevSpeed,ceilingFan);
     }
 };
 
 class CeilingFanOffCommand final : public virtual Command {
 private:
-    mutable CeilingFan ceilingFan;
+    mutable CeilingFan* ceilingFan;
     mutable int prevSpeed = 0;
     mutable CeilingFanSpeedChecker checker;
     CeilingFanOffCommand() {}
 public:
-    CeilingFanOffCommand(const CeilingFan& cfan) {ceilingFan = cfan;}
+    CeilingFanOffCommand(CeilingFan* cfan) {ceilingFan = cfan;}
     CeilingFanOffCommand(const CeilingFanOffCommand& own) {*this = own;}
     ~CeilingFanOffCommand() {}
 
     virtual void execute() const override {
-        prevSpeed = ceilingFan.getSpeed();
-        ceilingFan.off();
+        prevSpeed = ceilingFan->getSpeed();
+        ceilingFan->off();
     }
     virtual void undo() const override {
-        checker.undoCheckAndExecute(prevSpeed,&ceilingFan);
+        checker.undoCheckAndExecute(prevSpeed,ceilingFan);
     }
 };
 
@@ -607,6 +612,39 @@ int test_RemoteControl_Devices() {
     }
 }
 
+int test_RemoteControl_CeilingFan() {
+    puts("--- test_RemoteControl_CeilingFan");
+    try {
+        RemoteControl ctrl;
+
+        // シーリングファン
+        CeilingFan cfan;
+        CeilingFanHighCommand cfanHighCmd(&cfan);
+        CeilingFanMediumCommand cfanMediumCmd(&cfan);
+        CeilingFanLowCommand cfanLowCmd(&cfan);
+        CeilingFanOffCommand cfanOffCmd(&cfan);
+        ctrl.setCommand(0,&cfanLowCmd,&cfanOffCmd);
+        ctrl.setCommand(1,&cfanMediumCmd,&cfanOffCmd);
+        ctrl.setCommand(2,&cfanHighCmd,&cfanOffCmd);
+
+        // テストがもっと分かりやすいように、次の各メソッドは戻り値を戻す方がいいかもしれない。
+        ctrl.onButtonWasPushed(0);  // Low 設定を実行する。     ... 1
+        assert(cfan.getSpeed() == 1);
+        ctrl.onButtonWasPushed(1);  // Medium 設定を実行する。  ... 2
+        assert(cfan.getSpeed() == 2);
+        ctrl.onButtonWasPushed(2);  // High 設定を実行する。    ... 3
+        assert(cfan.getSpeed() == 3);
+        ctrl.undoButtonWasPushed(); // Medium に戻る。          ... 2
+        assert(cfan.getSpeed() == 2);
+        ctrl.offButtonWasPushed(0); // Off 設定を実行する。     ... 0
+        assert(cfan.getSpeed() == 0);
+        return 0;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return -1;
+    }
+}
+
 int main(void) {
     puts("START 6 章 Command パターン =========");
     if(0) {
@@ -630,6 +668,9 @@ int main(void) {
     }
     if(1.06) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_RemoteControl_Devices());
+    }
+    if(1.07) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_RemoteControl_CeilingFan());
     }
     puts("========= 6 章 Command パターン END");
     return 0;
