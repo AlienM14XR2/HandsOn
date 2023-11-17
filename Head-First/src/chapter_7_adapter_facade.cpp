@@ -23,6 +23,7 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
 */
 class Duck {
 public:
+    virtual ~Duck() {}
     virtual void quack() const = 0;
     virtual void fly() const = 0; 
 };
@@ -45,6 +46,12 @@ public:
  * Turkey インタフェース
  * 新しく追加されたもの
 */
+class Turkey {
+public:
+    virtual ~Turkey() {}
+    virtual void gobble() const = 0;    // 七面鳥はガーガーとは鳴かずに、ゴロゴロと鳴きます（gobble）
+    virtual void fly() const = 0;       // 七面鳥は飛べますが、短い距離しか飛べません。
+};
 
 int main(void) {
     puts("START 7 章 Adapter パターンと Facade パターン ===");
