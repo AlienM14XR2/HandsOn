@@ -5,6 +5,9 @@
  * 
  * Strategy パターン（1 章）で登場した Duck インタフェースとカモクラスの簡易版を利用する。
  * 
+ * カモのように歩き、カモのようにガーガー鳴くものがいたら、それはカモに違いない（打ち消し）
+ * カモアダプタでラップされた七面鳥かもしれない。
+ * 
  * e.g. compile
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_7_adapter_facade.cpp -o ../bin/main
 */
@@ -104,6 +107,39 @@ int test_MallardDuck_WildTurkey() {
  * しかし、当然七面鳥は別インタフェースを持っているので、そのまま使うことはできない。
  * そこで、アダプタを書くのです。
 */
+class TurkeyAdapter final : public virtual Duck {
+private:
+    mutable Turkey* turkey = nullptr;
+    TurkeyAdapter() {}
+public:
+    TurkeyAdapter(Turkey& t) {turkey = &t;}
+    TurkeyAdapter(const TurkeyAdapter& own) {*this = own;}
+    ~TurkeyAdapter() {}
+
+    virtual void quack() const override {
+        turkey->gobble();
+    }
+    virtual void fly() const override {   // 短い距離しか飛べない七面鳥はループで 5 回羽ばたく必要がある（とした場合：）。
+        for(size_t i = 0; i < 5; i++) {
+            turkey->fly();
+        }
+    }
+};
+
+int test_TurkeyAdapter() {
+    puts("--- test_TurkeyAdapter");
+    try {
+        WildTurkey wildTurkey;
+        TurkeyAdapter adapter(wildTurkey);
+        adapter.quack();
+        adapter.fly();
+        return 0;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return -1;
+    }
+}
+
 
 int main(void) {
     puts("START 7 章 Adapter パターンと Facade パターン ===");
@@ -113,6 +149,9 @@ int main(void) {
     }
     if(1.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_MallardDuck_WildTurkey());
+    }
+    if(1.01) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_TurkeyAdapter());
     }
     puts("=== 7 章 Adapter パターンと Facade パターン END");
     return 0;
