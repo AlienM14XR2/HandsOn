@@ -126,6 +126,19 @@ public:
     }
 };
 
+/**
+ * クライアントは次のようにアダプタを使う。
+ * 
+ * クライアントがターゲットインタフェース（この場合はDuck）を使ってアダプタのメソッド
+ * を呼び出し、アダプタにリクエストを行う
+ * 
+ * アダプタは、アダプティインタフェース（Turkey）を使ってリクエスをアダプティに
+ * 1 つ以上の呼び出しに変換する。
+ * 
+ * クライアントは呼び出し結果を受け取るが、変換を行ったアダプタの存在については
+ * 全く関知しない。
+ * 
+*/
 int test_TurkeyAdapter() {
     puts("--- test_TurkeyAdapter");
     try {
@@ -140,6 +153,27 @@ int test_TurkeyAdapter() {
     }
 }
 
+/**
+ * Duck を Turkey に変換する、DuckAdapter が必要という問題。
+ * ※Turkey より長く飛ぶ Duck をどのようにコーディングするかという問がある。
+ * 私なら、Duck を使わずにアダプタのfly() でオーバーライドしたものを使う（コンポジットされたDuck のfly() を呼ばない）。
+*/
+class DuckAdapter final : public virtual Turkey {
+private:
+    mutable Duck* duck = nullptr;
+    DuckAdapter() {}
+public:
+    DuckAdapter(Duck& d) {duck = &d;}
+    DuckAdapter(const DuckAdapter& own) {*this = own;}
+    ~DuckAdapter() {}
+
+    virtual void gobble() const override {
+        duck->quack();
+    }
+    virtual void fly() const override {
+        puts("短い距離しか飛べないようにした：）");
+    }
+};
 
 int main(void) {
     puts("START 7 章 Adapter パターンと Facade パターン ===");
