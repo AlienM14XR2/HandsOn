@@ -175,6 +175,20 @@ public:
     }
 };
 
+int test_DuckAdapter() {
+    puts("--- test_DuckAdapter");
+    try {
+        MallardDuck mallardDuck;
+        DuckAdapter adapter(mallardDuck);
+        adapter.gobble();
+        adapter.fly();
+        return 0;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return -1;
+    }
+}
+
 int main(void) {
     puts("START 7 章 Adapter パターンと Facade パターン ===");
     if('d') {
@@ -186,6 +200,9 @@ int main(void) {
     }
     if(1.01) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_TurkeyAdapter());
+    }
+    if(1.02) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_DuckAdapter());
     }
     puts("=== 7 章 Adapter パターンと Facade パターン END");
     return 0;
