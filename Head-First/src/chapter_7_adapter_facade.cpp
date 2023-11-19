@@ -217,6 +217,46 @@ int test_DuckAdapter() {
     }
 }
 
+/**
+ * ここまでのサンプルは「オブジェクトアダプタ」と呼ばれるものであり
+ * Adapter パターンには「クラスアダプタ」と呼ばれるものもある。
+ * 
+ * オブジェクトアダプタはターゲットインタフェースを実装し、アダプタはアダプティで構成される。
+ * オブジェクトコンポジションを使い、異なるインタフェースでアダプティをラップする。
+ * 
+ * クラスアダプタは多重継承を使い表現される（以前学習した際はこっちをやったと思う、C++ は多重継承できるから：）。
+*/
+class DuckTurkeyAdapter final : public virtual Duck, public virtual Turkey {
+public:
+    DuckTurkeyAdapter() {}
+    DuckTurkeyAdapter(const DuckTurkeyAdapter& own) {*this = own;}
+    ~DuckTurkeyAdapter() {}
+
+    virtual void quack() const override {
+        puts("ガーガー（新規作成：）");
+    }
+    virtual void gobble() const override {
+        puts("ゴロゴロ（新規作成：）");
+    }
+    virtual void fly() const override {
+        puts("どのように飛ぶかは自由だ：）");
+    }
+};
+
+int test_DuckTurkeyAdapter() {
+    puts("--- test_DuckTurkeyAdapter");
+    try {
+        DuckTurkeyAdapter adapter;
+        adapter.quack();
+        adapter.gobble();
+        adapter.fly();
+        return 0;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return -1;
+    }
+}
+
 int main(void) {
     puts("START 7 章 Adapter パターンと Facade パターン ===");
     if('d') {
@@ -233,6 +273,9 @@ int main(void) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_DuckAdapter());
         int n = test_random(5);
         ptr_lambda_debug<const char*,const int&>("n is ",n);
+    }
+    if(1.03) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_DuckTurkeyAdapter());
     }
     puts("=== 7 章 Adapter パターンと Facade パターン END");
     return 0;
