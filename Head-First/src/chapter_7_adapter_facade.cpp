@@ -12,6 +12,7 @@
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_7_adapter_facade.cpp -o ../bin/main
 */
 #include <iostream>
+#include <random>
 #include <cassert>
 
 using namespace std;
@@ -153,6 +154,28 @@ int test_TurkeyAdapter() {
     }
 }
 
+int test_random(unsigned int pattern) {
+    puts("--- test_random");
+    // メルセンヌ・ツイスター法による擬似乱数生成器を、
+    // ハードウェア乱数をシードにして初期化
+    std::random_device seed_gen;
+    std::mt19937 engine(seed_gen());
+    // 一様実数分布
+    // [-1.0, 1.0)の値の範囲で、等確率に実数を生成する
+    std::uniform_real_distribution<> dist1(-1.0, 1.0);
+    double r1 = dist1(engine);
+    cout << r1 << endl;
+
+    int n = (r1*10);
+    cout << n << endl;
+    int a = n%pattern;
+    if(a < 0) {
+        a *= -1;
+    }
+    cout << a << endl;
+    return a;    
+}
+
 /**
  * Duck を Turkey に変換する、DuckAdapter が必要という問題。
  * ※Turkey より長く飛ぶ Duck をどのようにコーディングするかという問がある。
@@ -172,6 +195,11 @@ public:
     }
     virtual void fly() const override {
         puts("短い距離しか飛べないようにした：）");
+        /**
+         * サンプルの答えは上記のようなランダム関数より、５回に一回しか飛ばないように調節して
+         * 意地でも duck の fly() を利用していた：）
+         * 結局オーバーライドするのだから、利用しなければ良いと私は思ったのだがね：）
+         * */
     }
 };
 
@@ -203,6 +231,8 @@ int main(void) {
     }
     if(1.02) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_DuckAdapter());
+        int n = test_random(5);
+        ptr_lambda_debug<const char*,const int&>("n is ",n);
     }
     puts("=== 7 章 Adapter パターンと Facade パターン END");
     return 0;
