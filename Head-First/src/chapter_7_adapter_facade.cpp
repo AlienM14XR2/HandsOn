@@ -264,6 +264,37 @@ int test_DuckTurkeyAdapter() {
  * - Enumeration インタフェース
  * - Enumeration アダプタ（EnumerationIterator）
 */
+template<class T>
+class Iterator {
+public:
+    virtual ~Iterator() {}
+    virtual bool hasNext() const = 0;
+    virtual T next() const = 0;
+    virtual int remove() = 0;
+};
+
+template<class T>
+class Enumeration {
+public:
+    ~Enumeration() {}
+    virtual bool hasMoreElements() const = 0;
+    virtual T nextElement() const = 0;
+};
+
+template<class T>
+class EnumerationIterator final : public virtual Iterator<T> {
+public:
+    ~EnumerationIterator() {}
+    virtual bool hasNext() const override {
+        return false;
+    }
+    virtual T next() const override {
+        return NULL;
+    }
+    virtual int remove() const override {
+        return -1;
+    }
+};
 
 int main(void) {
     puts("START 7 章 Adapter パターンと Facade パターン ===");
