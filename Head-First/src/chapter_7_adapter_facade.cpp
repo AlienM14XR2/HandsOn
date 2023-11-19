@@ -257,6 +257,14 @@ int test_DuckTurkeyAdapter() {
     }
 }
 
+/**
+ * 次の課題を C++ で書いてみる。
+ * 列挙（Enumeration）を反復（Iterator）に適合させる。
+ * - Iterator インタフェース
+ * - Enumeration インタフェース
+ * - Enumeration アダプタ（EnumerationIterator）
+*/
+
 int main(void) {
     puts("START 7 章 Adapter パターンと Facade パターン ===");
     if('d') {
