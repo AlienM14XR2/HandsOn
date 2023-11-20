@@ -283,14 +283,26 @@ public:
 
 template<class T>
 class EnumerationIterator final : public virtual Iterator<T> {
+private:
+    Enumeration<T>* enumeration = nullptr;
+    EnumerationIterator():enumeration{nullptr} {}
 public:
+    EnumerationIterator(Enumeration<T>& e) {
+        enumeration = &e;
+    }
     ~EnumerationIterator() {}
     virtual bool hasNext() const override {
-        return false;
+        return enumeration->hasMoreElements();
     }
     virtual T next() const override {
-        return NULL;
+        return enumeration->nextElement();
     }
+    /**
+     * Enumeration はremove() をサポートしていない。
+     * 「読み取り専用」インタフェースの Enueration に、アダプタで完全に機能 remove() 
+     * を実装する方法はない、Java ならその旨を表現したException を throw する。
+     * C++ でもできるはず。
+    */
     virtual int remove() const override {
         return -1;
     }
