@@ -14,6 +14,7 @@
 #include <iostream>
 #include <random>
 #include <cassert>
+#include <vector>
 
 using namespace std;
 
@@ -281,6 +282,24 @@ public:
     virtual T nextElement() const = 0;
 };
 
+class Integer final {
+private:
+    int value = 0;
+public:
+    Integer() {}
+    Integer(const Integer& own) {*this = own;}
+    ~Integer() {}
+    int getValue() noexcept {return value;}
+    void setValue(const int& n) noexcept {value = n;}
+};
+
+class IntegerEnum final : public virtual Enumeration<Integer*> {
+private:
+    vector<Integer*> array;
+public:
+    // コンストラクタは少し工夫したい、考える時間がほしい。
+};
+
 template<class T>
 class EnumerationIterator final : public virtual Iterator<T> {
 private:
@@ -304,9 +323,20 @@ public:
      * C++ でもできるはず。
     */
     virtual int remove() const override {
-        return -1;
+        throw runtime_error("Error:  Unsupported Operation.");
     }
 };
+
+int test_EnumerationIterator() {
+    puts("--- test_EnumerationIterator");
+    try {
+
+        return 0;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return -1;
+    }
+}
 
 int main(void) {
     puts("START 7 章 Adapter パターンと Facade パターン ===");
@@ -327,6 +357,9 @@ int main(void) {
     }
     if(1.03) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_DuckTurkeyAdapter());
+    }
+    if(2.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_EnumerationIterator());
     }
     puts("=== 7 章 Adapter パターンと Facade パターン END");
     return 0;
