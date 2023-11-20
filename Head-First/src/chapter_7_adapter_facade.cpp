@@ -301,6 +301,16 @@ public:
     // コンストラクタは少し工夫したい、考える時間がほしい。
 };
 
+// 可変引数リストを扱うのはC++ ではこんな書き方のものもある。
+// @see HandsOn/src/gof-bridge.cpp or HandsOn/src/gof-facade.cpp
+template<class T,class... ArgTypes>
+class Implementer {
+public:
+    virtual ~Implementer() {}
+    virtual T compute(ArgTypes...) const = 0;
+    virtual T reverseCompute(ArgTypes...) const = 0;
+};
+
 template<class T>
 class MyEnum final : public virtual Enumeration<T> {
 private:
