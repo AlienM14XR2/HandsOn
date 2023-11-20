@@ -15,6 +15,7 @@
 #include <random>
 #include <cassert>
 #include <vector>
+#include <stdarg.h>
 
 using namespace std;
 
@@ -301,6 +302,47 @@ public:
 };
 
 template<class T>
+class MyEnum final : public virtual Enumeration<T> {
+private:
+    vector<T> array;
+    MyEnum() {}
+public:
+    MyEnum(size_t size, ...) {
+        va_list args;
+        va_start(args, size);
+        for(size_t i=0; i < size; i++) {
+            array.push_back(va_arg(args, T));
+        }
+        va_end(args);
+    }
+    MyEnum(const MyEnum& own) {*this = own;}
+    ~MyEnum() {}
+
+    virtual bool hasMoreElements() const override {
+        // TODO current にて判断させる。
+        return true;
+    }
+    virtual T nextElement() const override {
+        // TODO current に現在の array の位置を記憶させる。
+        return array.at(0);
+    }
+
+};
+
+int test_MyEnum() {
+    puts("--- test_MyEnum");
+    try {
+        MyEnum<int> myEnum(3,1,2,3);
+        ptr_lambda_debug<const char*,const bool&>("hasMoreElements ... ",myEnum.hasMoreElements());
+        ptr_lambda_debug<const char*,const bool&>("nextElement ... ",myEnum.nextElement());
+        return 0;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return -1;
+    }
+}
+
+template<class T>
 class EnumerationIterator final : public virtual Iterator<T> {
 private:
     Enumeration<T>* enumeration = nullptr;
@@ -359,6 +401,9 @@ int main(void) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_DuckTurkeyAdapter());
     }
     if(2.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_MyEnum());
+    }
+    if(3.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_EnumerationIterator());
     }
     puts("=== 7 章 Adapter パターンと Facade パターン END");
