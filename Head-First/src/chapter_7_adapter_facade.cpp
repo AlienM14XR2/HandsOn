@@ -311,30 +311,59 @@ public:
     virtual T reverseCompute(ArgTypes...) const = 0;
 };
 
+void printer(unsigned long argcount, ... ) {
+    va_list args;
+    unsigned long i;
+    va_start(args, argcount);
+    for(i=0; i < argcount; i++) {
+        printf("%d\n", va_arg(args, int));
+    }
+    va_end(args);
+}
+
 template<class T>
 class MyEnum final : public virtual Enumeration<T> {
 private:
-    vector<T> array;
+    vector<T> array;                    // 以前 C で作った Linked List の方がいいのだろうか：）
+    mutable size_t currentIndex = 0;
     MyEnum() {}
 public:
-    MyEnum(size_t size, ...) {
+    MyEnum(unsigned long size, ...) {
         va_list args;
         va_start(args, size);
-        for(size_t i=0; i < size; i++) {
-            array.push_back(va_arg(args, T));
+        for(unsigned long i=0; i < size; i++) {
+            T val = va_arg(args, T);
+            array.push_back(val);
         }
         va_end(args);
+    }
+    MyEnum(T t1, T t2, T t3) {
+        array.push_back(t1);
+        array.push_back(t2);
+        array.push_back(t3);
     }
     MyEnum(const MyEnum& own) {*this = own;}
     ~MyEnum() {}
 
     virtual bool hasMoreElements() const override {
-        // TODO current にて判断させる。
-        return true;
+        // current にて判断させる。
+        printf("size is %zu\n",array.size());
+        if(currentIndex < array.size()) {
+            return true;
+        } else {
+            return false;
+        }
     }
     virtual T nextElement() const override {
-        // TODO current に現在の array の位置を記憶させる。
-        return array.at(0);
+        // current に現在の array の位置を記憶させる。
+        printf("currentIndex is %zu\n",currentIndex);
+        if( currentIndex < array.size() ) {
+            T val = array.at(currentIndex);
+            currentIndex++;
+            return val;
+        } else {
+            throw runtime_error("Error. Out Of Bound.");
+        }
     }
 
 };
@@ -342,9 +371,15 @@ public:
 int test_MyEnum() {
     puts("--- test_MyEnum");
     try {
+        // printer(3,1,2,3);
+
         MyEnum<int> myEnum(3,1,2,3);
         ptr_lambda_debug<const char*,const bool&>("hasMoreElements ... ",myEnum.hasMoreElements());
-        ptr_lambda_debug<const char*,const bool&>("nextElement ... ",myEnum.nextElement());
+        ptr_lambda_debug<const char*,const int&>("nextElement ... ",myEnum.nextElement());
+        ptr_lambda_debug<const char*,const int&>("nextElement ... ",myEnum.nextElement());
+        ptr_lambda_debug<const char*,const int&>("nextElement ... ",myEnum.nextElement());
+        ptr_lambda_debug<const char*,const bool&>("hasMoreElements ... ",myEnum.hasMoreElements());
+        ptr_lambda_debug<const char*,const int&>("nextElement ... ",myEnum.nextElement());
         return 0;
     } catch(exception& e) {
         cout << e.what() << endl;
