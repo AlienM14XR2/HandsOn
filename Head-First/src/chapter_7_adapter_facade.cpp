@@ -8,6 +8,8 @@
  * カモのように歩き、カモのようにガーガー鳴くものがいたら、それはカモに違いない（打ち消し）
  * カモアダプタでラップされた七面鳥かもしれない。
  * 
+ * ファイルが大きくなり、見づらいため、Facade パターンは別ファイルにまとめる。
+ * 
  * e.g. compile
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_7_adapter_facade.cpp -o ../bin/main
 */
@@ -272,7 +274,7 @@ public:
     virtual ~Iterator() {}
     virtual bool hasNext() const = 0;
     virtual T next() const = 0;
-    virtual int remove() = 0;
+    virtual int remove() const = 0;
 };
 
 template<class T>
@@ -288,18 +290,19 @@ private:
     int value = 0;
 public:
     Integer() {}
+    Integer(const int& n) {value = n;}
     Integer(const Integer& own) {*this = own;}
     ~Integer() {}
     int getValue() noexcept {return value;}
     void setValue(const int& n) noexcept {value = n;}
 };
 
-class IntegerEnum final : public virtual Enumeration<Integer*> {
-private:
-    vector<Integer*> array;
-public:
-    // コンストラクタは少し工夫したい、考える時間がほしい。
-};
+// class IntegerEnum final : public virtual Enumeration<Integer*> {
+// private:
+//     vector<Integer*> array;
+// public:
+//     // コンストラクタは少し工夫したい、考える時間がほしい。
+// };
 
 // 可変引数リストを扱うのはC++ ではこんな書き方のものもある。
 // @see HandsOn/src/gof-bridge.cpp or HandsOn/src/gof-facade.cpp
@@ -396,6 +399,7 @@ public:
     EnumerationIterator(Enumeration<T>& e) {
         enumeration = &e;
     }
+    EnumerationIterator(const EnumerationIterator& own) {*this = own;}
     ~EnumerationIterator() {}
     virtual bool hasNext() const override {
         return enumeration->hasMoreElements();
@@ -417,7 +421,14 @@ public:
 int test_EnumerationIterator() {
     puts("--- test_EnumerationIterator");
     try {
-
+        MyEnum<int> myEnum(3,1,2,3);
+        EnumerationIterator<int> adapter(myEnum);
+        ptr_lambda_debug<const char*,const int&>("adapter.hasNext() ... ",adapter.hasNext());
+        ptr_lambda_debug<const char*,const int&>("adapter.next() ... ",adapter.next());
+        ptr_lambda_debug<const char*,const int&>("adapter.next() ... ",adapter.next());
+        ptr_lambda_debug<const char*,const int&>("adapter.next() ... ",adapter.next());
+        ptr_lambda_debug<const char*,const int&>("adapter.hasNext() ... ",adapter.hasNext());
+        ptr_lambda_debug<const char*,const int&>("adapter.remove() ... ",adapter.remove());
         return 0;
     } catch(exception& e) {
         cout << e.what() << endl;
