@@ -128,6 +128,10 @@ public:
     HomeTheaterFacade(const HomeTheaterFacade& own) {*this = own;}
     ~HomeTheaterFacade() {}
     // TODO 実装 ... ここに必要なメソッドを追加していく。
+    // 単純化されたインタフェースを実装する
+    void watchMovie(string& movie) {
+        // コンポジション された各サブシステム、メンバ変数の必要なメソッドを呼び出す。
+    }
 };
 
 int main(void) {
