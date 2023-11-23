@@ -21,6 +21,54 @@
 
 using namespace std;
 
+/**
+ * サブシステム群
+*/
+
+class Amplifier {
+
+};
+
+class Tuner {
+
+};
+
+class StreamingPlayer {
+
+};
+
+class Projector {
+
+};
+
+class Screen {
+
+};
+
+class PopcornPopper {
+    
+};
+
+/**
+ * ホームシアターファサードを構築する
+ * 
+ * HomeTheaterFacade の構築を行う。
+ * まず、コンポジションを使ってファサードがサブシステムのすべての構成要素にアクセス
+ * できるようにする。
+ * 
+ * あぁ、構成要素が多いから、それらを最初に作る必要があるな、一旦すべてメモしてみる。
+ * - Amplifier          増幅器、アンプ。
+ * - Tuner
+ * - StreamingPlayer
+ * - Projector
+ * - TheaterLights
+ * - Screen
+ * - PopcornPopper
+*/
+class HomeTheaterFacade {
+    // TODO 実装
+};
+
 int main(void) {
     puts("=== START Facade パターン");
     puts("Facade パターン === END");
