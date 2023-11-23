@@ -21,32 +21,55 @@
 
 using namespace std;
 
+template<class M, class D>
+void (*ptr_lambda_debug)(M, D) = [](auto message, auto debug) -> void {
+    cout << "DEBUG: " << message << '\t' << debug << endl;
+};
+
 /**
  * サブシステム群
 */
 
 class Amplifier {
-
+public:
+    Amplifier() {}
+    Amplifier(const Amplifier& own) {*this = own;}
+    ~Amplifier() {}
 };
 
 class Tuner {
-
+public:
+    Tuner() {}
+    Tuner(const Tuner& own) {*this = own;}
+    ~Tuner() {}
 };
 
 class StreamingPlayer {
-
+public:
+    StreamingPlayer() {}
+    StreamingPlayer(const StreamingPlayer& own) {*this = own;}
+    ~StreamingPlayer() {}
 };
 
 class Projector {
-
+public:
+    Projector() {}
+    Projector(const Projector& own) {*this = own;}
+    ~Projector() {}
 };
 
 class Screen {
-
+public:
+    Screen() {}
+    Screen(const Screen& own) {*this = own;}
+    ~Screen() {}
 };
 
 class PopcornPopper {
-    
+public:
+    PopcornPopper() {}
+    PopcornPopper(const PopcornPopper& own) {*this = own;}
+    ~PopcornPopper() {}
 };
 
 /**
