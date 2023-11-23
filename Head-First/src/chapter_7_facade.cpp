@@ -58,6 +58,13 @@ public:
     ~Projector() {}
 };
 
+class TheaterLights {
+public:
+    TheaterLights() {}
+    TheaterLights(const TheaterLights& own) {*this = own;}
+    ~TheaterLights() {}
+};
+
 class Screen {
 public:
     Screen() {}
@@ -89,7 +96,37 @@ public:
  * - PopcornPopper
 */
 class HomeTheaterFacade {
-    // TODO 実装
+private:
+    Amplifier amp;
+    Tuner tuner;
+    StreamingPlayer player;
+    Projector projector;
+    TheaterLights lights;
+    Screen screen;
+    PopcornPopper popper;
+    HomeTheaterFacade() {}
+public:
+    // TODO 次のようなコンストラクタこそFactory パターンを使うべきなんだろうか。
+    HomeTheaterFacade(
+      Amplifier& a,
+      Tuner& t,
+      StreamingPlayer& sp,
+      Projector& prj,
+      TheaterLights& tl,
+      Screen& scr,
+      PopcornPopper& pp
+    ) {
+        amp = a;
+        tuner = t;
+        player = sp;
+        projector = prj;
+        lights = tl;
+        screen = scr;
+        popper = pp;
+    }
+    HomeTheaterFacade(const HomeTheaterFacade& own) {*this = own;}
+    ~HomeTheaterFacade() {}
+    // TODO 実装 ... ここに必要なメソッドを追加していく。
 };
 
 int main(void) {
