@@ -31,11 +31,45 @@ void (*ptr_lambda_debug)(M, D) = [](auto message, auto debug) -> void {
  * サブシステム群
 */
 
+class StreamingPlayer {
+public:
+    StreamingPlayer() {}
+    StreamingPlayer(const StreamingPlayer& own) {*this = own;}
+    ~StreamingPlayer() {}
+
+    void on() {
+        ptr_lambda_debug<const char*,const int&>("Player On.",0);
+    }
+    void off() {
+        ptr_lambda_debug<const char*,const int&>("Player Off.",0);
+    }
+};
+
 class Amplifier {
+private:
+    StreamingPlayer* player;
+    size_t volume = 0;
 public:
     Amplifier() {}
     Amplifier(const Amplifier& own) {*this = own;}
     ~Amplifier() {}
+
+    void on() {
+        ptr_lambda_debug<const char*,const int&>("Amplifier On.",0);
+    }
+    void off() {
+        ptr_lambda_debug<const char*,const int&>("Amplifier Off.",0);
+    }
+    void setStreamingPlayer(StreamingPlayer& p) {
+        player = &p;
+    }
+    void setSurroundSound() {
+        ptr_lambda_debug<const char*,const int&>("Surround Sound.",0);
+    }
+    void setVolumne(const size_t& v) {
+        volume = v;
+    }
+
 };
 
 class Tuner {
@@ -45,25 +79,34 @@ public:
     ~Tuner() {}
 };
 
-class StreamingPlayer {
-public:
-    StreamingPlayer() {}
-    StreamingPlayer(const StreamingPlayer& own) {*this = own;}
-    ~StreamingPlayer() {}
-};
-
 class Projector {
 public:
     Projector() {}
     Projector(const Projector& own) {*this = own;}
     ~Projector() {}
+
+    void on() {
+        ptr_lambda_debug<const char*,const int&>("Projector On.",0);
+    }
+    void wideScreenMode() {        
+        ptr_lambda_debug<const char*,const int&>("Wide Screen.",0);
+    }
+    void off() {
+        ptr_lambda_debug<const char*,const int&>("Projector Off.",0);
+    }
 };
 
 class TheaterLights {
+private:
+    size_t brightness = 0;
 public:
     TheaterLights() {}
     TheaterLights(const TheaterLights& own) {*this = own;}
     ~TheaterLights() {}
+
+    void dim(const size_t d) {
+        brightness = d;
+    }
 };
 
 class Screen {
@@ -71,6 +114,10 @@ public:
     Screen() {}
     Screen(const Screen& own) {*this = own;}
     ~Screen() {}
+
+    void down() {
+        ptr_lambda_debug<const char*,const int&>("Screen Down.",0);
+    }
 };
 
 class PopcornPopper {
@@ -78,6 +125,16 @@ public:
     PopcornPopper() {}
     PopcornPopper(const PopcornPopper& own) {*this = own;}
     ~PopcornPopper() {}
+
+    void on() {
+        ptr_lambda_debug<const char*,const int&>("PopcornPopper On.",0);
+    }
+    void pop() {
+        ptr_lambda_debug<const char*,const int&>("pop.",0);
+    }
+    void off() {
+        ptr_lambda_debug<const char*,const int&>("PopcornPopper Off.",0);
+    }
 };
 
 /**
