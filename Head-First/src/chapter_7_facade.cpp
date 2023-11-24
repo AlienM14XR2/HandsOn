@@ -43,6 +43,12 @@ public:
     void off() {
         ptr_lambda_debug<const char*,const int&>("Player Off.",0);
     }
+    void play(const string& title) {
+        ptr_lambda_debug<const char*,const string&>("Play ... ",title);
+    }
+    void stop() {
+        ptr_lambda_debug<const char*,const int&>("Player Stop.",0);
+    }
 };
 
 class Amplifier {
@@ -107,6 +113,9 @@ public:
     void dim(const size_t d) {
         brightness = d;
     }
+    void on() {
+        ptr_lambda_debug<const char*,const int&>("Theater Lights On.",0);
+    }
 };
 
 class Screen {
@@ -117,6 +126,9 @@ public:
 
     void down() {
         ptr_lambda_debug<const char*,const int&>("Screen Down.",0);
+    }
+    void up() {
+        ptr_lambda_debug<const char*,const int&>("Screen Up.",0);
     }
 };
 
@@ -188,11 +200,31 @@ public:
     // TODO 実装 ... ここに必要なメソッドを追加していく。
     // 単純化されたインタフェースを実装する
     void watchMovie(string& movie) {
+        puts("映画を観る準備をします。");
         // コンポジション された各サブシステム、メンバ変数の必要なメソッドを呼び出す。
+        popper.on();
+        popper.pop();
+        lights.dim(10);
+        screen.down();
+        projector.on();
+        projector.wideScreenMode();
+        amp.on();
+        amp.setStreamingPlayer(player);
+        amp.setSurroundSound();
+        amp.setVolumne(5);
+        player.on();
+        player.play(movie);
     }
 
     void endMovie() {
         puts("ムービーシアターを停止します。");
+        popper.off();
+        lights.on();
+        screen.up();
+        projector.off();
+        amp.off();
+        player.stop();
+        player.off();
     }
 
 };
