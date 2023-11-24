@@ -35,7 +35,9 @@ class StreamingPlayer {
 public:
     StreamingPlayer() {}
     StreamingPlayer(const StreamingPlayer& own) {*this = own;}
-    ~StreamingPlayer() {}
+    ~StreamingPlayer() {
+        ptr_lambda_debug<const char*,const int&>("DONE ... StreamingPlayer Destructor.",0);
+    }
 
     void on() {
         ptr_lambda_debug<const char*,const int&>("Player On.",0);
@@ -58,7 +60,9 @@ private:
 public:
     Amplifier() {}
     Amplifier(const Amplifier& own) {*this = own;}
-    ~Amplifier() {}
+    ~Amplifier() {
+        ptr_lambda_debug<const char*,const int&>("DONE ... Amplifier Destructor.",0);
+    }
 
     void on() {
         ptr_lambda_debug<const char*,const int&>("Amplifier On.",0);
@@ -82,14 +86,18 @@ class Tuner {
 public:
     Tuner() {}
     Tuner(const Tuner& own) {*this = own;}
-    ~Tuner() {}
+    ~Tuner() {
+        ptr_lambda_debug<const char*,const int&>("DONE ... Tuner Destructor.",0);
+    }
 };
 
 class Projector {
 public:
     Projector() {}
     Projector(const Projector& own) {*this = own;}
-    ~Projector() {}
+    ~Projector() {
+        ptr_lambda_debug<const char*,const int&>("DONE ... Projector Destructor.",0);
+    }
 
     void on() {
         ptr_lambda_debug<const char*,const int&>("Projector On.",0);
@@ -108,7 +116,9 @@ private:
 public:
     TheaterLights() {}
     TheaterLights(const TheaterLights& own) {*this = own;}
-    ~TheaterLights() {}
+    ~TheaterLights() {
+        ptr_lambda_debug<const char*,const int&>("DONE ... TheaterLights Destructor.",0);
+    }
 
     void dim(const size_t d) {
         brightness = d;
@@ -122,7 +132,9 @@ class Screen {
 public:
     Screen() {}
     Screen(const Screen& own) {*this = own;}
-    ~Screen() {}
+    ~Screen() {
+        ptr_lambda_debug<const char*,const int&>("DONE ... Screen Destructor.",0);
+    }
 
     void down() {
         ptr_lambda_debug<const char*,const int&>("Screen Down.",0);
@@ -136,7 +148,9 @@ class PopcornPopper {
 public:
     PopcornPopper() {}
     PopcornPopper(const PopcornPopper& own) {*this = own;}
-    ~PopcornPopper() {}
+    ~PopcornPopper() {
+        ptr_lambda_debug<const char*,const int&>("DONE ... PopcornPopper Destructor.",0);
+    }
 
     void on() {
         ptr_lambda_debug<const char*,const int&>("PopcornPopper On.",0);
@@ -229,8 +243,87 @@ public:
 
 };
 
+// Amplifier amp;
+Amplifier* amplifierFactory() {
+    return new Amplifier();
+}
+// Tuner tuner;
+Tuner* tunerFactory() {
+    return new Tuner();
+}
+// StreamingPlayer player;
+StreamingPlayer* streamingPlayerFactory() {
+    return new StreamingPlayer();
+}
+// Projector projector;
+Projector* projectorFactory() {
+    return new Projector();
+}
+// TheaterLights lights;
+TheaterLights* theaterLightsFactory() {
+    return new TheaterLights();
+}
+// Screen screen;
+Screen* screenFactory() {
+    return new Screen();
+}
+// PopcornPopper popper;
+PopcornPopper* popcornPopperFactory() {
+    return new PopcornPopper();
+}
+
+HomeTheaterFacade* homeTheaterFacadeFactory() {
+    Amplifier* amp = amplifierFactory();
+    Tuner* tuner = tunerFactory();
+    StreamingPlayer* sp = streamingPlayerFactory();
+    Projector* projector = projectorFactory();
+    TheaterLights* tl = theaterLightsFactory();
+    Screen* screen = screenFactory();
+    PopcornPopper* pp = popcornPopperFactory();
+
+    HomeTheaterFacade* facade = new HomeTheaterFacade(
+        *amp,
+        *tuner,
+        *sp,
+        *projector,
+        *tl,
+        *screen,
+        *pp
+    );
+
+    delete amp;
+    delete tuner;
+    delete sp;
+    delete projector;
+    delete tl;
+    delete screen;
+    delete pp;
+
+    return facade;
+}
+
+int test_HomeTheaterFacade() {
+    puts("--- test_HomeTheaterFacade");
+    try {
+        HomeTheaterFacade* facade = homeTheaterFacadeFactory();
+        string movie = "Ghost in The Shell";
+        facade->watchMovie(movie);
+        facade->endMovie();
+        delete facade;
+        return 0;
+    } catch (exception& e) {
+        cout << e.what() << endl;
+        return -1;
+    }
+}
+
 int main(void) {
     puts("=== START Facade パターン");
+    if(1.00) {
+        int ret = -1;
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",ret = test_HomeTheaterFacade());
+        assert(ret == 0);
+    }
     puts("Facade パターン === END");
     return 0;
 }
