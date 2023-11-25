@@ -13,6 +13,15 @@
  * 
  * スイートホームシアター これがサンプルらしい：）
  * 
+ * OO 原則
+ * 最小知識の原則
+ * 
+ * 最小知識の原則：直接の友達とだけやり取りをする。
+ * 
+ * Facade パターンと最小知識の原則
+ * Client は HomeTheaterFacade という友達を一人だけ持ちます。
+ * OOP では、友達を一人しか持たないことは「よい」ことです！
+ * 
  * e.g. compile
  * g++ -O3 -std=c++20 -DDEBUG -pedantic-errors -Wall -Werror chapter_7_facade.cpp -o ../bin/main 
  * 
