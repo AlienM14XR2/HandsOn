@@ -24,14 +24,35 @@ void (*ptr_lambda_debug)(M, D) = [](auto message, auto debug) -> void {
 /**
  * カフェイン飲料全般に関わるインタフェース。
 */
-class CafeineBeverage {
+class CaffeineBeverage {
 public:
+    virtual ~CaffeineBeverage() {}
     virtual void prepareRecipe() const = 0;
     void boilWater() {
         puts("お湯を沸かす");
     }
     void pourInCup() {
         puts("カップに注ぐ");
+    }
+};
+
+class Coffee final : public virtual CaffeineBeverage {
+public:
+    Coffee() {}
+    Coffee(const Coffee& own) {*this = own;}
+    ~Coffee() {}
+    virtual void prepareRecipe() const override {
+
+    }
+};
+
+class Tea final : public virtual CaffeineBeverage {
+public:
+    Tea() {}
+    Tea(const Tea& own) {*this = own;}
+    ~Tea() {}
+    virtual void prepareRecipe() const override {
+        
     }
 };
 
