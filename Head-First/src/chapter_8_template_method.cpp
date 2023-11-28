@@ -43,6 +43,7 @@ void (*ptr_lambda_debug)(M, D) = [](auto message, auto debug) -> void {
 /**
  * カフェイン飲料全般に関わるインタフェース。
 */
+
 class CaffeineBeverage {
 public:
     virtual ~CaffeineBeverage() {}
