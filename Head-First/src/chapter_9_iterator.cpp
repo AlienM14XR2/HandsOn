@@ -24,14 +24,15 @@ public:
     virtual ~Iterator() {}
     virtual bool hasNext() const = 0;
     virtual T next() const = 0;
+    virtual void remove() const = 0;    // 必要がない場合は、サブクラスでは Exception を Throw すること。
 };
 
 template <class T>
 class DinerMenuIterator final : public virtual Iterator<T> {
 private:
-    T* array;
+    mutable T* array;
     mutable size_t position = 0;
-    size_t length = 0;
+    mutable size_t length = 0;
     DinerMenuIterator():position{0},length{0},array{nullptr} {}
 public:
     DinerMenuIterator(T* a, const size_t& l) {
@@ -53,6 +54,13 @@ public:
             T nextValue = array[position];
             position++;
             return nextValue;
+    }
+    virtual void remove() const override {
+        // このクラスで扱っているいるのは総称型のポインタであり、開放の責務はないものとする。
+        // したがって、position と length には 0 を代入して、array には nullptr を代入する。
+        position = 0;
+        length = 0;
+        array = nullptr;
     }
 };
 
@@ -86,6 +94,7 @@ int test_DinerMenuIterator() {
         while(iterator.hasNext()) {
             ptr_lambda_debug<const char*, const string&>("menu is ",iterator.next());
         }
+        iterator.remove();
         return 0;
     } catch(exception& e) {
         cout << e.what() << endl;
@@ -104,6 +113,7 @@ int test_DinerMenuIterator_V2() {
             ptr_lambda_debug<const char*,const int&>("price is ",m.getPrice());
             ptr_lambda_debug<const char*,const string&>("name is ",m.getName());
         }
+        iterator.remove();
         return 0;
     } catch(exception& e) {
         cout << e.what() << endl;
