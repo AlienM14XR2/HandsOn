@@ -15,8 +15,17 @@
 
 using namespace std;
 
+template <class M, class D>
+void (*ptr_lambda_debug)(M, D) = [](auto message, auto debug) -> void {
+    cout << "DEBUG: " << message << '\t' << debug << endl;
+};
+
 int main(void) {
     puts("START 9 章の続き Composite パターン ===");
+    if(0.01) {
+        double pi = 3.14159;
+        ptr_lambda_debug<const string&,const double&>("pi is ",pi);
+    }
     puts("=== 9 章の続き Composite パターン END");
     return 0;
 }
