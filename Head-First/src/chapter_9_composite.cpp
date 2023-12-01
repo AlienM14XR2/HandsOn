@@ -12,12 +12,71 @@
  * 
 */
 #include <iostream>
+#include <vector>
 
 using namespace std;
 
 template <class M, class D>
 void (*ptr_lambda_debug)(M, D) = [](auto message, auto debug) -> void {
     cout << "DEBUG: " << message << '\t' << debug << endl;
+};
+
+/**
+ * 一般的なComposite パターン
+*/
+
+class Component {
+public:
+    ~Component() {}
+    virtual void operation() const = 0;
+    virtual void add(Component& c) const = 0;
+    virtual void remove(Component& c) const = 0;
+    virtual Component* getChild(unsigned int& i) const = 0;
+};
+
+class Leaf final : public virtual Component {
+public:
+    Leaf() {}
+    Leaf(const Leaf& own) {*this = own;}
+    ~Leaf() {}
+
+    virtual void operation() const override {
+        puts("do anything.");
+    }
+};
+
+class Composite final : public virtual Component {
+private:
+    mutable vector<Component*> components;
+public:
+    Composite() {}
+    Composite(const Composite& own) {*this = own;}
+    ~Composite() {}
+
+    virtual void operation() const override {
+        puts("do anything.");
+    }
+    virtual void add(Component& c) const override {
+        components.push_back(&c);
+    }
+    virtual void remove(Component& c) const override {
+        size_t size = components.size();
+        for(size_t i = 0; i < size; i++) {
+           Component* comp = components.at(i);
+           if(comp == &c) {
+                components.erase(components.begin() + i);
+           }
+        }
+
+    }
+    virtual Component* getChild(unsigned int& i) const override {
+        size_t size = components.size();
+        if( i < size ) {
+            return components.at(i);
+        } else {
+            return nullptr;
+        }
+    }
 };
 
 int main(void) {
