@@ -225,6 +225,25 @@ int test_MenuItem() {
     }
 }
 
+/**
+ * コンポジットメニュを実装する
+ * TODO list で MenuComponent のポインタをメンバ変数に持つ。
+*/
+class Menu final : public virtual MenuComponent {
+private:
+    mutable vector<MenuComponent*> menuComponents;
+    string name;
+    string description;
+    Menu():name{""},description{""} {}
+public:
+    Menu(const string& n, const string& desc) {
+        name = n;
+        description = desc;
+    }
+    Menu(const Menu& own) {*this = own;}
+    ~Menu() {}
+};
+
 int main(void) {
     puts("START 9 章の続き Composite パターン ===");
     if(0.01) {
