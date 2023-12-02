@@ -129,6 +129,46 @@ int test_Composite() {
     }
 }
 
+/**
+ * MenuComponent を実装する
+ * サンプル実装の続き。
+*/
+
+class MenuComponent {
+public:
+    virtual ~MenuComponent() {}
+    //
+    // コンポジット メソッド
+    //
+    virtual void add(MenuComponent& mc) {
+        throw runtime_error("ERROR: Not Supported.");
+    }
+    virtual void remove(MenuComponent* mc) {
+        throw runtime_error("ERROR: Not Supported.");
+    }
+    virtual MenuComponent* getChild(const unsigned int& i) {
+        throw runtime_error("ERROR: Not Supported.");
+    }
+    //
+    // 操作 メソッド
+    //
+    virtual string getName() {
+        throw runtime_error("ERROR: Not Supported.");
+    }
+    virtual string getDescription() {        
+        throw runtime_error("ERROR: Not Supported.");
+    }
+    virtual double getPrice() {
+        throw runtime_error("ERROR: Not Supported.");
+    }
+    virtual bool isVegetarian() {
+        return false;
+    }
+    virtual void print() {
+        throw runtime_error("ERROR: Not Supported.");
+    }
+};
+
 int main(void) {
     puts("START 9 章の続き Composite パターン ===");
     if(0.01) {
