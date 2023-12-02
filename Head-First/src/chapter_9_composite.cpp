@@ -185,8 +185,45 @@ public:
     }
     MenuItem(const MenuItem& own) {*this = own;}
     ~MenuItem() {}
-    
+
+    string getName() noexcept {
+        return name;
+    }
+    string getDescription() noexcept {
+        return description;
+    }
+    bool isVegetarian() noexcept {
+        return vegetarian;
+    }
+    double getPrice() noexcept {
+        return price;
+    }
+
+    virtual void print() noexcept {
+        printf("%s\n",getName().c_str());
+        if(isVegetarian()) {
+            printf("(v)\n");
+        }
+        printf("%3.2lf\n",getPrice());
+        printf("%s\n",getDescription().c_str());
+    }
+
 };
+
+int test_MenuItem() {
+    puts("--- test_MenuItem");
+    try {
+        MenuItem beefSteak("Beef Steak.","USA Beef 100% 300g",false,25.12);
+        beefSteak.print();
+        puts("---");
+        MenuItem salad("Green Salad.","Organic.",true,10.75);
+        salad.print();
+        return 0;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return -1;
+    }
+}
 
 int main(void) {
     puts("START 9 章の続き Composite パターン ===");
@@ -196,6 +233,9 @@ int main(void) {
     }
     if(1.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_Composite());
+    }
+    if(1.01) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ...", test_MenuItem());
     }
     puts("=== 9 章の続き Composite パターン END");
     return 0;
