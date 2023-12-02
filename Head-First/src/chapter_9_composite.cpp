@@ -87,7 +87,6 @@ public:
                 break;
            }
         }
-
     }
     virtual Component* getChild(const unsigned int& i) const override {
         size_t size = components.size();
@@ -242,6 +241,41 @@ public:
     }
     Menu(const Menu& own) {*this = own;}
     ~Menu() {}
+    
+    string getName() noexcept {
+        return name;
+    }
+    string getDescription() noexcept {
+        return description;
+    }
+
+    virtual void print() noexcept {
+        printf("%s\n",getName().c_str());
+        printf("%s\n",getDescription().c_str());
+        puts("---------");
+    }
+    virtual void add(MenuComponent& mc) {
+        menuComponents.push_back(&mc);
+    }
+    virtual void remove(MenuComponent* mc) {
+        size_t size = menuComponents.size();
+        for(size_t i = 0; i < size; i++) {
+           MenuComponent* comp = menuComponents.at(i);
+           if(comp == mc) {
+                printf("HIT: comp == mc --------------\n");
+                menuComponents.erase(menuComponents.begin() + i);
+                break;
+           }
+        }
+    }
+    virtual MenuComponent* getChild(const unsigned int& i) {
+        size_t size = menuComponents.size();
+        if(i < size) {
+            return menuComponents.at(i);
+        } else {
+            return nullptr;
+        }
+    }
 };
 
 int main(void) {
