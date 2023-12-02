@@ -241,7 +241,7 @@ public:
     }
     Menu(const Menu& own) {*this = own;}
     ~Menu() {}
-    
+
     string getName() noexcept {
         return name;
     }
@@ -253,6 +253,11 @@ public:
         printf("%s\n",getName().c_str());
         printf("%s\n",getDescription().c_str());
         puts("---------");
+        size_t size = menuComponents.size();
+        for(size_t i=0; i < size; i++) {
+            MenuComponent* comp = menuComponents.at(i);
+            comp->print();
+        }
     }
     virtual void add(MenuComponent& mc) {
         menuComponents.push_back(&mc);
