@@ -169,6 +169,25 @@ public:
     }
 };
 
+class MenuItem final : public virtual MenuComponent {
+private:
+    string name;
+    string description;
+    bool vegetarian;
+    double price;
+    MenuItem():name{""},description{""},vegetarian{false},price{0.00}{}
+public:
+    MenuItem(const string& n, const string& desc, const bool& vege, const double p) {
+        name = n;
+        description = desc;
+        vegetarian = vege;
+        price = p;
+    }
+    MenuItem(const MenuItem& own) {*this = own;}
+    ~MenuItem() {}
+    
+};
+
 int main(void) {
     puts("START 9 章の続き Composite パターン ===");
     if(0.01) {
