@@ -205,6 +205,7 @@ public:
         }
         printf("%3.2lf\n",getPrice());
         printf("%s\n",getDescription().c_str());
+        puts("---");
     }
 
 };
@@ -283,6 +284,37 @@ public:
     }
 };
 
+int test_Menu() {
+    puts("--- test_Menu");
+    try {
+        Menu pancakeHouseMenu("パンケーキハウスメニュ", "朝食");
+        Menu dinerMenu("食堂メニュ", "昼食");
+        Menu cafeMenu("カフェメニュ", "夕食");
+        Menu dessertMenu("デザートメニュ", "デザート：）");
+
+        Menu allMenus("すべてのメニュ", "すべてを統合したメニュ");
+        allMenus.add(pancakeHouseMenu);
+        allMenus.add(dinerMenu);
+        allMenus.add(cafeMenu);
+
+        // 参照とポインタはやっぱり強力だった、ここより前のコーディングと次に行っていることをよく考えてみてください。
+        MenuItem beef("ステーキ","ビーフ",false,25.12);
+        MenuItem tofu("ステーキ（V）","豆腐",true,12.00);
+        MenuItem iceCream("アイスクリーム","バニラ",false,5.25);
+        dessertMenu.add(iceCream);
+        dinerMenu.add(beef);
+        dinerMenu.add(tofu);
+        dinerMenu.add(dessertMenu);
+
+        allMenus.print();
+
+        return 0;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return -1;
+    }
+}
+
 int main(void) {
     puts("START 9 章の続き Composite パターン ===");
     if(0.01) {
@@ -294,6 +326,9 @@ int main(void) {
     }
     if(1.01) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ...", test_MenuItem());
+    }
+    if(1.02) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ...", test_Menu());
     }
     puts("=== 9 章の続き Composite パターン END");
     return 0;
