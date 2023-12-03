@@ -307,6 +307,9 @@ int test_Menu() {
         dinerMenu.add(dessertMenu);
 
         allMenus.print();
+        puts("--- remove iceCream from dessertMenu.");
+        dessertMenu.remove(&iceCream);
+        allMenus.print();
 
         return 0;
     } catch(exception& e) {
