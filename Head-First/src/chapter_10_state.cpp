@@ -10,6 +10,7 @@
  * 
 */
 #include <iostream>
+#include <cassert>
 
 using namespace std;
 
@@ -176,6 +177,40 @@ public:
     }
 };
 
+int test_GumballMachine() {
+    puts("--- test_GumballMachine");
+    try {
+        GumballMachine gumballMachine(2);
+        gumballMachine.insertQuarter();
+        gumballMachine.turnCrank();
+        int count = -1;
+        ptr_lambda_debug<const char*,const int&>("count is ",count = gumballMachine.getCount());
+        assert(count == 1);
+        gumballMachine.insertQuarter();
+        gumballMachine.turnCrank();
+        count = -1;
+        ptr_lambda_debug<const char*,const int&>("count is ",count = gumballMachine.getCount());
+        gumballMachine.insertQuarter();
+        return 0;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return -1;
+    }
+}
+
+int main(void) {
+    puts("START 10 章 State パターン ===");
+    if(0.01) {
+        double pi = 3.14159;
+        ptr_lambda_debug<const char*, const double&>("pi is ",pi);
+    }
+    if(1.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_GumballMachine());
+    }
+    puts("=== 10 章 State パターン END");
+    return 0;
+}
+
     void SoldOutState::insertQuarter() const {
         // この状態に対する不適切なアクション
         puts("売り切れました、 25 セントを投入することはできません");
@@ -251,13 +286,3 @@ public:
             gumballMachine->setState(gumballMachine->getSoldOutState());
         }
     }
-
-int main(void) {
-    puts("START 10 章 State パターン ===");
-    if(0.01) {
-        double pi = 3.14159;
-        ptr_lambda_debug<const char*, const double&>("pi is ",pi);
-    }
-    puts("=== 10 章 State パターン END");
-    return 0;
-}
