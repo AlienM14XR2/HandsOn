@@ -116,6 +116,82 @@ public:
     }
 };
 
+class GumballMachine {
+private:
+    // int SOLD_OUT = 0;
+    // int NO_QUARTER = 1;
+    // int HAS_QUARTER = 2;
+    // int SOLD = 3;
+    // mutable int state = SOLD_OUT;
+
+    State* soldOutState;    // 売りけれ
+    State* noQuarterState;  // 25 セント未投入
+    State* hasQuarterState; // 25 セント投入
+    State* soldState;       // 販売
+    State* state;           // 現在の状態
+    int count;              // ガムボールの数
+    GumballMachine():soldOutState{nullptr},noQuarterState{nullptr},hasQuarterState{nullptr},soldState{nullptr},state{nullptr},count{0} {}
+public:
+    GumballMachine(const int& numberGumballs) {
+        count = numberGumballs;
+        soldOutState = new SoldOutState();
+        noQuarterState = new NoQuarterState();
+        hasQuarterState = new HasQuarterState();
+        soldState = new SoldState();
+        if(count > 0) {
+            state = noQuarterState;
+        } else {
+            state = soldOutState;
+        }
+    }
+    GumballMachine(const GumballMachine& own) {*this = own;}
+    ~GumballMachine() {
+        delete soldOutState;
+        delete noQuarterState;
+        delete hasQuarterState;
+        delete soldState;
+    }
+
+    void insertQuarter() {
+        state->insertQuarter();
+    }
+    void ejectQuater() {
+        state->ejectQuarter();
+    }
+    void turnCrank() {
+        state->turnCrank();
+        state->dispense();
+    }
+    void releaseBall() {
+        puts("ガムがスロットから出てきます");
+        if(count != 0) {
+            count = count - 1;
+        }
+    }
+    State* getState() noexcept {
+        return state;
+    }
+    void setState(State* s) noexcept {
+        state = s;
+    }
+    int getCount() noexcept {
+        return count;
+    }
+    State* getSoldOutState() noexcept {
+        return soldOutState;
+    }
+    State* getNoQuarterState() noexcept {
+        return noQuarterState;
+    }
+    State* getHasQuarterState() noexcept {
+        return hasQuarterState;
+    }
+    State* getSoldState() noexcept {
+        return soldState;
+    }
+
+
+};
 
 int main(void) {
     puts("START 10 章 State パターン ===");
