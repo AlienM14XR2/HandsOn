@@ -18,6 +18,7 @@
 */
 #include <iostream>
 #include <cassert>
+#include <random>
 
 using namespace std;
 
@@ -25,6 +26,27 @@ template <class M, class D>
 void (*ptr_lambda_debug)(M, D) = [](auto message, auto debug)-> void {
     cout << "DEBUG: " << message << '\t' << debug << endl;
 };
+
+int test_random(unsigned int pattern) {
+    puts("--- test_random");
+    // メルセンヌ・ツイスター法による擬似乱数生成器を、
+    // ハードウェア乱数をシードにして初期化
+    std::random_device seed_gen;
+    std::mt19937 engine(seed_gen());
+    // 一様実数分布
+    // [-1.0, 1.0)の値の範囲で、等確率に実数を生成する
+    std::uniform_real_distribution<> dist1(-1.0, 1.0);
+    double r1 = dist1(engine);
+    cout << r1 << endl;
+
+    int n = (r1*10);
+    int a = n%pattern;
+    if(a < 0) {
+        a *= -1;
+    }
+    cout << a << endl;
+    return a;    
+}
 
 /**
  * State インらフェースと State クラスを定義する
@@ -250,7 +272,18 @@ int main(void) {
         double pi = 3.14159;
         ptr_lambda_debug<const char*, const double&>("pi is ",pi);
     }
-    if(1.00) {
+    if(0.02) {
+        int sum = 0;
+        for(int i=0; i<1000; i++) {
+            int hit = -1;
+            ptr_lambda_debug<const char*, const int&>("random ... ",hit = test_random(10));
+            if(hit == 0) {
+                sum = sum + 1;
+            }
+        }
+        ptr_lambda_debug<const char*,const int&>("sum is ",sum);
+    }
+    if(0.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_GumballMachine());
     }
     puts("=== 10 章 State パターン END");
