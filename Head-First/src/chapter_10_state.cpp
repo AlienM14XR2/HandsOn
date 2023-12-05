@@ -48,6 +48,9 @@ public:
 */
 
 class GumballMachine;
+/**
+ * SOLD_OUT 売り切れの状態クラス
+*/
 class SoldOutState final : public virtual State {
 private:
     GumballMachine* gumballMachine;
@@ -63,6 +66,9 @@ public:
     virtual void turnCrank() const override;
     virtual void dispense() const override;
 };
+/**
+ * NO_QUARTER 25 セント未投入状態クラス
+*/
 class NoQuarterState final : public virtual State {
 private:
     GumballMachine* gumballMachine;
@@ -78,6 +84,9 @@ public:
     virtual void turnCrank() const override;
     virtual void dispense() const override;
 };
+/**
+ * HAS_QUARTER 25 セント投入状態クラス
+*/
 class HasQuarterState final : public virtual State {
 private:
     GumballMachine* gumballMachine;
@@ -93,6 +102,9 @@ public:
     virtual void turnCrank() const override;
     virtual void dispense() const override;
 };
+/**
+ * SOLD 販売可能状態クラス
+*/
 class SoldState final : public virtual State {
 private:
     GumballMachine* gumballMachine;
@@ -109,6 +121,33 @@ public:
     virtual void dispense() const override;
 };
 
+/**
+ * WINNER 10回1回 「当たり」の状態クラス
+ * 
+ * このクラスでは当たりの状態ですべきことのみを行う。
+ * 今回はガムボールが追加でもうひとつ貰えること。
+ * ※乱数を利用した確率は GumballMachine で行う。
+*/
+class WinnerState final : public virtual State {
+private:
+    GumballMachine* gumballMachine;
+    WinnerState() {}
+public:
+    WinnerState(GumballMachine& gm) {
+        gumballMachine = &gm;
+    }
+    WinnerState(const WinnerState& own) {*this = own;}
+    ~WinnerState() {}
+    virtual void insertQuarter() const override;
+    virtual void ejectQuarter() const override;
+    virtual void turnCrank() const override;
+    virtual void dispense() const override;
+};
+
+/**
+ * ガムボールマシンクラス
+ * ガムボールの販売までの一連の処理を行う。
+*/
 class GumballMachine {
 private:
     // int SOLD_OUT = 0;
@@ -291,5 +330,35 @@ int main(void) {
         } else {
             puts("おっと、ガムボールがなくなりました！");
             gumballMachine->setState(gumballMachine->getSoldOutState());
+        }
+    }
+
+
+    void WinnerState::insertQuarter() const {
+        // この状態での不適切なアクション
+        puts("お待ちください、ガムボールを出す準備をしています");
+    }
+    void WinnerState::ejectQuarter() const {
+        // この状態での不適切なアクション
+        puts("申し訳ありません、すでにハンドルを回しています");
+    }
+    void WinnerState::turnCrank() const {
+        // この状態での不適切なアクション
+        puts("2 回回しても、もうひとつガムボールを手に入れることはできません：）");
+    }
+    void WinnerState::dispense() const {
+        // 当たりの状態が可能、残りの count が 2 個以上あることは、GumballMachine 側で調べること。
+        gumballMachine->releaseBall();
+        puts("当たりです、25 セントで 2 つのガムボールがもらえます");
+        gumballMachine->releaseBall();
+        if(gumballMachine->getCount() == 0) {
+            gumballMachine->setState(gumballMachine->getSoldOutState());
+        } else {
+            if(gumballMachine->getCount() > 0) {
+                gumballMachine->setState(gumballMachine->getNoQuarterState());
+            } else {
+                puts("おっと、ガムボールがなくなりました！");
+                gumballMachine->setState(gumballMachine->getSoldOutState());
+            }                
         }
     }
