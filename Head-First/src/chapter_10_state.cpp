@@ -396,6 +396,12 @@ int main(void) {
         }
     }
 
+    /**
+     * SoldState と WinnerState の実装はほとんど同じ、また各 State のサブクラスで不要な実装を行っているのも事実。
+     * TODO 時間があれば、State の各パブリックメソッドを純粋仮想関数ではなく例外実装にしてみる。
+     * 
+     * また、turnCrank() に例外或いは bool 値を返却するようにして dispose() を制御できないか考えてみる。
+     */
 
     void WinnerState::insertQuarter() const {
         // この状態での不適切なアクション
