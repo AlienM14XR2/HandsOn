@@ -182,6 +182,8 @@ private:
     State* noQuarterState;  // 25 セント未投入
     State* hasQuarterState; // 25 セント投入
     State* soldState;       // 販売
+    State* winnerState;     // ゲーム要素（25 セントで2個もらえる）
+
     State* state;           // 現在の状態
     int count;              // ガムボールの数
     GumballMachine():soldOutState{nullptr},noQuarterState{nullptr},hasQuarterState{nullptr},soldState{nullptr},state{nullptr},count{0} {}
@@ -192,6 +194,7 @@ public:
         noQuarterState = new NoQuarterState(*this);
         hasQuarterState = new HasQuarterState(*this);
         soldState = new SoldState(*this);
+        winnerState = new WinnerState(*this);
         if(count > 0) {
             state = noQuarterState;
         } else {
@@ -204,6 +207,7 @@ public:
         delete noQuarterState;
         delete hasQuarterState;
         delete soldState;
+        delete winnerState;
     }
 
     void insertQuarter() {
@@ -243,6 +247,9 @@ public:
     State* getSoldState() noexcept {
         return soldState;
     }
+    State* getWinnerState() noexcept {
+        return winnerState;
+    }
 };
 
 int test_GumballMachine() {
@@ -266,13 +273,28 @@ int test_GumballMachine() {
     }
 }
 
+int test_GamballMachine_Winner() {
+    puts("--- test_GamballMachine_Winner");
+    try {
+        GumballMachine gumballMachine(200);
+        for(int i=0; i < 100; i++) {
+            gumballMachine.insertQuarter();
+            gumballMachine.turnCrank();
+        }
+        return 0;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return -1;
+    }
+}
+
 int main(void) {
     puts("START 10 章 State パターン ===");
     if(0.01) {
         double pi = 3.14159;
         ptr_lambda_debug<const char*, const double&>("pi is ",pi);
     }
-    if(0.02) {
+    if(0.00) {
         int sum = 0;
         for(int i=0; i<1000; i++) {
             int hit = -1;
@@ -285,6 +307,9 @@ int main(void) {
     }
     if(0.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_GumballMachine());
+    }
+    if(1.01) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ...",test_GamballMachine_Winner());
     }
     puts("=== 10 章 State パターン END");
     return 0;
@@ -336,7 +361,12 @@ int main(void) {
     }
     void HasQuarterState::turnCrank() const {
         puts("ハンドルを回しました");
-        gumballMachine->setState(gumballMachine->getSoldState());
+        int winner = test_random(10);
+        if(winner == 0 && gumballMachine->getCount() >= 2) {
+            gumballMachine->setState(gumballMachine->getWinnerState());
+        } else {
+            gumballMachine->setState(gumballMachine->getSoldState());
+        }
     }
     void HasQuarterState::dispense() const {
         // この状態に対する不適切なアクション
