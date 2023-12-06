@@ -1,20 +1,14 @@
 /**
- * 10 章 State パターン
+ * 11 章 Proxy パターン
  * 
- * 物事の状態
+ * オブジェクトアクセスの制御
  * 
- * State パターンの定義
- * State パターンでは、オブジェクトの内部状態が変化した際にオブジェクトが振る舞いを変更できます。
- * オブジェクトはそのクラスを変更したように見えます。
- * 
- * このパターンは状態を別々のクラスにカプセル化し、現在の状態を表すオブジェクトに移譲するため、
- * 振る舞いは内部状態によって変わります。
- * 
- * 今回のサンプルは「ガムボール」の仕組み（ガムのガチャ）。
+ * サンプルでは、10 章 State パターンで作った、ガムボールマシンを再利用するらしい：）
+ * それを移植（コピー）する必要があるかな。
+ * ここでの具体的なサンプルは、ガムボールマシーンをモニタリングするシステムらしい。
  * 
  * e.g. compile
- * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_10_state.cpp -o ../bin/main
- * 
+ * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_11_proxy.cpp -o ../bin/main
 */
 #include <iostream>
 #include <cassert>
@@ -22,8 +16,8 @@
 
 using namespace std;
 
-template <class M, class D>
-void (*ptr_lambda_debug)(M, D) = [](auto message, auto debug)-> void {
+template<class M, class D>
+void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug)-> void {
     cout << "DEBUG: " << message << '\t' << debug << endl;
 };
 
@@ -176,13 +170,13 @@ private:
     State* noQuarterState;  // 25 セント未投入
     State* hasQuarterState; // 25 セント投入
     State* soldState;       // 販売
-    State* winnerState;     // ゲーム要素（25 セントで2個もらえる）
+    State* winnerState;     // ゲーム要素（25 セントで2個もらえる、10 回に 1 回の確率）
 
     State* state;           // 現在の状態
     int count;              // ガムボールの数
+    string location = "";   // 位置情報（文字列）
     GumballMachine():soldOutState{nullptr},noQuarterState{nullptr},hasQuarterState{nullptr},soldState{nullptr},winnerState{nullptr},state{nullptr},count{0} {}
-public:
-    GumballMachine(const int& numberGumballs) {
+    void initBaseMembers(const int& numberGumballs) {
         count = numberGumballs;
         soldOutState = new SoldOutState(*this);
         noQuarterState = new NoQuarterState(*this);
@@ -194,6 +188,14 @@ public:
         } else {
             state = soldOutState;
         }
+    }
+public:
+    GumballMachine(const int& numberGumballs) {
+        initBaseMembers(numberGumballs);
+    }
+    GumballMachine(const string& lcation, const int& numberGumballs) {
+        initBaseMembers(numberGumballs);
+        location = lcation;
     }
     GumballMachine(const GumballMachine& own) {*this = own;}
     ~GumballMachine() {
@@ -228,6 +230,9 @@ public:
     }
     int getCount() noexcept {
         return count;
+    }
+    string getLocation() noexcept {
+        return location;
     }
     State* getSoldOutState() noexcept {
         return soldOutState;
@@ -282,30 +287,37 @@ int test_GamballMachine_Winner() {
     }
 }
 
+/**
+ * GumballMonitor
+ * 
+ * 今回のサンプルのメイン。
+ * 本クラスは、GumballMachine の位置、ガムボールの在庫、現在のマシンの状態を
+ * 取得し、簡潔なレポートを出力する。
+*/
+class GumballMonitor {
+private:
+    GumballMachine* machine;
+    GumballMonitor():machine{nullptr} {}
+public:
+    GumballMonitor(GumballMachine& gm) {machine = &gm;}
+    GumballMonitor(const GumballMonitor& own) {*this = own;}
+    ~GumballMonitor() {}
+
+    void report() {
+        // TODO 実装
+    }
+};
+
 int main(void) {
-    puts("START 10 章 State パターン ===");
+    puts("START 11 章 Proxy パターン ===");
     if(0.01) {
         double pi = 3.14159;
-        ptr_lambda_debug<const char*, const double&>("pi is ",pi);
+        ptr_lambda_debug<const char*,const double&>("pi is ",pi);
     }
     if(0.00) {
-        int sum = 0;
-        for(int i=0; i<1000; i++) {
-            int hit = -1;
-            ptr_lambda_debug<const char*, const int&>("random ... ",hit = test_random(10));
-            if(hit == 0) {
-                sum = sum + 1;
-            }
-        }
-        ptr_lambda_debug<const char*,const int&>("sum is ",sum);
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_GamballMachine_Winner());
     }
-    if(0.00) {
-        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_GumballMachine());
-    }
-    if(1.01) {
-        ptr_lambda_debug<const char*,const int&>("Play and Result ...",test_GamballMachine_Winner());
-    }
-    puts("=== 10 章 State パターン END");
+    puts("=== 11 章 Proxy パターン END");
     return 0;
 }
 
