@@ -7,6 +7,12 @@
  * それを移植（コピー）する必要があるかな。
  * ここでの具体的なサンプルは、ガムボールマシーンをモニタリングするシステムらしい。
  * 
+ * RMI (Remote Method Invocation).
+ * Java のサンプルはこれを利用したものだった。
+ * 現在私のスキル、知識ではこの仕組みをC++ で実装あるいは利用する術がない。
+ * C++ でネットワークを構築、ソケットの利用など知らない：）
+ * したがって、Proxy パターンはここで保留、終わりにする。
+ * 
  * e.g. compile
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_11_proxy.cpp -o ../bin/main
 */
@@ -304,7 +310,9 @@ public:
     ~GumballMonitor() {}
 
     void report() {
-        // TODO 実装
+        cout << "ガムボールマシーン：" << machine->getLocation() << endl;
+        cout << "現在の在庫：" << machine->getCount() << endl;
+        cout << "現在の状態：" << machine->getState() << endl;
     }
 };
 
