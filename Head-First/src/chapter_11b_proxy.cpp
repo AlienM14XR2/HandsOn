@@ -23,15 +23,59 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug)-> void {
 */
 class Person {
 public:
+    virtual ~Person() {}
+
     virtual string getName() const = 0;
     virtual string getGender() const = 0;
     virtual string getInterests() const = 0;
     virtual int getGeekRating() const = 0;
-    
+
     virtual void setName(const string& n) const = 0;
     virtual void setGender(const string& g) const = 0;
     virtual void setInterests(const string& i) const = 0;
     virtual void setGeekRating(const int& r) const = 0;
+};
+
+class PersonImpl final : public virtual Person {
+private:
+    mutable string name = "";
+    mutable string gender = "";
+    mutable string interests = "";
+    mutable int geekRating = 0;         // 1 - 10
+    mutable int ratingCount = 0;
+public:
+    PersonImpl() {}
+    PersonImpl(const PersonImpl& own) {*this = own;}
+    ~PersonImpl() {}
+
+    virtual string getName() const override {
+        return name;
+    }
+    virtual string getGender() const override {
+        return gender;
+    }
+    virtual string getInterests() const override {
+        return interests;
+    }
+    virtual int getGeekRating() const override {
+        if(ratingCount == 0) return 0;              // ギーク度を ratingCount で割ってギーク度の平均を計算します。
+        return (geekRating/ratingCount); 
+    }
+
+    virtual void setName(const string& n) const override {
+        name = n;
+    }
+    virtual void setGender(const string& g) const override {
+        gender = g;
+    }
+    virtual void setInterests(const string& i) const override {
+        interests = i;
+    }
+    virtual void setGeekRating(const int& r) const override {
+        geekRating = r;
+        ratingCount++;
+    }
+
 };
 
 int main(void) {
