@@ -77,7 +77,7 @@ public:
     }
 
 };
-
+// TODO test
 int main(void) {
     puts("START 11 章 Proxy パターン（保護プロキシ）===");
     if(0.01) {
