@@ -29,6 +29,33 @@ class Quackable {
 public:
     virtual void quack() const = 0;
 };
+/**
+ * マガモの鳴き声クラス
+*/
+class MallardDuck final : public virtual Quackable {
+public:
+    virtual void quack() const override {
+        puts("ガーガー");
+    }
+};
+/**
+ * 鴨笛クラス
+*/
+class DuckCall final : public virtual Quackable {
+public:
+    virtual void quack() const override {
+        puts("ガァガァ");
+    }
+};
+/**
+ * ゴム製のアヒル クラス
+*/
+class RubberDuck final : public virtual Quackable {
+public:
+    virtual void quack() const override {
+        puts("キューキュー");
+    }
+};
 
 int main(void) {
     puts("START 12 章 Compound パターン ===");
