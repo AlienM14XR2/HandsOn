@@ -30,6 +30,22 @@ public:
     virtual ~Quackable() {}
     virtual void quack() const = 0;
 };
+
+/**
+ * ガチョウ クラス（鳴き声）
+*/
+class Goose {
+public:
+    Goose() {}
+    Goose(const Goose& own) {*this = own;}
+    ~Goose() {
+        ptr_lambda_debug<const char*,const int&>("DONE ... Goose Destructor.",0);
+    }
+    void honk() {
+        puts("ガーー（ガチョウ）");
+    } 
+};
+
 /**
  * マガモの鳴き声クラス
 */
@@ -67,21 +83,45 @@ public:
     }
 };
 
+/**
+ * カモを使いたい場所で、ガチョウを使えるようにしたい。
+ * Adapter パターンを利用する。
+*/
+class GooseAdapter final : public virtual Quackable {
+private:
+    Goose* goose;
+    GooseAdapter():goose{nullptr} {}
+public:
+    GooseAdapter(Goose& g) {
+        goose = &g;
+    }
+    GooseAdapter(const GooseAdapter& own) {*this = own;}
+    ~GooseAdapter() {}
+
+    virtual void quack() const override {
+        goose->honk();
+    }
+};
+
 class DuckSimulator {
 public:
     void simulate() {
         Quackable* mallardDuck = new MallardDuck();
         Quackable* duckCall = new DuckCall();
         Quackable* rubberDuck = new RubberDuck();
+        Goose goose;
+        Quackable* gooseAdapter = new GooseAdapter(goose);
 
         puts("\nカモシミュレータ\n");
         simulate(mallardDuck);
         simulate(duckCall);
         simulate(rubberDuck);
+        simulate(gooseAdapter);
 
         delete mallardDuck;
         delete duckCall;
         delete rubberDuck;
+        delete gooseAdapter;
     }
     void simulate(Quackable* duck) {
         duck->quack();
