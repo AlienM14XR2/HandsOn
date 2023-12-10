@@ -103,6 +103,36 @@ public:
     }
 };
 
+/**
+ * カモの鳴き声をカウントするには？
+ * quackable インタフェースを継承し、そのサブクラスをコンポジションした
+ * Decorator パターン を利用する。
+*/
+class QuackCounter final : public virtual Quackable {
+private:
+    Quackable* duck;
+    mutable int quacks;
+    QuackCounter():duck{nullptr},quacks{0} {}
+public:
+    QuackCounter(Quackable* q) {
+        duck = q;
+        quacks = 0;
+    }
+    QuackCounter(const QuackCounter& own) {*this = own;}
+    ~QuackCounter() {}
+
+    int getQuacks() noexcept {
+        return quacks;
+    }
+    virtual void quack() const override {
+        duck->quack();
+        quacks++;
+    }
+};
+
+/**
+ * ダックシミュレータ クラス
+*/
 class DuckSimulator {
 public:
     void simulate() {
