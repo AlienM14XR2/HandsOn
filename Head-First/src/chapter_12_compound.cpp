@@ -218,16 +218,60 @@ public:
         delete rubberDuck;
         delete gooseAdapter;
     }
+    void simulate(IDuckFactory& duckFactory, ICountingDuckFactory& countingDuckFactory) {
+        Quackable* mallardDuck = duckFactory.createMallardDuck();
+        Quackable* duckCall = duckFactory.createDuckCall();
+        Quackable* rubberDuck = duckFactory.createRubberDuck();        
+        Goose goose;
+        Quackable* gooseAdapter = new GooseAdapter(goose);
+        // C++ だとあまり代わり映えしない、サンプルは Java なので次のものだけで表現できるが、個人的にメモリ開放が気になったので結局 Factory のインタフェースを２つ用意した。
+        Quackable* mdCounter = countingDuckFactory.createMallardDuck(mallardDuck);
+        Quackable* dcCounter = countingDuckFactory.createDuckCall(duckCall);
+        Quackable* rdCounter = countingDuckFactory.createRubberDuck(rubberDuck);
+
+        puts("\nカモシミュレータ V2\n");
+        simulate(mdCounter);
+        simulate(dcCounter);
+        simulate(rdCounter);
+        simulate(gooseAdapter);
+        printf("カモが鳴いた回数：%d\n",quacks);
+        assert(quacks == 3);        // ガチョウアダプタ はカウントしない。
+
+        delete mdCounter;
+        delete dcCounter;
+        delete rdCounter;
+
+        delete mallardDuck;
+        delete duckCall;
+        delete rubberDuck;
+        delete gooseAdapter;
+    }
     void simulate(Quackable* duck) {
         duck->quack();
     }
 };
 
 int test_DuckSimulator() {
-    puts("--- test_Ducks");
+    puts("--- test_DuckSimulator");
     try {
+        quacks = 0; // グローバル変数のカウンタをリセット
         DuckSimulator sim;
         sim.simulate();
+        return 0;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return -1;
+    }
+}
+
+int test_DuckSimulator_V2() {
+    puts("test_DuckSimulator_V2");
+    try {
+        quacks = 0; // グローバル変数のカウンタをリセット
+        DuckSimulator sim;
+        DuckFactory duckFactory;
+        CountingDuckFactory countingDuckFactory;
+        sim.simulate(duckFactory, countingDuckFactory);
         return 0;
     } catch(exception& e) {
         cout << e.what() << endl;
@@ -243,6 +287,9 @@ int main(void) {
     }
     if(1.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_DuckSimulator());
+    }
+    if(1.01) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_DuckSimulator_V2());
     }
     puts("=== 12 章 Compound パターン END");
     return 0;
