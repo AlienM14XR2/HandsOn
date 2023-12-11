@@ -15,6 +15,7 @@
 */
 #include <iostream>
 #include <cassert>
+#include <vector>
 
 using namespace std;
 
@@ -184,6 +185,28 @@ public:
         return new QuackCounter(rubberDuck);
     }
 };
+
+/**
+ * カモのグループ全体にも操作を適用させる。
+ * Composite パターンを利用する。
+ * Flock（群れ）クラス。
+*/
+class Flock final : public virtual Quackable {
+private:
+    vector<Quackable*> quackers;
+public:
+    Flock() {}
+    Flock(const Flock& own) {*this = own;}
+    ~Flock() {}
+    
+    void add(Quackable* q) {
+        quackers.push_back(q);
+    }
+    virtual void quack() const override {
+        // TODO for loop 内で メンバ変数 quackers の quack() を呼ぶ。
+    }
+};
+
 
 /**
  * ダックシミュレータ クラス
