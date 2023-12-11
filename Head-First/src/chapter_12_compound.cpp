@@ -14,6 +14,7 @@
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_12_compound.cpp -o ../bin/main
 */
 #include <iostream>
+#include <cassert>
 
 using namespace std;
 
@@ -108,22 +109,21 @@ public:
  * quackable インタフェースを継承し、そのサブクラスをコンポジションした
  * Decorator パターン を利用する。
 */
+static int quacks = 0;
 class QuackCounter final : public virtual Quackable {
 private:
     Quackable* duck;
-    mutable int quacks;
-    QuackCounter():duck{nullptr},quacks{0} {}
+    QuackCounter():duck{nullptr} {}
 public:
     QuackCounter(Quackable* q) {
         duck = q;
-        quacks = 0;
     }
     QuackCounter(const QuackCounter& own) {*this = own;}
     ~QuackCounter() {}
 
-    int getQuacks() noexcept {
-        return quacks;
-    }
+    // int getQuacks() {
+    //     return quacks;
+    // }
     virtual void quack() const override {
         duck->quack();
         quacks++;
@@ -142,11 +142,21 @@ public:
         Goose goose;
         Quackable* gooseAdapter = new GooseAdapter(goose);
 
+        Quackable* mdCounter = new QuackCounter(mallardDuck);
+        Quackable* dcCounter = new QuackCounter(duckCall);
+        Quackable* rdCounter = new QuackCounter(rubberDuck);
+
         puts("\nカモシミュレータ\n");
-        simulate(mallardDuck);
-        simulate(duckCall);
-        simulate(rubberDuck);
+        simulate(mdCounter);
+        simulate(dcCounter);
+        simulate(rdCounter);
         simulate(gooseAdapter);
+        printf("カモが鳴いた回数：%d\n",quacks);
+        assert(quacks == 3);        // ガチョウアダプタ はカウントしない。
+
+        delete mdCounter;
+        delete dcCounter;
+        delete rdCounter;
 
         delete mallardDuck;
         delete duckCall;
