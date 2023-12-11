@@ -131,6 +131,49 @@ public:
 };
 
 /**
+ * カモの作成を取り出して１か所に局所化しませんか？
+ * カモの作成と修飾を取り出して、カプセル化するのです。
+ * 
+ * Factory パターン を利用する。
+*/
+class IDuckFactory {
+public:
+    virtual ~IDuckFactory() {}
+    virtual Quackable* createMallardDuck() const = 0;
+    virtual Quackable* createDuckCall() const = 0;
+    virtual Quackable* createRubberDuck() const = 0;
+};
+class ICountingDuckFactory {
+public:
+    virtual ~ICountingDuckFactory() {}
+    virtual Quackable* createMallardDuck(Quackable*) const = 0;
+    virtual Quackable* createDuckCall(Quackable*) const = 0;
+    virtual Quackable* createRubberDuck(Quackable*) const = 0;
+};
+
+class DuckFactory final : public virtual IDuckFactory {
+public:
+    DuckFactory() {}
+    DuckFactory(const DuckFactory& own) {*this = own;}
+    ~DuckFactory() {}
+
+    virtual Quackable* createMallardDuck() const override {
+        return new MallardDuck();
+    }
+    virtual Quackable* createDuckCall() const override {
+        return new DuckCall();
+    }
+    virtual Quackable* createRubberDuck() const override {
+        return new RubberDuck();
+    }
+
+};
+
+class CountingDuckFactory final : public virtual ICountingDuckFactory {
+
+};
+
+/**
  * ダックシミュレータ クラス
 */
 class DuckSimulator {
