@@ -143,6 +143,7 @@ public:
     virtual Quackable* createDuckCall() const = 0;
     virtual Quackable* createRubberDuck() const = 0;
 };
+
 class ICountingDuckFactory {
 public:
     virtual ~ICountingDuckFactory() {}
@@ -166,11 +167,22 @@ public:
     virtual Quackable* createRubberDuck() const override {
         return new RubberDuck();
     }
-
 };
 
 class CountingDuckFactory final : public virtual ICountingDuckFactory {
-
+public:
+    CountingDuckFactory() {}
+    CountingDuckFactory(const CountingDuckFactory& own) {*this = own;}
+    ~CountingDuckFactory() {}
+    virtual Quackable* createMallardDuck(Quackable* mallardDuck) const override {
+        return new QuackCounter(mallardDuck);
+    }
+    virtual Quackable* createDuckCall(Quackable* duckCall) const override {
+        return new QuackCounter(duckCall);
+    }
+    virtual Quackable* createRubberDuck(Quackable* rubberDuck) const override {
+        return new QuackCounter(rubberDuck);
+    }
 };
 
 /**
