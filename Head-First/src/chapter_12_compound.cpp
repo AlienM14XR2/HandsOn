@@ -198,12 +198,17 @@ public:
     Flock() {}
     Flock(const Flock& own) {*this = own;}
     ~Flock() {}
-    
+
     void add(Quackable* q) {
         quackers.push_back(q);
     }
     virtual void quack() const override {
-        // TODO for loop 内で メンバ変数 quackers の quack() を呼ぶ。
+        // loop 内で メンバ変数 quackers の quack() を呼ぶ。
+        size_t size = quackers.size();
+        for(size_t i=0 ; i < size; i++) {
+            Quackable* quackable = quackers.at(i);
+            quackable->quack();
+        }
     }
 };
 
@@ -252,10 +257,13 @@ public:
         Quackable* dcCounter = countingDuckFactory.createDuckCall(duckCall);
         Quackable* rdCounter = countingDuckFactory.createRubberDuck(rubberDuck);
 
-        puts("\nカモシミュレータ V2\n");
-        simulate(mdCounter);
-        simulate(dcCounter);
-        simulate(rdCounter);
+        Flock flockOfDucks;
+        flockOfDucks.add(mdCounter);
+        flockOfDucks.add(dcCounter);
+        flockOfDucks.add(rdCounter);
+
+        puts("\nカモシミュレータ V2 Factory パターンと Composite パターンを適用した\n");
+        simulate(&flockOfDucks);
         simulate(gooseAdapter);
         printf("カモが鳴いた回数：%d\n",quacks);
         assert(quacks == 3);        // ガチョウアダプタ はカウントしない。
