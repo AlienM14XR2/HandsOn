@@ -25,6 +25,26 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug)-> void {
 };
 
 /**
+ * 個々のカモを管理する必要がる。
+ * リアルタイムに個々のカモの鳴き声を管理する方法はとは。
+ * Observer パターンを利用する。
+*/
+
+class QuackObservable;
+class Observer {
+public:
+    virtual void update(QuackObservable& duck) const =0;
+};
+
+class QuackObservable {
+public:
+    virtual ~QuackObservable() {}
+    virtual void registerObserver(Observer*) const = 0;
+    virtual void notifyAll() const = 0;
+    // オブザーバを削除するメソッドは今回は不要。
+};
+
+/**
  * 再びカモ インタフェース（鳴き声）
 */
 class Quackable {
@@ -211,6 +231,7 @@ public:
         }
     }
 };
+
 
 
 /**
