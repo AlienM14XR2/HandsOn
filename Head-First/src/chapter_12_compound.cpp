@@ -31,26 +31,65 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug)-> void {
 */
 
 class QuackObservable;
+/**
+ * Observer パターンにおける観察者クラス
+*/
 class Observer {
 public:
-    virtual void update(QuackObservable& duck) const =0;
+    virtual void update(QuackObservable* duck) const =0;
 };
 
+/**
+ * QuackObservable は、Quackable を監視したい場合に Quackable が実装すべき
+ * インタフェースです。
+*/
 class QuackObservable {
 public:
     virtual ~QuackObservable() {}
-    virtual void registerObserver(Observer*) const = 0;
-    virtual void notifyAll() const = 0;
+    virtual void registerObserver(Observer*) {
+        throw runtime_error("ERROR: Not Supported Exception.");
+    }
+    virtual void notifyAll() {
+        throw runtime_error("ERROR: Not Supported Exception.");
+    }
     // オブザーバを削除するメソッドは今回は不要。
 };
 
 /**
  * 再びカモ インタフェース（鳴き声）
 */
-class Quackable {
+class Quackable : public virtual QuackObservable {
 public:
     virtual ~Quackable() {}
     virtual void quack() const = 0;
+};
+
+/**
+ * Quackable のサブクラスは QuackObservable にも対応する必要が出てくる。
+ * 今回は、ひとつの QuackObservable のサブクラスを定義し、各 Quackable のサブクラスは
+ * それをメンバ変数として定義、コンポジションを利用して、コードの重複を避けることにする。
+ * つまり、メンバ変数へ処理を移譲する。
+ * その クラス Observable
+*/
+class Observable final : public virtual QuackObservable {
+private:
+    vector<Observer*> observers;
+    QuackObservable* duck;
+    Observable():duck{nullptr} {}
+public:
+    Observable(QuackObservable* d) {duck = d;}
+    Observable(const Observable& own) {*this = own;}
+    ~Observable() {}
+    virtual void registerObserver(Observer* o) {
+        observers.push_back(o);
+    }
+    virtual void notifyAll() {
+        size_t size = observers.size();
+        for(size_t i=0 ; i < size ; i++) {
+            Observer* observer = observers.at(i);
+            observer->update(duck);
+        }
+    }
 };
 
 /**
