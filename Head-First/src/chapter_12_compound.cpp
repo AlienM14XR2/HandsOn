@@ -52,6 +52,7 @@ public:
     virtual void notifyAll() {
         throw runtime_error("ERROR: Not Supported Exception.");
     }
+    virtual string getName() const = 0;
     // オブザーバを削除するメソッドは今回は不要。
 };
 
@@ -59,9 +60,14 @@ public:
  * 再びカモ インタフェース（鳴き声）
 */
 class Quackable : public virtual QuackObservable {
+protected:
+    string name = "";
 public:
     virtual ~Quackable() {}
     virtual void quack() const = 0;
+    virtual string getName() const override {
+        throw runtime_error("ERROR: Not Supported Exception.");
+    }
 };
 
 /**
@@ -90,12 +96,15 @@ public:
             observer->update(duck);
         }
     }
+    virtual string getName() const override {
+        return duck->getName();
+    }
 };
 
 class Ologist final : public virtual Observer {
 public:
     virtual void update(QuackObservable* duck) const override {
-        // TODO 実装 名前を表示してみる。
+        cout << "カモの鳴き声学者：" << duck->getName()  << "が鳴きました。" << endl;
     }
 };
 
@@ -118,36 +127,66 @@ public:
  * マガモの鳴き声クラス
 */
 class MallardDuck final : public virtual Quackable {
+private:
+    Observable* observable = nullptr;
 public:
-    MallardDuck() {}
+    MallardDuck() {
+        name = "マガモ";
+        observable = new Observable(this);
+    }
     MallardDuck(const MallardDuck& own) {*this = own;}
-    ~MallardDuck() {}
+    ~MallardDuck() {
+        delete observable;
+    }
     virtual void quack() const override {
         puts("ガーガー");
+    }
+    virtual string getName() const override {
+        return name;
     }
 };
 /**
  * 鴨笛クラス
 */
 class DuckCall final : public virtual Quackable {
+private:
+    Observable* observable = nullptr;
 public:
-    DuckCall() {}
+    DuckCall() {
+        name = "鳩笛";
+        observable = new Observable(this);
+    }
     DuckCall(const DuckCall& own) {*this = own;}
-    ~DuckCall() {}
+    ~DuckCall() {
+        delete observable;
+    }
     virtual void quack() const override {
         puts("ガァガァ");
+    }
+    virtual string getName() const override {
+        return name;
     }
 };
 /**
  * ゴム製のアヒル クラス
 */
 class RubberDuck final : public virtual Quackable {
+private:
+    Observable* observable = nullptr;
 public:
-    RubberDuck() {}
+    RubberDuck() {
+        name = "ゴム製のアヒル";
+        observable = new Observable(this);
+    }
     RubberDuck(const RubberDuck& own) {*this = own;}
-    ~RubberDuck() {}
+    ~RubberDuck() {
+        delete observable;
+    }
     virtual void quack() const override {
         puts("キューキュー");
+    }
+    virtual string getName() const override {
+        return name;
     }
 };
 
@@ -161,6 +200,7 @@ private:
     GooseAdapter():goose{nullptr} {}
 public:
     GooseAdapter(Goose& g) {
+        name = "ガチョウ";
         goose = &g;
     }
     GooseAdapter(const GooseAdapter& own) {*this = own;}
@@ -168,6 +208,9 @@ public:
 
     virtual void quack() const override {
         goose->honk();
+    }
+    virtual string getName() const override {
+        return name;
     }
 };
 
@@ -194,6 +237,9 @@ public:
     virtual void quack() const override {
         duck->quack();
         quacks++;
+    }
+    virtual string getName() const override {
+        return duck->getName();
     }
 };
 
@@ -277,8 +323,6 @@ public:
         }
     }
 };
-
-
 
 /**
  * ダックシミュレータ クラス
