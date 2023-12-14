@@ -92,6 +92,13 @@ public:
     }
 };
 
+class Ologist final : public virtual Observer {
+public:
+    virtual void update(QuackObservable* duck) const override {
+        // TODO 実装 名前を表示してみる。
+    }
+};
+
 /**
  * ガチョウ クラス（鳴き声）
 */
