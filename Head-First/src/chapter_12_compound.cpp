@@ -198,9 +198,16 @@ public:
     }
     virtual void quack() const override {
         puts("キューキュー");
+        notifyAll();
     }
     virtual string getName() const override {
         return name;
+    }
+    virtual void registerObserver(Observer* observer) {
+        observable->registerObserver(observer);
+    }
+    virtual void notifyAll() const {
+        observable->notifyAll();
     }
 };
 
