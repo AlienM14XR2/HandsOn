@@ -252,9 +252,6 @@ public:
     QuackCounter(const QuackCounter& own) {*this = own;}
     ~QuackCounter() {}
 
-    // int getQuacks() {
-    //     return quacks;
-    // }
     virtual void quack() const override {
         duck->quack();
         quacks++;
@@ -356,6 +353,11 @@ public:
         Quackable* rubberDuck = new RubberDuck();
         Goose goose;
         Quackable* gooseAdapter = new GooseAdapter(goose);
+
+        Ologist ologist;
+        mallardDuck->registerObserver(&ologist);
+        duckCall->registerObserver(&ologist);
+        rubberDuck->registerObserver(&ologist);
 
         Quackable* mdCounter = new QuackCounter(mallardDuck);
         Quackable* dcCounter = new QuackCounter(duckCall);
