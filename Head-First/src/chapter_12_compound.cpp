@@ -15,6 +15,8 @@
  * パターンを使いたいがためにパターンを使うという考えで使い始めるものではありません。
  * DuckSimulator の設計は、無理に作った作為的なものと考えるべきです（学習目的だから）。
  * 
+ * MVC に関しては、別ファイルにて行うこと。
+ * 
  * e.g. compile
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_12_compound.cpp -o ../bin/main
 */
