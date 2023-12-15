@@ -384,6 +384,11 @@ public:
         Quackable* mallardDuck = duckFactory.createMallardDuck();
         Quackable* duckCall = duckFactory.createDuckCall();
         Quackable* rubberDuck = duckFactory.createRubberDuck();        
+        Ologist ologist;
+        // ここでオブザーバを追加してもいいが、Flock クラス内で設定することもおそらく可能だと考える。
+        mallardDuck->registerObserver(&ologist);
+        duckCall->registerObserver(&ologist);
+        rubberDuck->registerObserver(&ologist);
         Goose goose;
         Quackable* gooseAdapter = new GooseAdapter(goose);
         // C++ だとあまり代わり映えしない、サンプルは Java なので次のものだけで表現できるが、個人的にメモリ開放が気になったので結局 Factory のインタフェースを２つ用意した。
