@@ -18,9 +18,9 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
 template <class T>
 class A {
 public:
-    virtual ~A() = default;
+    virtual ~A() = default;     // この記述について気になった。
 
-    virtual T add(const T&, const T&) const = 0;
+    virtual T add(const T&, const T&) const = 0;    // const = 0 と = 0 の違い、これを確認するのが今回の主目的。
 };
 
 template <class T>
@@ -28,7 +28,7 @@ class B {
 public:
     virtual ~B() = default;
 
-    virtual T add(const T&, const T&) = 0;
+    virtual T add(const T&, const T&) = 0;          // = 0 ... const 修飾なし。
 };
 
 template <class T>
