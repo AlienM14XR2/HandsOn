@@ -26,7 +26,7 @@ public:
 template <class T>
 class B {
 public:
-    virtual ~B() = default;
+    virtual ~B() = default;     // デストラクタのこの書き方も初めて知った。
 
     virtual T add(const T&, const T&) = 0;          // = 0 ... const 修飾なし。
 };
@@ -43,7 +43,7 @@ public:
     }
     ConcreteA(const ConcreteA& own) {*this = own;}
     ~ConcreteA() {}
-    virtual T add(const T& l, const T& r) const override {
+    T add(const T& l, const T& r) const override {
         currentResult = (l + r) * bias;
         return currentResult;
     }
@@ -62,7 +62,7 @@ public:
     }
     ConcreteB(const ConcreteB& own) {*this = own;}
     ~ConcreteB() {}
-    virtual T add(const T& l, const T& r) override {
+    T add(const T& l, const T& r) override {
         currentResult = (l + r) * bias;
         return currentResult;
     }
@@ -74,7 +74,7 @@ int test_ConcreteA() {
         ConcreteA<int> a(2);
         int test = 0;
         ptr_lambda_debug<const string&,const int&>("a.add(2,2) is ",test = a.add(2,2));
-        assert(test == 8);
+        assert(test == 8.0);
         return 0;
     } catch(...) {
         return -1;
@@ -84,10 +84,10 @@ int test_ConcreteA() {
 int test_ConcreteB() {
     puts("--- test_ConcreteB");
     try {
-        ConcreteB<int> b(3);
-        int test = 0;
-        ptr_lambda_debug<const string&,const int&>("b.add(3,3) is ",test = b.add(3,3));
-        assert(test == 18);
+        ConcreteB<double> b(3.0);
+        double test = 0.0f;
+        ptr_lambda_debug<const string&,const double&>("b.add(3,3) is ",test = b.add(3,3));
+        assert(test == 18.0);
         return 0;
     } catch(...) {
         return -1;
