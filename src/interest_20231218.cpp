@@ -110,32 +110,43 @@ int test_ConcreteB() {
  * という要件を定義します。
 */
 
-template <class T>
-concept Drawable = requires (T& t) {
+template <class T, class P>
+concept Drawable = requires (T& t,P& p) {
     t.draw();
+    t.setPoint(p, p);
 };
 
 /**
  * テンプレート仮引数 T をDrawable コンセプトで制約する。
 */
-template <class T>
-    requires Drawable <T>
-void f(T& t) {
+template <class T, class P>
+    requires Drawable <T,P>
+void f(T& t,P& px,P& py) {
+    t.setPoint(px,py);
     t.draw();
 }
 
 class Box {
+private:
+    int x,y;
 public:
     void draw() {
         puts("Box オブジェクトを描画");
+        printf("x is %d\ty is %d\n",x,y);
+    }
+    void setPoint(const int& tx, const int& ty) {
+        x = tx;
+        y = ty;
     }
 };
 
 int test_concept_Box() {
     puts("--- test_concept_Box");
     try {
+        int px = 5;
+        int py = 10;
         Box b;
-        f(b);       // OK
+        f(b,px,py);       // OK
         int x = 0;
 //        f(x);       // NG コンパイルエラー Drawable コンセプトの要件を満たさない。
         printf("x is %d\n",x);
