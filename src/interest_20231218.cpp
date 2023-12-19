@@ -35,7 +35,7 @@ template <class T>
 class ConcreteA final : public virtual A<T> {
 private:
     T bias;
-    mutable T currentResult;
+    mutable T currentResult;    // メンバ変数の修飾に関係してくる、メンバ関数内で変更される場合は mutable にする必要がある。
     ConcreteA() {}
 public:
     ConcreteA(const T& b) {
@@ -48,6 +48,24 @@ public:
         return currentResult;
     }
 
+};
+
+template <class T>
+class ConcreteB final : public virtual B<T> {
+private:
+    T bias;
+    T currentResult;    // mutable 修飾をする必要がない。
+    ConcreteB() {}
+public:
+    ConcreteB(const T& b) {
+        bias = b;
+    }
+    ConcreteB(const ConcreteB& own) {*this = own;}
+    ~ConcreteB() {}
+    virtual T add(const T& l, const T& r) override {
+        currentResult = (l + r) * bias;
+        return currentResult;
+    }
 };
 
 int test_ConcreteA() {
@@ -63,10 +81,24 @@ int test_ConcreteA() {
     }
 }
 
+int test_ConcreteB() {
+    puts("--- test_ConcreteB");
+    try {
+        ConcreteB<int> b(3);
+        int test = 0;
+        ptr_lambda_debug<const string&,const int&>("b.add(3,3) is ",test = b.add(3,3));
+        assert(test == 18);
+        return 0;
+    } catch(...) {
+        return -1;
+    }
+}
+
 int main(void) {
     puts("START Interest 2023-12-18 ===");
     if(1.00) {
         ptr_lambda_debug<const string&,const int&>("Play and Result ... ", test_ConcreteA());
+        ptr_lambda_debug<const string&,const int&>("Play and Result ... ", test_ConcreteB());
     }
     puts("=== Interest 2023-12-18 END");
     return 0;
