@@ -47,6 +47,10 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
     cout << "DEBUG: " << message << '\t' << debug << endl;
 };
 
+/**
+ * std::variant を検討する。
+*/
+
 struct Print {
     void operator()(int value) const {
         cout << "int: " << value << endl;
@@ -63,7 +67,7 @@ int test_variant() {
     puts("--- test_variant");
     try {
         // Creates a default variant that contains an 'int' initialized to 0
-        std::variant<int,double,string> v{};
+        std::variant<int,double,string> v{};    // variant は int, double, string の内ひとつだけ保持できる、複数の値を同時に保持することはできない。 
 
         v = 42;
         v = 3.14;
@@ -83,6 +87,31 @@ int test_variant() {
     }
 }
 
+/**
+ * 図形描画を値ベースで干渉しない解にリファクタリングする。
+ * 手続き型、Procedural type.
+*/
+
+struct Point {
+    double x;
+    double y;
+};
+
+class PTCircle {
+private:
+    double radius_;  // 半径
+    Point point{};    // 座標
+public:
+    explicit PTCircle(const double& r, const Point& p):radius_(r),point(p) {
+        // Checking that the given radius is valid.
+    }
+    PTCircle(const PTCircle& own) {*this = own;}
+    ~PTCircle() {}
+
+    double getRadius() const {return radius_;}
+    Point getPoint() const {return point;}
+};
+
 class Circle;
 class ShapeVisitor {
 public:
@@ -98,7 +127,7 @@ public:
 /**
  * 矩形のパターンの追加を行う。
  * 矩形の種類の追加は容易にできる。
- * ただし、Visitor パターンでは 型 のクローズセットが必要とされる。
+ * ただし、Visitor パターンでは 型 のクローズドセットが必要とされる。
  * その代償として 処理 のオープンセットが得られると考える。
  * つまり、今後新たに Square を実装する際には、新たに追加される予定の
  * 処理を含めた実装が求められる。 
