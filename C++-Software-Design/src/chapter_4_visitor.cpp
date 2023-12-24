@@ -20,6 +20,11 @@
  * - 主に型を追加するならば、オブジェクト指向の解を優先する。
  * - 主に処理を追加するならば、手続き型／関数型プログラミングの解を優先する。
  * 
+ * ガイドライン 16: 処理セットを拡張するには Visitor パターン。
+ * 
+ * Visitor パターンの目的は処理（Operation、オペレーション、機能、操作、動作、メソッド）を追加可能と
+ * することです。
+ * 
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_4_visitor.cpp -o ../bin/main
 */
 #include <iostream>
@@ -30,6 +35,34 @@ template <class M, class D>
 void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
     cout << "DEBUG: " << message << '\t' << debug << endl;
 };
+
+class Circle;
+class ShapeVisitor {
+public:
+    virtual ~ShapeVisitor() = default;
+    virtual void visit(Circle&) = 0;
+};
+class Shape {
+public:
+    virtual ~Shape() = default;
+    virtual void accept(ShapeVisitor& sv) = 0;
+};
+
+class Circle final : public virtual Shape {
+private:
+    double radius;
+    Circle():radius{0.00}{}
+public:
+    explicit Circle(const double& r):radius(r) {
+        // TODO Checking that given radius is valid.
+    }
+    Circle(const Circle& own) {*this = own;}
+    ~Circle() {}
+    void accept(ShapeVisitor& sv) override {
+        sv.visit(*this);
+    }
+};
+
 
 int main() {
     puts("START 4 章 Visitor パターン ===");
