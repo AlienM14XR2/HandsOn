@@ -30,6 +30,9 @@
  * - 処理の追加を容易にすることを目的に Visitor パターンを適用する。
  * - Visitor の短所に留意する（型追加が困難になる、ダブルディスパッチによるコスト、依存関係が巡回するので実際の利用では複雑さが増す... etc）。
  * 
+ * ガイドライン 17: Visitor パターンの実装には std::variant を検討する。
+ *
+ *  
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_4_visitor.cpp -o ../bin/main
 */
 #include <iostream>
