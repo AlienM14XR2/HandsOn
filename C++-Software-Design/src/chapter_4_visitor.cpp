@@ -36,6 +36,9 @@
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_4_visitor.cpp -o ../bin/main
 */
 #include <iostream>
+#include <cstdlib>
+#include <string>
+#include <variant>
 
 using namespace std;
 
@@ -43,6 +46,42 @@ template <class M, class D>
 void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
     cout << "DEBUG: " << message << '\t' << debug << endl;
 };
+
+struct Print {
+    void operator()(int value) const {
+        cout << "int: " << value << endl;
+    }
+    void operator()(double value) const {
+        cout << "double: " << value << endl;
+    }
+    void operator()(const string& value) const {
+        cout << "string: " << value << endl;
+    }
+};
+
+int test_variant() {
+    puts("--- test_variant");
+    try {
+        // Creates a default variant that contains an 'int' initialized to 0
+        std::variant<int,double,string> v{};
+
+        v = 42;
+        v = 3.14;
+        v = 2.71F;
+        v = "Jack";
+        v = 43;
+
+        const int i = std::get<int>(v);
+        ptr_lambda_debug<const char*,const int&>("i is ",i);
+        const int* const pi = std::get_if<int>(&v);
+        ptr_lambda_debug<const char*,const int*>("pi is ",pi);
+        std::visit(Print{}, v);
+
+        return EXIT_SUCCESS;
+    } catch(...) {
+        return EXIT_FAILURE;
+    }
+}
 
 class Circle;
 class ShapeVisitor {
@@ -145,6 +184,9 @@ int main() {
     if(1.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Draw_Circle());
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Rotate_Circle());
+    }
+    if(1.01) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_variant());
     }
     puts("=== 4 章 Visitor パターン END");
 }
