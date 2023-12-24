@@ -25,6 +25,11 @@
  * Visitor パターンの目的は処理（Operation、オペレーション、機能、操作、動作、メソッド）を追加可能と
  * することです。
  * 
+ * ガイドライン 16 の要約
+ * - 継承関係からなる既存の階層構造に、新規処理を追加するのは困難であることを肝に銘じておく。
+ * - 処理の追加を容易にすることを目的に Visitor パターンを適用する。
+ * - Visitor の短所に留意する（型追加が困難になる、ダブルディスパッチによるコスト、依存関係が巡回するので実際の利用では複雑さが増す... etc）。
+ * 
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_4_visitor.cpp -o ../bin/main
 */
 #include <iostream>
@@ -40,13 +45,22 @@ class Circle;
 class ShapeVisitor {
 public:
     virtual ~ShapeVisitor() = default;
-    virtual void visit(Circle&) = 0;
+    virtual void visit(const Circle&) const = 0;
 };
 class Shape {
 public:
     virtual ~Shape() = default;
-    virtual void accept(ShapeVisitor& sv) = 0;
+    virtual void accept(const ShapeVisitor& sv) = 0;
 };
+
+/**
+ * 矩形のパターンの追加を行う。
+ * 矩形の種類の追加は容易にできる。
+ * ただし、Visitor パターンでは 型 のクローズセットが必要とされる。
+ * その代償として 処理 のオープンセットが得られると考える。
+ * つまり、今後新たに Square を実装する際には、新たに追加される予定の
+ * 処理を含めた実装が求められる。 
+*/
 
 class Circle final : public virtual Shape {
 private:
@@ -58,10 +72,65 @@ public:
     }
     Circle(const Circle& own) {*this = own;}
     ~Circle() {}
-    void accept(ShapeVisitor& sv) override {
+
+    double getRadius() const {
+        return radius;
+    }
+    void accept(const ShapeVisitor& sv) override {
         sv.visit(*this);
     }
 };
+
+/**
+ * 処理の分離を行う（処理の追加は容易にできる）。
+*/
+
+class Draw final : public virtual ShapeVisitor {
+public:
+    Draw() {}
+    Draw(const Draw& own) {*this = own;}
+    ~Draw() {}
+    void visit(Circle const& circle) const override {
+        ptr_lambda_debug<const char*,const double&>("半径：",circle.getRadius());
+        puts("Draw Circle.");
+    }
+};
+
+class Rotate final : public virtual ShapeVisitor {
+public:
+    Rotate() {}
+    Rotate(const Rotate& own) {*this = own;}
+    ~Rotate() {}
+
+    void visit(Circle const& circle) const override {
+        ptr_lambda_debug<const char*,const double&>("半径：",circle.getRadius());
+        puts("Rotate Circle.");
+    }
+};
+
+int test_Draw_Circle() {
+    puts("--- test_Draw_Circle");
+    try {
+        Circle circle(3.00f);
+        Draw draw;
+        circle.accept(draw);
+        return EXIT_SUCCESS;
+    } catch(...) {
+        return EXIT_FAILURE;
+    }
+}
+
+int test_Rotate_Circle() {
+    puts("--- test_Rotate_Circle");
+    try {
+        Circle circle(6.00f);
+        Rotate rotate;
+        circle.accept(rotate);
+        return EXIT_SUCCESS;
+    } catch(...) {
+        return EXIT_FAILURE;
+    }
+}
 
 
 int main() {
@@ -69,6 +138,10 @@ int main() {
     if(0.01) {
         double pi = 3.14159;
         ptr_lambda_debug<const char*,const double&>("pi is ", pi);
+    }
+    if(1.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Draw_Circle());
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Rotate_Circle());
     }
     puts("=== 4 章 Visitor パターン END");
 }
