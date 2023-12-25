@@ -96,6 +96,10 @@ int test_variant() {
 struct Point {
     double x;
     double y;
+    Point() :x{0.0},y{0.0} {}
+    Point(double tx, double ty):x(tx),y(ty) {}
+    Point(const Point& own) {*this = own;}
+    ~Point() {}
 };
 
 class PTCircle {
@@ -133,9 +137,13 @@ using PTShapes = std::vector<PTShape>;
 
 struct PTDraw {
     void operator()(const PTCircle& c) const {
+        ptr_lambda_debug<const char*,const double&>("半径： ",c.getRadius());
+        printf("x is %lf\t y is %lf\n",c.getPoint().x,c.getPoint().y);
         puts("Draw circle.");
     }
     void operator()(const PTSquare& s) const {
+        ptr_lambda_debug<const char*,const double&>("横幅： ",s.getSide());
+        printf("x is %lf\t y is %lf\n",s.getPoint().x,s.getPoint().y);
         puts("Draw square");
     }
 };
@@ -143,6 +151,20 @@ struct PTDraw {
 void drawAllShapes(const PTShapes& shapes) {
     for(const auto& shape: shapes ) {
         std::visit(PTDraw{}, shape);
+    }
+}
+
+int test_drawAllShapes() {
+    puts("--- test_drawAllShapes");
+    try {
+        PTShapes shapes;
+        shapes.emplace_back(PTCircle{3.0,Point{0,10}});
+        shapes.emplace_back(PTSquare{6.0,Point{30,60}});
+        shapes.emplace_back(PTCircle{9.0,Point{3,6}});
+        drawAllShapes(shapes);
+        return EXIT_SUCCESS;
+    } catch(...) {
+        return EXIT_FAILURE;
     }
 }
 
@@ -255,6 +277,9 @@ int main() {
     }
     if(1.01) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_variant());
+    }
+    if(1.02) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_drawAllShapes());
     }
     puts("=== 4 章 Visitor パターン END");
 }
