@@ -39,6 +39,7 @@
 #include <cstdlib>
 #include <string>
 #include <variant>
+#include <vector>
 
 using namespace std;
 
@@ -78,7 +79,7 @@ int test_variant() {
         const int i = std::get<int>(v);
         ptr_lambda_debug<const char*,const int&>("i is ",i);
         const int* const pi = std::get_if<int>(&v);
-        ptr_lambda_debug<const char*,const int*>("pi is ",pi);
+        ptr_lambda_debug<const char*,const int>("pi is ",*pi);
         std::visit(Print{}, v);
 
         return EXIT_SUCCESS;
@@ -111,6 +112,44 @@ public:
     double getRadius() const {return radius_;}
     Point getPoint() const {return point;}
 };
+
+class PTSquare {
+private:
+    double side_;
+    Point point{};
+public:
+    explicit PTSquare(const double& s, const Point& p):side_(s),point(p) {
+        // Checking that the given radius is valid.
+    }
+    PTSquare(const PTSquare& own) {*this = own;}
+    ~PTSquare() {}
+
+    double getSide() const {return side_;}
+    Point getPoint() const {return point;}
+};
+
+using PTShape = std::variant<PTCircle,PTSquare>;
+using PTShapes = std::vector<PTShape>;
+
+struct PTDraw {
+    void operator()(const PTCircle& c) const {
+        puts("Draw circle.");
+    }
+    void operator()(const PTSquare& s) const {
+        puts("Draw square");
+    }
+};
+
+void drawAllShapes(const PTShapes& shapes) {
+    for(const auto& shape: shapes ) {
+        std::visit(PTDraw{}, shape);
+    }
+}
+
+
+/**
+ * 古い Visitor パターンの例。
+*/
 
 class Circle;
 class ShapeVisitor {
