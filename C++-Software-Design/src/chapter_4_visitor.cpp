@@ -36,7 +36,10 @@
  * - オブジェクト指向の解と比較した場合の、std::variant が持つ優位点を把握する。
  * - 状況に応じた抽象化を作成するには、干渉しない性質を備える std::variant を使用する。
  * - std::variant の短所を肝に銘じておき、不適切な場面では使用しない（処理のオープンセットを実現するが、型のクローズドセットに対処しなければいけない）。
- *
+ * 
+ * # ガイドライン 18: Acyclic Visitor の性能を把握する
+ * これは、別のソースファイルにした方がいいかもしれない。
+ * @see chapter_4_acyclic_visitor.cpp
  *  
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_4_visitor.cpp -o ../bin/main
 */
@@ -142,7 +145,7 @@ public:
 using PTShape = std::variant<PTCircle,PTSquare>;
 using PTShapes = std::vector<PTShape>;
 
-struct PTDraw {
+struct PTDraw {     // 型が増えるとこの実装に修正が必要になる。
     void operator()(const PTCircle& c) const {
         ptr_lambda_debug<const char*,const double&>("半径： ",c.getRadius());
         printf("x is %lf\t y is %lf\n",c.getPoint().x,c.getPoint().y);
@@ -233,6 +236,7 @@ public:
         ptr_lambda_debug<const char*,const double&>("半径：",circle.getRadius());
         puts("Draw Circle.");
     }
+    // 型が追加される度にメンバ関数を実装する必要がある
 };
 
 class Rotate final : public virtual ShapeVisitor {
@@ -245,6 +249,7 @@ public:
         ptr_lambda_debug<const char*,const double&>("半径：",circle.getRadius());
         puts("Rotate Circle.");
     }
+    // 型が追加される度にメンバ関数を実装する必要がある
 };
 
 int test_Draw_Circle() {
