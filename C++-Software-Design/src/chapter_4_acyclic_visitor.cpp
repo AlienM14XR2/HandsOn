@@ -80,7 +80,7 @@ public:
         return point;
     }
     void accept(const AbstractVisitor& av) override {
-        // ダウンキャストを使うのか
+        // ダウンキャストを使うのか... だからタグなのか、AbstractVisitor が。 これなら循環しなくて済むということ。
         if( const auto* cv = dynamic_cast<const Visitor<Circle>*>(&av)) {
             cv->visit(*this);
         }
@@ -103,7 +103,11 @@ public:
 
     double getSide() const {return side_;}
     Point getPoint() const {return point;}
-
+    void accept(const AbstractVisitor& av) override {
+        if( const auto* cv = dynamic_cast<const Visitor<Square>*>(&av)) {
+            cv->visit(*this);
+        }
+    }
 };
 
 /**
