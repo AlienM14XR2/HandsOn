@@ -3,6 +3,10 @@
  * 
  * # ガイドライン 18: Acyclic Visitor の性能を把握する
  * 
+ * ## ガイドライン 18 の要約
+ * - Acyclic Visitor のアーキテクチャ上の優位性を理解する。
+ * - Acyclic Visitor の解は、性能が大きく劣る点に留意する。
+ * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_4_acyclic_visitor.cpp -o ../bin/main
 */
