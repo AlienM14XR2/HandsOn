@@ -117,7 +117,19 @@ class Draw final : public AbstractVisitor
                     , public Visitor<Circle>
                     , public Visitor<Square>
 {
-
+public:
+    void visit(const Circle& circle) const override {
+        // Implementing the logic for drawing a circle.
+        puts("draw circle.");
+        printf("半径：%lf\n",circle.getRadius());
+        printf("x is %lf\t y is %lf\n",circle.getPoint().x,circle.getPoint().y);
+    }
+    void visit(const Square& square) const override {
+        // Implementing the logic for drawing a square.
+        puts("draw square.");
+        printf("横幅：%lf\n",square.getSide());
+        printf("x is %lf\t y is %lf\n",square.getPoint().x,square.getPoint().y);
+    }
 }; 
 
 int main(void) {
