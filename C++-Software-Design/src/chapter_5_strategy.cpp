@@ -153,14 +153,29 @@ public:
     explicit OpenGLCircleStrategyV2(/* Drawing related arguments */) {}
     OpenGLCircleStrategyV2(const OpenGLCircleStrategyV2& own) {*this = own;}
     ~OpenGLCircleStrategyV2() {}
-    
+
     void draw(const Circle& circle) const override {
         // use OpenGL.
         puts("draw ... use OpenGL.");
+        printf("radius is %lf\n",circle.getRadius());
+        printf("x is %lf\t y is %lf\n",circle.getPoint().x, circle.getPoint().y);
     }
 
 };
 
+int test_OpenGLCircleStrategyV2() {
+    puts("--- test_OpenGLCircleStrategyV2");
+    try {
+        OpenGLCircleStrategyV2 strategy;
+        // DrawStrategy<Circle>* drawStrategy = static_cast<DrawStrategy<Circle>*>(&strategy);
+        Circle circle(6.0,Point{30.0,90.0},strategy);
+        circle.draw();
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
 
 
 int main() {
@@ -171,6 +186,9 @@ int main() {
     }
     if(1.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Circle());
+    }
+    if(1.01) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_OpenGLCircleStrategyV2());
     }
     puts("=== 5 章 Strategy パターンと Command パターン END");
     return EXIT_SUCCESS;
