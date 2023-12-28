@@ -7,6 +7,12 @@
  * Strategy パターンを利用することで、アルゴリズムを、それを利用するクライアントからは
  * 独立して変更できるようになる。
  * 
+ * Strategy パターンの長所は OOP の長所をそのままに、型の追加を容易にすること。
+ * 短所は、Strategy 1 つにつき 1 つの処理かまたは小規模な関数グループしか扱えないこと。
+ * そうしないと再び SRP から逸脱してしまう。
+ * 多数の処理の実装詳細を切り出すような場合は別のアプローチを検討する。
+ * 例えば、『 7 章 Bridge パターンや Prototype パターン、External Polymorphism パターン』など。
+ * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_5_strategy.cpp -o ../bin/main
 */
@@ -176,7 +182,6 @@ int test_OpenGLCircleStrategyV2() {
         return EXIT_FAILURE;
     }
 }
-
 
 int main() {
     puts("START 5 章 Strategy パターンと Command パターン ===");
