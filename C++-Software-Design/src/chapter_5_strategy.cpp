@@ -41,8 +41,6 @@ public:
     virtual void draw(/* some arguments */) const = 0;
 };
 
- class Circle;
- class Square;
 /**
  * 描画用 Strategy パターン基底クラス
  * 
@@ -63,17 +61,6 @@ class DrawStrategy {
 public:
     virtual ~DrawStrategy() = default;
     virtual void draw(const T&) const = 0;
-};
-
-class CircleDrawStrategy final : public virtual DrawStrategy<Circle> {
-public:
-    CircleDrawStrategy() {}
-    CircleDrawStrategy(const CircleDrawStrategy& own) {*this = own;}
-    ~CircleDrawStrategy() {}
-
-    void draw(const Circle& circle) const override {
-        puts("step 2 draw circle.");
-    }
 };
 
 /**
@@ -101,6 +88,19 @@ public:
     void draw(/* some arguments */) const override {
         puts("step 1 draw circle.");
         drawer->draw(*this/* some arguments */);
+    }
+};
+
+class CircleDrawStrategy final : public virtual DrawStrategy<Circle> {
+public:
+    CircleDrawStrategy() {}
+    CircleDrawStrategy(const CircleDrawStrategy& own) {*this = own;}
+    ~CircleDrawStrategy() {}
+
+    void draw(const Circle& circle) const override {
+        puts("step 2 draw circle.");
+        printf("radius is %lf\n",circle.getRadius());
+        printf("x is %lf\t y is %lf\n",circle.getPoint().x, circle.getPoint().y);
     }
 };
 
