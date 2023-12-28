@@ -41,16 +41,39 @@ public:
     virtual void draw(/* some arguments */) const = 0;
 };
 
-class Circle;
-class Square;
+ class Circle;
+ class Square;
 /**
  * 描画用 Strategy パターン基底クラス
+ * 
+ * これは、悪い例です。私の知っているものではない。
+ * 振る舞い毎にひとクラス、且つ特定のクラスに特化した処理であるはず。
+ * 次のクラスは、２つクラス、Circle と Square を 引数に持つ draw() がある点で
+ * Strategy パターンとは言えない。
 */
+// class DrawStrategy {
+// public:
+//     virtual ~DrawStrategy() = default;
+//     virtual void draw(const Circle& circle) const = 0;
+//     virtual void draw(const Square& square) const = 0;
+// };
+
+template<class T>
 class DrawStrategy {
 public:
     virtual ~DrawStrategy() = default;
-    virtual void draw(const Circle& circle) const = 0;
-    virtual void draw(const Square& square) const = 0;
+    virtual void draw(const T&) const = 0;
+};
+
+class CircleDrawStrategy final : public virtual DrawStrategy<Circle> {
+public:
+    CircleDrawStrategy() {}
+    CircleDrawStrategy(const CircleDrawStrategy& own) {*this = own;}
+    ~CircleDrawStrategy() {}
+
+    void draw(const Circle& circle) const override {
+        puts("step 2 draw circle.");
+    }
 };
 
 /**
@@ -60,10 +83,10 @@ class Circle final : public virtual Shape {
 private:
     double radius;
     Point point;
-    DrawStrategy* drawer;       // 不思議、コンパイルレベルの問題なのか理解に苦しむが、メンバ引数の表記順番を入れ替えるとコンパイルエラーになる（ただしくはWarning）。
+    DrawStrategy<Circle>* drawer;       // 不思議、コンパイルレベルの問題なのか理解に苦しむが、メンバ引数の表記順番を入れ替えるとコンパイルエラーになる（ただしくはWarning）。
     Circle():radius{0.00},point{},drawer{nullptr}{}
 public:
-    explicit Circle(const double& r, const Point& p, DrawStrategy& d):radius(r),point(p),drawer(&d) {     // 書籍では move セマンティクスを利用している。
+    explicit Circle(const double& r, const Point& p, DrawStrategy<Circle>& d):radius(r),point(p),drawer(&d) {     // 書籍では move セマンティクスを利用している。
         // TODO Checking that given radius is valid.
     }
     Circle(const Circle& own) {*this = own;}
@@ -76,11 +99,27 @@ public:
         return point;
     }
     void draw(/* some arguments */) const override {
-        puts("draw circle.");
+        puts("step 1 draw circle.");
         drawer->draw(*this/* some arguments */);
     }
 };
 
+int test_Circle() {
+    puts("--- test_Circle");
+    try {
+        CircleDrawStrategy drawStrategy;
+        Circle circle(30.0,Point{0.0,10.0},drawStrategy);
+        circle.draw();
+        return EXIT_SUCCESS;
+    } catch(...) {
+        return EXIT_FAILURE;
+    }
+}
+
+/**
+ * ここまでは、書籍ではなく、自分が考える Strategy パターンを実装、テスト
+ * してみた。ここから先は、書籍を読み進めてサンプリングしてみる。
+*/
 
 
 
@@ -89,6 +128,9 @@ int main() {
     if(0.01) {
         double pi = 3.14159;
         ptr_lambda_debug<const char*,const double&>("pi is ",pi);
+    }
+    if(1.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Circle());
     }
     puts("=== 5 章 Strategy パターンと Command パターン END");
     return EXIT_SUCCESS;
