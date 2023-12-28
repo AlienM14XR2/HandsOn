@@ -56,6 +56,10 @@ public:
 //     virtual void draw(const Square& square) const = 0;
 // };
 
+/**
+ * DrawStrategy の実装、考え方はサンプルと同じだった。
+*/
+
 template<class T>
 class DrawStrategy {
 public:
@@ -120,6 +124,42 @@ int test_Circle() {
  * ここまでは、書籍ではなく、自分が考える Strategy パターンを実装、テスト
  * してみた。ここから先は、書籍を読み進めてサンプリングしてみる。
 */
+
+class CircleStrategy {
+public:
+    virtual ~CircleStrategy() = default;
+    virtual void draw(const Circle& /* some arguments */) const = 0;
+};
+
+/**
+ * サンプルでは上記を Circle クラスのメンバ変数としてコンポジションして利用している。
+ * 次がサンプルの本題だと思う。
+*/
+
+class OpenGLCircleStrategy final : public virtual CircleStrategy {
+public:
+    explicit OpenGLCircleStrategy(/* Drawing related arguments */) {}
+    OpenGLCircleStrategy(const OpenGLCircleStrategy& own) {*this = own;}
+    ~OpenGLCircleStrategy() {}
+
+    void draw(const Circle& circle) const override {
+        // use OpenGL.
+        puts("draw ... use OpenGL.");
+    }
+};
+
+class OpenGLCircleStrategyV2 final : public virtual DrawStrategy<Circle> {
+public:
+    explicit OpenGLCircleStrategyV2(/* Drawing related arguments */) {}
+    OpenGLCircleStrategyV2(const OpenGLCircleStrategyV2& own) {*this = own;}
+    ~OpenGLCircleStrategyV2() {}
+    
+    void draw(const Circle& circle) const override {
+        // use OpenGL.
+        puts("draw ... use OpenGL.");
+    }
+
+};
 
 
 
