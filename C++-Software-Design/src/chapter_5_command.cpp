@@ -25,6 +25,13 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
     cout << "DEBUG: " << message << '\t' << debug << endl;
 };
 
+class CalculatorCommand {
+public:
+    virtual ~CalculatorCommand() = default;
+    virtual int execute(int i) const = 0;
+    virtual int undo(int i) const = 0;
+};
+
 int main() {
     puts("START 5 章 Strategy パターンと Command パターン ===");
     if(0.01) {
