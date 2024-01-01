@@ -25,11 +25,52 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
     cout << "DEBUG: " << message << '\t' << debug << endl;
 };
 
+/**
+ * 電卓基底クラス
+*/
 class CalculatorCommand {
 public:
     virtual ~CalculatorCommand() = default;
     virtual int execute(int i) const = 0;
     virtual int undo(int i) const = 0;
+};
+
+/**
+ * 足し算
+*/
+class Add final : public virtual CalculatorCommand {
+private:
+    int operand{};
+public:
+    explicit Add(int opd):operand(opd) {}
+    Add(const Add& own) {*this = own;}
+    ~Add() {}
+
+    int execute(int i) const override {
+        return i + operand;
+    }
+    int undo(int i) const override {
+        return i - operand;
+    }
+};
+
+/**
+ * 引き算
+*/
+class Subtract final : public virtual CalculatorCommand {
+private:
+    int operand{};
+    explicit Subtract(int opd):operand(opd) {}
+    Subtract(const Subtract& own) {*this = own;}
+    ~Subtract() {}
+
+    int execute(int i) const override {
+        return i - operand;
+    }
+    int undo(int i) const override {
+        return i + operand;
+    }
+
 };
 
 int main() {
