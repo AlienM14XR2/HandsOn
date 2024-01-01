@@ -19,6 +19,7 @@
 #include <iostream>
 #include <stack>
 #include <memory>
+#include <cassert>
 
 using namespace std;
 
@@ -44,7 +45,7 @@ class Add final : public virtual CalculatorCommand {
 private:
     int operand{};
 public:
-    explicit Add(int opd):operand(opd) {}
+    explicit Add(const int& opd):operand(opd) {}
     Add(const Add& own) {*this = own;}
     ~Add() {}
 
@@ -62,7 +63,8 @@ public:
 class Subtract final : public virtual CalculatorCommand {
 private:
     int operand{};
-    explicit Subtract(int opd):operand(opd) {}
+public:
+    explicit Subtract(const int& opd):operand(opd) {}
     Subtract(const Subtract& own) {*this = own;}
     ~Subtract() {}
 
@@ -72,9 +74,12 @@ private:
     int undo(int i) const override {
         return i + operand;
     }
-
 };
 
+/**
+ * Invoker
+ * Command パターン の集約を行っている。
+*/
 class Calculator final {
 private:
     int current{};
@@ -104,11 +109,44 @@ public:
     }
 };
 
+int test_Calculator() {
+    puts("--- test_Calculator");
+    try {
+        Calculator calc{};
+        CalculatorCommand* op1 = new Add(3);
+        CalculatorCommand* op2 = new Add(7);
+        CalculatorCommand* op3 = new Subtract(4);
+        CalculatorCommand* op4 = new Subtract(2);
+
+        calc.compute(op1);
+        calc.compute(op2);
+        calc.compute(op3);
+        calc.compute(op4);
+
+        calc.undoLast();
+        const int result = calc.result();
+        ptr_lambda_debug<const char*,const int&>("result is ",result);
+        assert(result == 6);
+
+        delete op1;
+        delete op2;
+        delete op3;
+        delete op4;
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
 int main() {
     puts("START 5 章 Strategy パターンと Command パターン ===");
     if(0.01) {
         int x = 3;
         ptr_lambda_debug<const char*,const int&>("x is ", x);
+    }
+    if(1.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Calculator());
     }
     puts("=== 5 章 Strategy パターンと Command パターン END");
 }
