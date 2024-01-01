@@ -17,6 +17,8 @@
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_5_command.cpp -o ../bin/main
 */
 #include <iostream>
+#include <stack>
+#include <memory>
 
 using namespace std;
 
@@ -71,6 +73,35 @@ private:
         return i + operand;
     }
 
+};
+
+class Calculator final {
+private:
+    int current{};
+    using CommandStack = std::stack<CalculatorCommand*>;
+    CommandStack stack;
+public:
+    Calculator() {}
+    Calculator(const Calculator& own) {*this = own;}
+    ~Calculator() {}
+
+    void compute(CalculatorCommand* command) {
+        current = command->execute(current);
+        stack.push(std::move(command));
+    }
+    void undoLast() {
+        if(stack.empty()) return;
+        auto command = std::move(stack.top());
+        stack.pop();
+        current = command->undo(current);
+    }
+    int result() {
+        return current;
+    }
+    void clear() {
+        current = 0;
+        CommandStack{}.swap(stack); // Cleaning the stack.
+    }
 };
 
 int main() {
