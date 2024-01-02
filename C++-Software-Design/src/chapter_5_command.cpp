@@ -19,6 +19,14 @@
  * 両者の違いはその目的にあります。
  * Strategy パターンは何をどう（How）行うかを表すのに対し、Command パターンは何を（What）行うかを表します。
  * 
+ * ガイドライン 21 の要約
+ * - 抽象化と動作（undo できないもの含む）のカプセル化を目的に、Command パターンを適用する。
+ * - Command パターンと Strategy パターンの境界線は確固たるものではないことを認識する。
+ * - Command パターンでは、静的多態性／動的多態性どちらも可能である。
+ * 
+ * ガイドライン 22：参照セマンティクスより値セマンティクスを優先する
+ * 
+ * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_5_command.cpp -o ../bin/main
 */
