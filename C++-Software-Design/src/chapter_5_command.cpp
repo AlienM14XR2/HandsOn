@@ -13,6 +13,12 @@
  * 
  * Command パターンの例として、電卓の実装を考えてみる。
  * 
+ * Command パターンと Strategy パターン
+ * 構造的に見れば Strategy パターンと Command パターンは同一です。
+ * 動的多態性を使おうが静的多態性を使おうが、この両者に構造的な違いはありません。
+ * 両者の違いはその目的にあります。
+ * Strategy パターンは何をどう（How）行うかを表すのに対し、Command パターンは何を（What）行うかを表します。
+ * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_5_command.cpp -o ../bin/main
 */
