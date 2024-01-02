@@ -83,7 +83,7 @@ public:
 class Calculator final {
 private:
     int current{};
-    using CommandStack = std::stack<CalculatorCommand*>;
+    using CommandStack = std::stack<CalculatorCommand*>;    // using は型の別名として利用している。
     CommandStack stack;
 public:
     Calculator() {}
@@ -113,6 +113,8 @@ int test_Calculator() {
     puts("--- test_Calculator");
     try {
         Calculator calc{};
+        const int before = calc.result();
+        ptr_lambda_debug<const char*,const int&>("before is ",before);
         CalculatorCommand* op1 = new Add(3);
         CalculatorCommand* op2 = new Add(7);
         CalculatorCommand* op3 = new Subtract(4);
