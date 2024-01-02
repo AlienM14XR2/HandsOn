@@ -34,6 +34,9 @@
 #include <stack>
 #include <memory>
 #include <cassert>
+#include <cstdlib>
+#include <span>
+#include <vector>
 
 using namespace std;
 
@@ -41,6 +44,41 @@ template <class M, class D>
 void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
     cout << "DEBUG: " << message << '\t' << debug << endl;
 };
+
+/**
+ * 参照セマンティクス、ポインタセマンティクスとも呼ばれる。
+ * やや否定的な意味をもたせられることが多いその原因を理解するため、
+ * 次に挙げる C++20 の std::span クラステンプレートを例に見てみる。
+*/
+
+void print(std::span<int> s) {
+    cout << "{";
+    for(int i : s) {
+        cout << ' ' << i;
+    }
+    cout << "}" << endl;
+}
+
+int test_print() {
+    puts("--- test_print");
+    try {
+        vector<int> v{1,2,3,4};
+        vector<int> const w{v};
+        span<int> const s{v};
+
+//        w[2] = 99;      // compilation error.
+        s[2] = 99;
+        print(s);
+
+        v = {5,6,7,8,9};
+        s[2] = 100;
+        print(s);
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
 
 /**
  * 電卓基底クラス
@@ -163,6 +201,9 @@ int main() {
     }
     if(1.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Calculator());
+    }
+    if(1.01) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_print());
     }
     puts("=== 5 章 Strategy パターンと Command パターン END");
 }
