@@ -37,6 +37,10 @@
 #include <cstdlib>
 #include <span>
 #include <vector>
+#include <charconv>
+#include <string>
+#include <string_view>
+#include <optional>
 
 using namespace std;
 
@@ -66,6 +70,32 @@ int test_value_semantics() {
 //        v3[2] = 99;     // compilation error.
         printf("v3[2] is %d\n",v3[2]);
 
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
+/**
+ * 値セマンティクス：もうひとつの例
+ * 今度は to_int() 関数を考える。
+*/
+
+std::optional<int> to_int(std::string_view sv) {
+    std::optional<int> oi{};
+    int i{};
+
+    const auto result = std::from_chars(sv.data(), sv.data() + sv.size(), i);
+    if( result.ec != std::errc::invalid_argument ) {
+        oi = i;
+    }
+    return oi;
+}
+
+int test_to_int() {
+    puts("--- test_to_int");
+    try {
         return EXIT_SUCCESS;
     } catch(exception& e) {
         cout << e.what() << endl;
