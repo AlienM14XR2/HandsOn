@@ -93,9 +93,16 @@ std::optional<int> to_int(std::string_view sv) {
     return oi;
 }
 
-int test_to_int() {
+int test_to_int(const string_view& value) {
     puts("--- test_to_int");
     try {
+        if( auto optional_int = to_int(value) ) {
+            // Success: the returned std::optional contains an integer value.
+            printf("optional_int is %d\n",optional_int.value());
+        } else {
+            // Failure: the returned std::optional does not contains a value.
+            printf("optional_int.has_value() is %d\n",optional_int.has_value());
+        }
         return EXIT_SUCCESS;
     } catch(exception& e) {
         cout << e.what() << endl;
@@ -279,6 +286,10 @@ int main() {
     }
     if(1.02) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_value_semantics());
+    }
+    if(1.03) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_to_int("42"));
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_to_int("NNN"));
     }
     puts("=== 5 章 Strategy パターンと Command パターン END");
 }
