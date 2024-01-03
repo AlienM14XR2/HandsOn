@@ -56,21 +56,33 @@ void print(std::span<int> s) {
     for(int i : s) {
         cout << ' ' << i;
     }
-    cout << "}" << endl;
+    cout << " }" << endl;
 }
 
 int test_print() {
     puts("--- test_print");
     try {
         vector<int> v{1,2,3,4};
-        vector<int> const w{v};
-        span<int> const s{v};
+        const vector<int> w{v};
+        const span<int> s{v};
 
-//        w[2] = 99;      // compilation error.
-        s[2] = 99;
+//        w[2] = 99;      // compilation error. const 修飾しているため内部に保持した値の変更はできない。
+        s[2] = 99;        // const 修飾しているが、s はポインタを扱っているため、そのポインタの向き先の変更はできないが、値の変更はできる。
         print(s);
 
+        /**
+         * std::span のセマンティクスはポインタと同じであるため、参照セマンティクスになるのは当然です。
+         * そしてこのことが次の後半で示すような、多くのリスクを生み出す。
+        */
+
         v = {5,6,7,8,9};
+        /**
+         * 上記は、v の値だけでなくその要素数を増やしているため、内部ではメモリの再割当てが行われる。
+         * しかし、そのことは s には通知されない。
+         * つまり、s が指すアドレスは以前の v のものであり、すでに開放されたものであり、未定義動作になる。
+         * これは、参照セマンティクスに古くからある問題です。
+        */
+
         s[2] = 100;
         print(s);
         return EXIT_SUCCESS;
