@@ -46,7 +46,36 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
 };
 
 /**
+ * Modern C++ の考え方：値セマンティクス
+*/
+int test_value_semantics() {
+    puts("--- test_value_semantics");
+    try {
+        vector<int> v1 = {1,2,3,4,5};
+        auto v2{v1};    // Deep Copy. 自身のメモリ領域を所有し、そこに整数を保持する（v1 内の整数を参照しません）。
+
+        assert(v1 == v2);
+        assert(v1.data() != v2.data());
+        printf("v1.data() is %p\n",(void*)v1.data());
+        printf("v2.data() is %p\n",(void*)v2.data());
+
+        v2[2] = 99;
+
+        assert(v1 != v2);
+        const auto v3{v1};
+//        v3[2] = 99;     // compilation error.
+        printf("v3[2] is %d\n",v3[2]);
+
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
+/**
  * 参照セマンティクス、ポインタセマンティクスとも呼ばれる。
+ * 
  * やや否定的な意味をもたせられることが多いその原因を理解するため、
  * 次に挙げる C++20 の std::span クラステンプレートを例に見てみる。
 */
@@ -81,6 +110,7 @@ int test_print() {
          * しかし、そのことは s には通知されない。
          * つまり、s が指すアドレスは以前の v のものであり、すでに開放されたものであり、未定義動作になる。
          * これは、参照セマンティクスに古くからある問題です。
+         * 参照セマンティクスはコードの理解と本来重要な細部の推論を困難にする、開発者が避けるべき代物なのです。
         */
 
         s[2] = 100;
@@ -93,7 +123,7 @@ int test_print() {
 }
 
 /**
- * 電卓基底クラス
+ * 電卓コマンド基底クラス
 */
 class CalculatorCommand {
 public:
@@ -216,6 +246,9 @@ int main() {
     }
     if(1.01) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_print());
+    }
+    if(1.02) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_value_semantics());
     }
     puts("=== 5 章 Strategy パターンと Command パターン END");
 }
