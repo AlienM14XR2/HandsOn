@@ -70,14 +70,14 @@ void foo(const int& i) {
 int test_foo_functional() {
     puts("--- test_foo_functional");
     try {
-        function<void(int)> f{};
+        std::function<void(int)> f{};
 
         f = [](int i) { // Assigning a callable to 'f'
             cout << "lambda: " << i << endl;
         };
         f(1);            // Calling 'f' with the integer '1'
 
-        auto g = f;     // Copying 'f' into 'g'
+        auto g = f;     // Copying 'f' into 'g' これはディープコピー。
         f = foo;        // Assigning a different callable to 'f'
         f(2);
         g(3);
@@ -88,6 +88,17 @@ int test_foo_functional() {
         return EXIT_FAILURE;
     }
 }
+
+/**
+ * 関数ポインタ型との比較
+ * 
+ * 次の例では、関数型と関数ポインタ型を両方使っている。
+ * 関数型と関数ポインタ型は、int と int を指すポインタのそれとほぼ同じです。
+*/
+
+using FunctionType          = double(double);       // 関数型
+using FunctionPointerType   = double(*)(double);    // 関数ポインタ型
+
 
 /**
  * Modern C++ の考え方：値セマンティクス
