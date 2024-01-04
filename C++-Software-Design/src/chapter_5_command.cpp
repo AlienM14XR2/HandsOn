@@ -112,7 +112,8 @@ public:
 class Circle final : public virtual Shape {
 public:
     using DrawStrategy = std::function<void(const Circle&)>;        // ここがリファクタされた。
-    explicit Circle(const double& r,DrawStrategy d):radius(r),drawer(d) {}
+    explicit Circle(const double& r,DrawStrategy d):radius(r)
+                                                    ,drawer(std::move(d)) {}
     Circle(const Circle& own) {*this = own;}
     ~Circle() {}
 
