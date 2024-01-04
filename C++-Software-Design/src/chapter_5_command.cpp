@@ -99,6 +99,63 @@ int test_foo_functional() {
 using FunctionType          = double(double);       // 関数型
 using FunctionPointerType   = double(*)(double);    // 関数ポインタ型
 
+/**
+ * 図形描画をリファクタリング
+*/
+
+class Shape {
+public:
+    virtual ~Shape() = default;
+    virtual void draw(/* some arguments */) const = 0;
+};
+
+class Circle final : public virtual Shape {
+public:
+    using DrawStrategy = std::function<void(const Circle&)>;        // ここがリファクタされた。
+    explicit Circle(const double& r,DrawStrategy d):radius(r),drawer(d) {}
+    Circle(const Circle& own) {*this = own;}
+    ~Circle() {}
+
+    double getRadius() const { return radius; }
+    void draw(/* some arguments */) const override {
+        puts("called circle draw().");
+        drawer(*this);
+    }
+private:
+    double radius;
+    DrawStrategy drawer;
+};
+
+class OpenGLCircleStrategy final {
+public:
+    explicit OpenGLCircleStrategy() {}
+    OpenGLCircleStrategy(const OpenGLCircleStrategy& own) {*this = own;}
+    ~OpenGLCircleStrategy() {}
+
+    void operator()(const Circle& circle) const {           // これが新たに追加された。
+        puts("called OpenGLCircleStrategy operator().");
+        printf("半径：%lf\n",circle.getRadius());
+    }
+};
+
+int test_Circle() {
+    puts("--- test_Circle");
+    Shape* shape = nullptr;
+    try {
+        shape = new Circle(3.0,OpenGLCircleStrategy{});
+        shape->draw();
+        // throw runtime_error("test exception.");
+        delete shape;
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        if(shape) {
+            delete shape;
+            puts("DONE delete shape.");
+        }
+        return EXIT_FAILURE;
+    }
+}
 
 /**
  * Modern C++ の考え方：値セマンティクス
@@ -344,6 +401,9 @@ int main() {
     }
     if(1.04) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_foo_functional());
+    }
+    if(1.05) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Circle());
     }
     puts("=== 5 章 Strategy パターンと Command パターン END");
 }
