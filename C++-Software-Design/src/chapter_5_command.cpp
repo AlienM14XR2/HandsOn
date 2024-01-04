@@ -47,6 +47,7 @@
 #include <string>
 #include <string_view>
 #include <optional>
+#include <functional>
 
 using namespace std;
 
@@ -54,6 +55,39 @@ template <class M, class D>
 void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
     cout << "DEBUG: " << message << '\t' << debug << endl;
 };
+
+/**
+ * std::function の紹介
+ * 
+ * std::function は callable（コーラブル、コール可能なもの。関数ポインタ、関数オブジェクト、ラムダ式など）
+ * を抽象化します。
+*/
+
+void foo(const int& i) {
+    cout << "foo: " << i << endl;
+}
+
+int test_foo_functional() {
+    puts("--- test_foo_functional");
+    try {
+        function<void(int)> f{};
+
+        f = [](int i) { // Assigning a callable to 'f'
+            cout << "lambda: " << i << endl;
+        };
+        f(1);            // Calling 'f' with the integer '1'
+
+        auto g = f;     // Copying 'f' into 'g'
+        f = foo;        // Assigning a different callable to 'f'
+        f(2);
+        g(3);
+
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
 
 /**
  * Modern C++ の考え方：値セマンティクス
@@ -296,6 +330,9 @@ int main() {
     if(1.03) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_to_int("42"));
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_to_int("NNN"));
+    }
+    if(1.04) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_foo_functional());
     }
     puts("=== 5 章 Strategy パターンと Command パターン END");
 }
