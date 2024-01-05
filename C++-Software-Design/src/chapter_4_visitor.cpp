@@ -146,7 +146,7 @@ using PTShape = std::variant<PTCircle,PTSquare>;
 using PTShapes = std::vector<PTShape>;
 
 struct PTDraw {     // 型が増えるとこの実装に修正が必要になる。
-    void operator()(const PTCircle& c) const {
+    void operator()(const PTCircle& c) const {      // コール演算子の実装
         ptr_lambda_debug<const char*,const double&>("半径： ",c.getRadius());
         printf("x is %lf\t y is %lf\n",c.getPoint().x,c.getPoint().y);
         puts("Draw circle.");

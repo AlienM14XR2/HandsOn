@@ -111,9 +111,11 @@ public:
 
 class Circle final : public virtual Shape {
 public:
+    // Circle クラスは std::function の型エイリアスをメンバ変数に持つ。
     using DrawStrategy = std::function<void(const Circle&)>;        // ここがリファクタされた。
     explicit Circle(const double& r,DrawStrategy d):radius(r)
-                                                    ,drawer(std::move(d)) {}
+                                                    ,drawer(std::move(d)) {}    // std::function が表す型のインスタンスを受取、このインスタンスが Strategy 基底クラスを指すポインタの代替となり
+                                                                                // その場で同じ型の DrawStrategy 型のメンバ変数へムーブする。
     Circle(const Circle& own) {*this = own;}
     ~Circle() {}
 
@@ -133,6 +135,8 @@ public:
     OpenGLCircleStrategy(const OpenGLCircleStrategy& own) {*this = own;}
     ~OpenGLCircleStrategy() {}
 
+    // std::function を GoF Strategy パターンの代替にする際の
+    // 従うべき決め事はCircle をとるコール演算子の実装、1 つしかありません。
     void operator()(const Circle& circle) const {           // これが新たに追加された。
         puts("called OpenGLCircleStrategy operator().");
         printf("半径：%lf\n",circle.getRadius());
@@ -157,6 +161,10 @@ int test_Circle() {
         return EXIT_FAILURE;
     }
 }
+/**
+ * サンプルでは、Circle 同様にSquare も実装、リファクタしている。
+*/
+
 
 /**
  * Modern C++ の考え方：値セマンティクス
