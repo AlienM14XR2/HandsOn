@@ -30,8 +30,10 @@
  * - 意味的に明解な値セマンティクスを優先する。
  * 
  * ガイドライン 23：Strategy パターンと Command パターンの実装には値ベースを優先する
- * 
- * 
+ * ガイドライン 23 の要約
+ * - Strategy パターン、Command パターンを実装する際は std::function を検討する（純粋仮想関数がひとつのような場合は有効性が高いと思う）。
+ * - std::function の性能上の短所を考慮する（処理スピードは遅い）。
+ * - 型消去技術は Strategy パターン、Command パターンの値セマンティクスアプローチの一般化であることを認識する。
  * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_5_command.cpp -o ../bin/main
@@ -163,6 +165,9 @@ int test_Circle() {
 }
 /**
  * サンプルでは、Circle 同様にSquare も実装、リファクタしている。
+ * 重要な事としてここに明記しておく。
+ * std::function を用いた実装は性能面ではよくないと書籍は示した。
+ * ただし、回避する特殊な方法（型消去）があるが、それでもオブジェクト指向の解より性能面では劣る。
 */
 
 
