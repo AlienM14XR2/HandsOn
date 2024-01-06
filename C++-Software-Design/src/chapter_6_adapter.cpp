@@ -70,13 +70,13 @@ void exportToJSONFormat(const OpenPages& op /*...*/) {
     op.convertToByte();
 }
 
-class Page final : public virtual Document {
+class Pages final : public virtual Document {
 private:
     mutable OpenPages opages;
 public:
-    Page():opages{} {}
-    Page(const Page& own) {*this = own;}
-    ~Page() {}
+    Pages():opages{} {}
+    Pages(const Pages& own) {*this = own;}
+    ~Pages() {}
 
     void exportToJSON() const override {
         puts("--- Page.exportToJSON()");
@@ -88,12 +88,49 @@ public:
     }
 };
 
-int test_Page() {
-    puts("--- test_Page");
+int test_Pages() {
+    puts("--- test_Pages");
     try {
-        Page page;
-        page.exportToJSON();
-        page.serialize();
+        Pages pages;
+        pages.exportToJSON();
+        pages.serialize();
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
+/**
+ * オブジェクトアダプタとクラスアダプタ
+ * Pages のようなクラスをオブジェクトアダプタとも言う。
+ * ラッピングした型のインスタンスをを内部に保持するという意味です。
+ * 最上位の基底クラスを指すポインタを保持する形もあります。この場合は、
+ * 階層構造内にあるすべての型にオブジェクトアダプタを使用できるようになり、
+ * 柔軟性が飛躍的に高まります。
+ * 
+ * 別の形として、クラスアダプタというものもあります。
+ * 次にその実装を例に挙げます。
+*/
+
+class PagesV2 final : public Document, private OpenPages {  // Example of a class adapter.
+public:
+    void exportToJSON() const override {
+        puts("--- PagesV2.exportToJSON()");
+        exportToJSONFormat(*this);
+    }
+    void serialize() const override {
+        puts("--- PagesV2.serialize()");
+        this->convertToByte();
+    }
+};
+
+int test_PagesV2() {
+    puts("--- test_PagesV2");
+    try {
+        PagesV2 pages{};
+        pages.exportToJSON();
+        pages.serialize();
         return EXIT_SUCCESS;
     } catch(exception& e) {
         cout << e.what() << endl;
@@ -108,7 +145,12 @@ int main(void) {
         ptr_lambda_debug<const char*,const double&>("pi is ",pi);
     }
     if(1.00) {
-        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Page());
+        // オブジェクトアダプタ
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Pages());
+    }
+    if(1.01) {
+        // クラスアダプタ
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_PagesV2());
     }
     puts("=== Adapter パターン END");
     return 0;
