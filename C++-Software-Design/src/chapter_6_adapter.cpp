@@ -111,6 +111,9 @@ int test_Pages() {
  * 
  * 別の形として、クラスアダプタというものもあります。
  * 次にその実装を例に挙げます。
+ * 
+ * 一般にクラスアダプタよりオブジェクトアダプタの方が、柔軟性が高いことが実証されており
+ * 優先すべきアプローチです。
 */
 
 class PagesV2 final : public Document, private OpenPages {  // Example of a class adapter.
