@@ -13,6 +13,13 @@
  * 目的：あるクラスのインタフェースを、クライアントが求める他のインタフェースへ変換する。
  *      Adapter パターンは、インタフェースに互換性のないクラス同士を組み合わせることができるようにする。
  * 
+ * ガイドライン 24 の要約
+ * - Adapter パターンを適用する際は、互換性をもたない部品を一緒に動作させる目的で、インタフェースを変換する。
+ * - Adapter パターンは動的多態性でも静的多態性でも有用な点を意識する。
+ * - オブジェクトアダプタ、クラスアダプタ、関数アダプタを区別する。
+ * - Adapter パターン（統合）と Strategy  パターン（振る舞いの追加）を区別する。
+ * - Adapter パターンを適用する際は LSP 違反に注意する（全く関係ないものを統合、同じに扱わないこと）。
+ * 
  * e.g. compile
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_6_adapter.cpp -o ../bin/main
 */
@@ -140,6 +147,48 @@ int test_PagesV2() {
         return EXIT_FAILURE;
     }
 }
+
+/**
+ * 関数アダプタ
+ * 継承（実行時多態）やテンプレート（コンパイル時多態）を基にするオブジェクトアダプタやクラスアダプタとの
+ * 主な違いは、C++ におけるもう 1 つのコンパイル時多態である、関数オーバーロードにより威力を発揮する点です。
+ * 
+ * 次の関数テンプレートを考えてみましょう。
+*/
+
+template <class Range>
+void traverseRange(const Range& range) {
+    for(auto&& element : range ) {
+        // ...
+    }
+}
+
+/**
+ * 上例は、次の for ループと等価です。
+*/
+
+template <class Range>
+void traverseRangeV2(const Range& range) {
+    {
+        using std::begin;
+        using std::end;
+
+        auto first(begin(range));
+        auto last(end(range));
+        for(;first != last; ++first) {
+            auto&& element = *first;
+        }
+    }
+}
+
+/**
+ * Range を用いた for ループ（最初の例のもの）の方が、利便性が遥かに高い点は自明ですが、水面下ではコンパイラが
+ * フリー関数の begin() と end() を用い、実行コードを生成している。ここで、上例の冒頭にある 2 つの using 宣言に注目してください。
+ * この宣言は実引数依存の名前探索（ADL）を活用し、流された範囲の型を正しく得るためのものです。
+ * ADL とは、例えユーザが独自の名前空間で begin() と end() をオーバーロードしても「正しい」begin() と end() がコールされる仕組みです。
+ * 関数アダプタは shim と呼ばれることがある。
+ * この手法は、既存コードに一切干渉しないという重要な性質を持ちます。
+*/
 
 int main(void) {
     puts("START Adapter パターン ===");
