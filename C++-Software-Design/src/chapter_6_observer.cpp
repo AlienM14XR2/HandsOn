@@ -62,7 +62,7 @@ public:
         addressChanged,
     };
 
-    using PersonObserver = Observer<Person,StateChange>;
+    using PersonObserver = Observer<Person,StateChange>;    // サブジェクトは複数のオプザーバを集約して持つ。
 
     explicit Person(string fname, string sname): forename{move(fname)},surname{move(sname)} {}
     Person(const Person& own) {*this = own;}
@@ -101,6 +101,28 @@ private:
     string surname;
     string address;
     set<PersonObserver*> observers;
+};
+
+class NameObserver final : public virtual Observer<Person,Person::StateChange> {
+public:
+    void update(const Person& person, Person::StateChange property) override {
+        if( property == Person::forenameChanged || property == Person::surnameChanged ) {
+            // ... respond to changed name.
+            puts("--- changed name.");
+            ptr_lambda_debug<const char*,Person::StateChange&>("property is ",property);
+        }
+    }
+};
+
+class AddressObserver final : public virtual Observer<Person,Person::StateChange> {
+public:
+    void update(const Person& person, Person::StateChange property) override {
+        if( property == Person::addressChanged ) {
+            // ... respond to changed address.
+            puts("--- changed address.");
+            ptr_lambda_debug<const char*,Person::StateChange&>("property is ",property);
+        }
+    }
 };
 
 int main(void) {
