@@ -64,6 +64,7 @@ public:
 
     using PersonObserver = Observer<Person,StateChange>;    // サブジェクトは複数のオプザーバを集約して持つ。
 
+    // 値渡しして move() より const string& の方がいいと個人的には思う。
     explicit Person(string fname, string sname): forename{move(fname)},surname{move(sname)} {}
     Person(const Person& own) {*this = own;}
     ~Person() {}
@@ -81,7 +82,7 @@ public:
             (*pos)->update(*this,property);         // Observer（観察者）に通知している。
         }
     }
-    void setForename(string newForename) {
+    void setForename(string newForename) {  // 値渡しして move() より const string& の方がいいと個人的には思う。
         forename = move(newForename);
         notify(forenameChanged);
     }
@@ -110,6 +111,8 @@ public:
             // ... respond to changed name.
             puts("--- changed name.");
             ptr_lambda_debug<const char*,Person::StateChange&>("property is ",property);
+            ptr_lambda_debug<const char*,const string&>("forename is ",person.getForename());
+            ptr_lambda_debug<const char*,const string&>("surname is ",person.getSurname());
         }
     }
 };
@@ -121,15 +124,45 @@ public:
             // ... respond to changed address.
             puts("--- changed address.");
             ptr_lambda_debug<const char*,Person::StateChange&>("property is ",property);
+            ptr_lambda_debug<const char*,const string&>("address is ",person.getAddress());
         }
     }
 };
+
+int test_NameObserver_AddressObserver() {
+    puts("--- test_NameObserver_AddressObserver");
+    try {
+        NameObserver nameOb;
+        AddressObserver addressOb;
+
+        Person homer("Homer","Simpson");
+        Person marge("Marge","Simpson");
+        Person monty("Montgomery","Burns");
+
+        homer.attach(&nameOb);
+        marge.attach(&addressOb);
+        monty.attach(&addressOb);
+
+        homer.setForename("Homer Jay");     // Adding his middle name.
+        marge.setAddress("712 Red Bark Lane, Henderson, Clark County, Nevada 09011");
+        monty.setAddress("Springfield Nuclear Power Plant");
+
+        homer.detach(&nameOb);
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
 
 int main(void) {
     puts("START Observer パターン ===");
     if(0.01) {
         double pi = 3.14159;
         ptr_lambda_debug<const char*,const int&>("pi is ",pi);
+    }
+    if(1.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_NameObserver_AddressObserver());
     }
     puts("=== Observer パターン END");
     return 0;
