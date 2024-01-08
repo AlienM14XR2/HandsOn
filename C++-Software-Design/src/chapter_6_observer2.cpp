@@ -34,7 +34,7 @@ public:
     // No virtual destructor necessary.
 
     // 値渡しで std::move で代入が Modern C++ なのだろうか。 最初から参照でいいと思うし問題があるとも思えないのだが（std::function ... 参照が使えないのか検証してみる）。
-    explicit Observer(OnUpdate ou):OnUpdate{std::move(ou)} {
+    explicit Observer(OnUpdate ou):onUpdate{std::move(ou)} {
         // Possibly respond on an invalid/empty std::function instance.
     }
 
@@ -102,7 +102,7 @@ private:
 
 /**
  * フリー関数として std::function で実行されるもの
- * 最初に作成した PersonObserver クラスの役割と同じ、しかしこちらはただの関数で済む。
+ * 最初に作成した NameObserver クラスの役割と同じ、しかしこちらはただの関数で済む。
  * 関数でよいのだから ラムダ式でも無論可能ということか。
 */
 
@@ -116,11 +116,53 @@ void propertyChanged(const Person& person, Person::StateChange property) {
     }
 }
 
+int test_Observer() {
+    puts("--- test_Observer");
+    try {
+        using PersonObserver = Observer<Person,Person::StateChange>;
+        PersonObserver nameObserver(propertyChanged);      // Observer のインスタンス化には std::function で実行される、関数が必要。
+
+        PersonObserver addressObserver(
+            // ラムダ式を利用したパターン。
+            [/* captured state */](const Person& person, Person::StateChange property) {
+                if( property == Person::addressChanged ) {
+                    // ... respond to changed address.
+                    puts("--- changed address.");
+                    ptr_lambda_debug<const char*,Person::StateChange&>("property is ",property);
+                    ptr_lambda_debug<const char*,const string&>("address is ",person.getAddress());
+                }
+            }
+        );
+
+        Person homer("Homer","Simpson");
+        Person marge("Marge","Simpson");
+        Person monty("Montgomery","Burns");
+
+        homer.attach(&nameObserver);
+        marge.attach(&addressObserver);
+        monty.attach(&addressObserver);
+
+        homer.setForename("Homer Jay");     // Adding his middle name.
+        marge.setAddress("712 Red Bark Lane, Henderson, Clark County, Nevada 09011");
+        monty.setAddress("Springfield Nuclear Power Plant");
+
+        homer.detach(&nameObserver);
+
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START 値セマンティクスベースの Observer パターン ===");
     if(0.01) {
         double pi = 3.141592;
         ptr_lambda_debug<const char*,const int&>("pi is ",pi);
+    }
+    if(1.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_Observer());
     }
     puts("=== 値セマンティクスベースの Observer パターン END");
     return EXIT_SUCCESS;    // return 0
