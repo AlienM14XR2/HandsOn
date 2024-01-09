@@ -8,6 +8,7 @@
 */
 #include <iostream>
 #include <memory>
+#include <cassert>
 
 using namespace std;
 
@@ -33,6 +34,10 @@ private:
     // ...
 };
 
+/**
+ * 電気自動車のエンジンクラス
+ * エンジンの派生クラス
+*/
 class ElectricEngine final : public Engine {
 public:
     void start() override {
@@ -55,16 +60,37 @@ public:
     explicit ElectricCar(/* mybe some engine arguments */):engine_{std::make_unique<ElectricEngine>(/* engine arguments */)} {}
     void drive() {
         puts("--- ElectricCar.drive()");
+        engine_->start();
+    }
+    void getoff() {
+        puts("--- ElectricCar.getoff()");
+        engine_->stop();
     }
 };
 
-
+int test_ElectricCar() {
+    puts("--- test_ElectricCar");
+    try {
+        ElectricCar eCar;
+        eCar.drive();
+        eCar.getoff();
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
 
 int main(void) {
     puts("START Bridge パターン ===");
     if(0.01) {
         double pi = 3.141592;
         ptr_lambda_debug<const char*,const double&>("pi is ",pi);
+    }
+    if(1.00) {
+        int result;
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",result = test_ElectricCar());
+        assert(result == 0);
     }
     puts("=== Bridge パターン END");
     return 0;
