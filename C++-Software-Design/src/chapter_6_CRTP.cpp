@@ -20,6 +20,19 @@
  * CRTP パターン
  * 目的：型ファミリのコンパイル時抽象化を定義する。
  * 
+ * CRTP パターンの短所を分析
+ * 最初に挙げる短所はもっとも大きな制約でもある、共通する基底クラスが存在しない点です。
+ * その影響を強調するためにもう一度いいましょう。共通基底クラスは存在しません。
+ * 実質的にすべての派生クラスには、それぞれ異なる基底クラスがあります。
+ * 例えば、DynamicVectro<T> クラスには DenseVector<DynamicVector<T>> 基底クラスが、
+ * StaticVector<T> クラスには DenseVector<StaticVector<T>> 基底クラスがあります。
+ * 例えば、何らかのコレクション内に異なる型を保持するなどの場合では、CTRP パターンは正しい解にはなりません。
+ * 
+ * CTRP パターンは高い柔軟性を備えていない（Visitor パターンならば std::variant が使えますし、Adapter なども同様です）。
+ * 
+ * CRTP パターンは実行時多態ではなく、コンパイル時多態という機能しか備えていない点です。
+ * なんらかの静的な抽象化の場面でのみ使えるデザインパターンであり、それ以外の場面で継承階層を置き換えるなどできません。
+ * 
  * e.g. compile
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_6_CRTP.cpp -o ../bin/main
 */
@@ -56,6 +69,10 @@ protected:
 
     // ... 次のメソッド以外にもあると思ってください。
 public:
+    // using value_type     = typename Derived::value_type;
+    // using iterator       = typename Derived::iterator;
+    // using const_iterator = typename Derived::const_iterator;
+
     size_t size() const {
         return static_cast<const Derived&>(*this).size();
         /**
@@ -80,6 +97,17 @@ public:
      * ここまでの整理で、コードは綺麗に見通せるようになっただけでなく、DRY 原則にも従っており、かつ警戒すべき箇所などは見当たらない。
      * 次は、添字演算子と begin() end() 関数を実装します。
     */
+
+    // decltype は、オペランドで指定した式の型を取得する機能である。
+    // ただの auto では将来の変更に対応できない。
+    // 派生クラスが返却するものそのまま返せば問題はなく、これを表現するのが decltype(auto) になる。
+    decltype(auto) operator[](size_t index)        { return derived()[index]; }
+    decltype(auto) operator[](size_t index) const  { return derived()[index]; }
+
+    decltype(auto) begin()         { return derived().begin(); }
+    decltype(auto) begin() const   { return derived().begin(); }
+    decltype(auto) end()           { return derived().end(); }
+    decltype(auto) end() const     { return derived().end(); }
 
     // ...
 };
