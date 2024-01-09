@@ -42,8 +42,20 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
 
 template <class Derived>
 struct DenseVector {
-    // ... 次のメソッド以外にもあると思ってください。
+protected:
+    ~DenseVector() = default;   // 仮想関数をすべて排除したい以上、仮想デストラクタもその対象になる。
+                                // そのため、デストラクタは protected な非仮想関数として実装します。
+    /**
+     * 基底クラスのデストラクタは public な仮想関数、もしくは protected な非仮想関数とするべきである。
+     * 
+     * しかし、デストラクタをこのように定義すると、コンパイラは 2 つのムーブ（ムーブコンストラクタとムーブ演算子）
+     * を生成できなくなります。
+     * CRTP 基底クラスは通常中身を持たないためムーブするものなど存在せず問題にはならないが、五関数同時ルール
+     * は肝に銘じておくべきです。
+    */
 
+    // ... 次のメソッド以外にもあると思ってください。
+public:
     size_t size() const {
         return static_cast<const Derived&>(*this).size();
         /**
@@ -52,8 +64,23 @@ struct DenseVector {
          * 派生クラスの size() メンバ関数をコールしています。
          * 
          * この凄さと利用シーンがまだイメージできない。
+         * 
+         * コンパイル時の関係構築、つまり、基底クラスは具象派生クラスとその実装詳細を抽象化し、それでいて実装詳細が
+         * どこにあるかも全部分かる。
+         * 
+         * CRTP パターンでは、共通インタフェースを実装し、コールされたら static_cast し派生クラスへ転送するだけです。
+         * そして性能はまったく低下しません。
         */
     }
+
+    Derived& derived()          { return static_cast<Derived&>(*this); }
+    Derived& derived() const    { return static_cast<const Derived&>(*this); }
+
+    /**
+     * ここまでの整理で、コードは綺麗に見通せるようになっただけでなく、DRY 原則にも従っており、かつ警戒すべき箇所などは見当たらない。
+     * 次は、添字演算子と begin() end() 関数を実装します。
+    */
+
     // ...
 };
 
@@ -88,6 +115,10 @@ int test_Vector() {
 
         DenseVector<DynamicVector<int>>* interface = static_cast<DenseVector<DynamicVector<int>>*>(&dv);
         ptr_lambda_debug<const char*,size_t>("interface->size() is ",interface->size());
+
+        DynamicVector<int> dv2 = interface->derived();
+        ptr_lambda_debug<const char*,size_t>("dv2.size() is ",dv2.size());
+
         return EXIT_SUCCESS;
     } catch(exception& e) {
         cout << e.what() << endl;
