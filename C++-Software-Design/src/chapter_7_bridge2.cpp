@@ -32,44 +32,20 @@ public:
     string getSurname() const;
     string getAddress() const;
     int getYear_of_birth() const;
+    void setForename(const string&);
+    void setSurname(const string&);
+    void setYear_of_birth(const int&);
 private:
     struct Impl;
     std::unique_ptr<Impl> const pimpl;
 };
 
 struct Person::Impl {
-private:
     std::string forename;
     std::string surname;
     std::string address;
     int year_of_birth;
     // ... Potentially many more data members
-public:
-    string getForename() const {
-        return forename;
-    }
-    void setForename(const string& fn) {
-        forename = fn;
-    }
-    string getSurname() const {
-        return surname;
-    }
-    void setSurname(const string& sn) {
-        surname = sn;
-    }
-    string getAddress() const {
-        return address;
-    }
-    void setAddress(const string& addr) {
-        address = addr;
-    }
-    int getYear_of_birth() const {
-        return year_of_birth;
-    }
-    void setYear_of_birth(const int& y) {
-        year_of_birth = y;
-    }
-    
     // ... Many more access functions
 };
 
@@ -96,16 +72,25 @@ public:
         return *this;
     }
     string Person::getForename() const {
-        return pimpl->getForename();
+        return pimpl->forename;
     }
     string Person::getSurname() const {
-        return pimpl->getSurname();
+        return pimpl->surname;
     }
     string Person::getAddress() const {
-        return pimpl->getAddress();
+        return pimpl->address;
     }
     int Person::getYear_of_birth() const {
-        return pimpl->getYear_of_birth();
+        return pimpl->year_of_birth;
+    }
+    void Person::setForename(const string& fn) {
+        pimpl->forename = fn;
+    }
+    void Person::setSurname(const string& sn) {
+        pimpl->surname = sn;
+    }
+    void Person::setYear_of_birth(const int& y) {
+        pimpl->year_of_birth = y;
     }
 
 /**
