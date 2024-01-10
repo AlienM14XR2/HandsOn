@@ -9,12 +9,52 @@
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_7_bridge2.cpp -o ../bin/main
 */
 #include <iostream>
+#include <string>
+#include <memory>
 
 using namespace std;
 
 template <class M, class D>
 void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
     cout << "DEBUG: " << message << '\t' << debug << endl;
+};
+
+class Person {
+private:
+    struct Impl;
+    std::unique_ptr<Impl> const pimpl;
+    // 最初は Person が自身のメンバとしてアクセサとメンバ変数を定義していた。
+public:
+    // ... 
+};
+
+/**
+ * 上記のような Person クラスのメンバ変数を隠蔽し、ABI の安定性を維持するには、Person の実装詳細に Bridge パターンを適用します。
+ * しかし、この例に限っては基底クラスという形の抽象化は不要です。Person の実装は 1 つしか存在しないため、private なネストした Impl と
+ * いう名前のクラスを導入すれば良いのです。
+*/
+
+struct Person::Impl {
+private:
+    std::string forename;
+    std::string surname;
+    std::string address;
+    int year_of_birth;
+    // ... Potentially many more data members
+public:
+    string getForename() const {
+        return forename;
+    }
+    string getSurname() const {
+        return surname;
+    }
+    string getAddress() const {
+        return address;
+    }
+    int getYear_of_birth() const {
+        return year_of_birth;
+    }
+    // ... Many more access functions
 };
 
 int main(void) {
