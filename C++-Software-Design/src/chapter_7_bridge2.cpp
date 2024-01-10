@@ -20,19 +20,22 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
 };
 
 class Person {
+public:
+    Person();
+    ~Person();
+    Person(const Person& other);
+    Person& operator=(const Person& other);
+    Person(Person&& other);
+    Person& operator=(Person&& other);
+
+    string getForename() const;
+    string getSurname() const;
+    string getAddress() const;
+    int getYear_of_birth() const;
 private:
     struct Impl;
     std::unique_ptr<Impl> const pimpl;
-    // 最初は Person が自身のメンバとしてアクセサとメンバ変数を定義していた。
-public:
-    // ... 
 };
-
-/**
- * 上記のような Person クラスのメンバ変数を隠蔽し、ABI の安定性を維持するには、Person の実装詳細に Bridge パターンを適用します。
- * しかし、この例に限っては基底クラスという形の抽象化は不要です。Person の実装は 1 つしか存在しないため、private なネストした Impl と
- * いう名前のクラスを導入すれば良いのです。
-*/
 
 struct Person::Impl {
 private:
@@ -45,17 +48,72 @@ public:
     string getForename() const {
         return forename;
     }
+    void setForename(const string& fn) {
+        forename = fn;
+    }
     string getSurname() const {
         return surname;
+    }
+    void setSurname(const string& sn) {
+        surname = sn;
     }
     string getAddress() const {
         return address;
     }
+    void setAddress(const string& addr) {
+        address = addr;
+    }
     int getYear_of_birth() const {
         return year_of_birth;
     }
+    void setYear_of_birth(const int& y) {
+        year_of_birth = y;
+    }
+    
     // ... Many more access functions
 };
+
+/**
+ * 上例の Person 実装はもっとも単純な形の Bridge パターンです。このようにローカルでも多態性も
+ * 持たない形の Bridge パターンを、Pimpl イディオムと言います。
+ * Bridge パターンの分離する長所はそのまま活きていますが、その単純さとは裏腹に、Person クラスの実装
+ * がやや複雑になってしまう点はあまり変わっていません。
+*/
+
+    Person::Person():pimpl{std::make_unique<Impl>()} 
+    {}
+    Person::~Person() = default;
+    Person::Person(const Person& other):pimpl{std::make_unique<Impl>(*other.pimpl)} 
+    {}
+    Person& Person::operator=(const Person& other) {
+        *pimpl = *other.pimpl;
+        return *this;
+    }
+    Person::Person(Person&& other):pimpl{std::make_unique<Impl>(std::move(*other.pimpl))}
+    {}
+    Person& Person::operator=(Person&& other) {
+        *pimpl = std::move(*other.pimpl);
+        return *this;
+    }
+    string Person::getForename() const {
+        return pimpl->getForename();
+    }
+    string Person::getSurname() const {
+        return pimpl->getSurname();
+    }
+    string Person::getAddress() const {
+        return pimpl->getAddress();
+    }
+    int Person::getYear_of_birth() const {
+        return pimpl->getYear_of_birth();
+    }
+
+/**
+ * 上記のような Person クラスのメンバ変数を隠蔽し、ABI の安定性を維持するには、Person の実装詳細に Bridge パターンを適用します。
+ * しかし、この例に限っては基底クラスという形の抽象化は不要です。Person の実装は 1 つしか存在しないため、private なネストした Impl と
+ * いう名前のクラスを導入すれば良いのです。
+*/
+
 
 int main(void) {
     puts("START Pimpl( Pointer-to-implementation ) イディオム ===");
