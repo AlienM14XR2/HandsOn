@@ -34,6 +34,7 @@ public:
     int getYear_of_birth() const;
     void setForename(const string&);
     void setSurname(const string&);
+    void setAddress(const string&);
     void setYear_of_birth(const int&);
 private:
     struct Impl;
@@ -89,6 +90,10 @@ struct Person::Impl {
     void Person::setSurname(const string& sn) {
         pimpl->surname = sn;
     }
+    void Person::setAddress(const string& addr) {
+        pimpl->address = addr;
+    }
+
     void Person::setYear_of_birth(const int& y) {
         pimpl->year_of_birth = y;
     }
@@ -99,12 +104,34 @@ struct Person::Impl {
  * いう名前のクラスを導入すれば良いのです。
 */
 
+int test_Person() {
+    puts("--- test_Person");
+    try {
+        Person person;
+        person.setForename("Jack");
+        person.setSurname("Johnson");
+        person.setAddress("Tokyo, Japan. :)");       
+        person.setYear_of_birth(2001);
+        ptr_lambda_debug<const char*,const string&>("forename is ",person.getForename());
+        ptr_lambda_debug<const char*,const string&>("surname is ",person.getSurname());
+        ptr_lambda_debug<const char*,const string&>("address is ",person.getAddress());
+        ptr_lambda_debug<const char*,const int&>("year of birth is ",person.getYear_of_birth());
+        // throw runtime_error("It's a test exception.");
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
 
 int main(void) {
     puts("START Pimpl( Pointer-to-implementation ) イディオム ===");
     if(0.01) {
         double pi = 3.141592;
         ptr_lambda_debug<const char*,const double&>("pi is ",pi);
+    }
+    if(1.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Person());
     }
     puts("=== Pimpl( Pointer-to-implementation ) イディオム END");
     return 0;
