@@ -63,6 +63,7 @@ private:
 */
 class Car {
 private:
+    // Car 基底クラスが Engine をラップし Car 派生クラスとEngine との関係を希薄にしている。
     std::unique_ptr<Engine> pimpl_;     // Pointer-to-implementation
     // ... more car-specific data members (wheel, drivetrain ... etc)
 protected:
@@ -80,10 +81,14 @@ public:
 */
 class ElectricCar : public Car {
 private:
+    // リファクタ前
     // std::unique_ptr<Engine> engine_;
 public:
+    // リファクタ前
 //    explicit ElectricCar():engine_{std::make_unique<ElectricEngine>()} {}
-    explicit ElectricCar(/* maybe some engine arguments */): Car(std::make_unique<ElectricEngine>(/* engine arguments */)) {}
+
+    // リファクタ後は、Car 派生クラスのコンストラクタで Car 基底クラスを初期化する Engine を与える必要がある。この書き方なら、クライアントも Engine を意識する必要がないのか。
+    explicit ElectricCar(/* maybe some engine arguments */): Car(std::make_unique<ElectricEngine>(/* engine arguments */)) {} 
     void drive() override {
         puts("--- ElectricCar.drive()");
         getEngine()->start();
