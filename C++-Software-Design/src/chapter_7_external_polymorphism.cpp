@@ -112,10 +112,12 @@ public:
     // Circle 用、関数コール演算子
     void operator()(const Circle& circle) const {
         puts("--- circle draw");
+        ptr_lambda_debug<const char*,const double&>("radius is ",circle.getRadius());
     }
     // Square 用、関数コール演算子
     void operator()(const Square& square) const {
         puts("--- square draw");
+        ptr_lambda_debug<const char*,const double&>("side is ",square.getSide());
     }
 };
 
@@ -143,14 +145,24 @@ int test_External_Polymorphism() {
 
         shapes.emplace_back(
             std::make_unique<CircleModel>(
-                Circle{3.3},OepnGLDrawStrategy(/* red */)
+                Circle{3.3},OepnGLDrawStrategy(/* ... red ... */)
             )
         );
         shapes.emplace_back(
             std::make_unique<SquareModel>(
-                Square(6.0),OepnGLDrawStrategy(/* green */)
+                Square(6.0),OepnGLDrawStrategy(/* ... green ... */)
             )
         );
+        shapes.emplace_back(
+            std::make_unique<CircleModel>(
+                Circle{9.9},OepnGLDrawStrategy(/* ... blue ... */)
+            )
+        );
+
+        // Drawing all shapes
+        for(const auto& shape: shapes) {
+            shape->draw();
+        }
         return EXIT_SUCCESS;
     } catch(exception& e) {
         cout << e.what() << endl;
