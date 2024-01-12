@@ -14,7 +14,8 @@
 #include <memory>
 #include <functional>
 #include <utility>
-#include <stdexcept>
+#include <stdexcept>    // これはどこで使ってるのかな
+#include <vector>
 
 using namespace std;
 
@@ -133,7 +134,23 @@ public:
 int test_External_Polymorphism() {
     puts("--- test_External_Polymorphism");
     try {
+        using Shapes = std::vector<std::unique_ptr<ShapeConcept>>;
+        using CircleModel = ShapeModel<Circle,OepnGLDrawStrategy>;
+        using SquareModel = ShapeModel<Square,OepnGLDrawStrategy>;
 
+        Shapes shapes{};
+        ptr_lambda_debug<const char*,const size_t&>("shapes.size() is ",shapes.size());
+
+        shapes.emplace_back(
+            std::make_unique<CircleModel>(
+                Circle{3.3},OepnGLDrawStrategy(/* red */)
+            )
+        );
+        shapes.emplace_back(
+            std::make_unique<SquareModel>(
+                Square(6.0),OepnGLDrawStrategy(/* green */)
+            )
+        );
         return EXIT_SUCCESS;
     } catch(exception& e) {
         cout << e.what() << endl;
