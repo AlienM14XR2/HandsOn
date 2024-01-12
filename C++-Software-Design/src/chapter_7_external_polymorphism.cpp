@@ -73,12 +73,21 @@ public:
     virtual void draw(/* some arguments */) const = 0;
 };
 
-template <class ShapeT>
+struct DefaultDrawer {
+    template <class T>
+    void operator()(const T& obj) {
+        draw(obj);
+    }
+};
+
+template <class ShapeT
+        , class DrawStrategy = DefaultDrawer>   // コンパイル時 Strategy 実装にした、テンプレートを利用したので、Default 値を与えることも可能。
 class ShapeModel : public ShapeConcept {
 public:
-    using DrawStrategy = std::function<void(const Shape&)>;
+    // 実行時 Strategy 実装
+//    using DrawStrategy = std::function<void(const Shape&)>;
 
-    explicit ShapeModel(ShapeT _shape, DrawStrategy _drawer) : shape{std::move(_shape)}, drawer{std::move(_drawer)}
+    explicit ShapeModel(ShapeT _shape, DrawStrategy _drawer=DefaultDrawer{}) : shape{std::move(_shape)}, drawer{std::move(_drawer)}
     {
         /*
         *  Checking that the given 'std::function' is not empty
@@ -98,6 +107,8 @@ private:
  * （ Strategy パターンや std::function に限った話ではないということ） 。
  * ただし、ShapeModel をインスタンス化するすべての型は、コンパイルできるよう、ShapeModel::draw() 関数が求める要求
  * を満たす必要がある。
+ * 
+ * 現状の実行時 Strategy 実装をコンパイル時実装へ容易に切換えることもできる（即ちポリシーベースの設計。「ガイドライン 19」を参照）。
 */
 
 int main(void) {
