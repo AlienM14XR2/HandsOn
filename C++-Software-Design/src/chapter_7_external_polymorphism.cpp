@@ -195,6 +195,30 @@ int test_External_Polymorphism() {
  * 
 */
 
+// int draw(int i) {
+//     // ... drawiing an int, for instance by printing it to the command line
+//     // ptr_lambda_debug<const char*,const int&>("your intput i is ",i);
+//     return i;
+// }
+
+// int test_int_draw(const int& i) {
+//     puts("--- test_int_draw");
+//     try {
+//         auto shape = make_unique<ShapeModel<int>>(42);
+//         shape->draw();
+//         // int result = shape->draw();  // drawing the integer.
+//         // ptr_lambda_debug<const char*,const int&>("result is ",result);
+//         return EXIT_SUCCESS;
+//     } catch(exception& e) {
+//         cout << e.what() << endl;
+//         return EXIT_FAILURE;
+//     }
+// }
+
+/**
+ * 残念、サンプルのいうようには出来なかった：）
+*/
+
 int main(void) {
     puts("START External Polymorphism パターン ===");
     if(0.01) {
@@ -204,6 +228,10 @@ int main(void) {
     if(1.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_External_Polymorphism());
     }
+    // if(1.01) {
+    //     ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_int_draw(3));
+    //     ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_int_draw(6));
+    // }
     puts("=== External Polymorphism パターン END");
     return 0;
 }
