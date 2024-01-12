@@ -7,6 +7,13 @@
  * 目的：継承関係にない、もしくは仮想メソッドを持たない C++ クラスでも、多態性持つものとして扱えるようにする。
  *       関係を持たないクラスでも画一的に扱える。
  * 
+ * ガイドライン 31 の要約
+ * - 非多態な型に多態動作を実現する目的を持って、External Polymorphism パターンを適用する。
+ * - External Polymorphism パターンは、関係性を希薄にする重要な役割を果たすものと捉える。
+ * - 外部に切り出した継承階層の設計柔軟性を活用する。
+ * - External Polymorphism パターンと Adapter パターンの違いを理解する。
+ * - 既存コードに干渉する解よりも、干渉しない解を優先する。
+ * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_7_external_polymorphism.cpp -o ../bin/main
 */
