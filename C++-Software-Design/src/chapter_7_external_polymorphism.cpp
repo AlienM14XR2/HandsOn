@@ -93,6 +93,13 @@ private:
     DrawStrategy drawer;
 };
 
+/**
+ * ShapeModel クラステンプレート内では、使えるならばどんなものでも実装に使用できる、完全な柔軟性が得られます
+ * （ Strategy パターンや std::function に限った話ではないということ） 。
+ * ただし、ShapeModel をインスタンス化するすべての型は、コンパイルできるよう、ShapeModel::draw() 関数が求める要求
+ * を満たす必要がある。
+*/
+
 int main(void) {
     puts("START External Polymorphism パターン ===");
     if(0.01) {
