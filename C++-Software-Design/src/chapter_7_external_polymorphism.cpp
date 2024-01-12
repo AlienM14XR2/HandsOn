@@ -102,6 +102,22 @@ private:
     DrawStrategy drawer;
 };
 
+class OepnGLDrawStrategy final {
+private:
+    /* Drawing related data members, e.g. colors, textures, ... */
+public:
+    explicit OepnGLDrawStrategy(/* Drawing related arguments */) {}
+
+    // Circle 用、関数コール演算子
+    void operator()(const Circle& circle) const {
+        puts("--- circle draw");
+    }
+    // Square 用、関数コール演算子
+    void operator()(const Square& square) const {
+        puts("--- square draw");
+    }
+};
+
 /**
  * ShapeModel クラステンプレート内では、使えるならばどんなものでも実装に使用できる、完全な柔軟性が得られます
  * （ Strategy パターンや std::function に限った話ではないということ） 。
@@ -109,13 +125,30 @@ private:
  * を満たす必要がある。
  * 
  * 現状の実行時 Strategy 実装をコンパイル時実装へ容易に切換えることもできる（即ちポリシーベースの設計。「ガイドライン 19」を参照）。
+ * 
+ * 守らなければならない決まり事は 1 つしかありません。ShapeModel クラステンプレートが定義するコール規約である、Circle 用、Square 用、
+ * それぞれの関数コール演算子を実装することです。
 */
+
+int test_External_Polymorphism() {
+    puts("--- test_External_Polymorphism");
+    try {
+
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
 
 int main(void) {
     puts("START External Polymorphism パターン ===");
     if(0.01) {
         double pi = 3.141592;
         ptr_lambda_debug<const char*,const double&>("pi is ",pi);
+    }
+    if(1.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_External_Polymorphism());
     }
     puts("=== External Polymorphism パターン END");
     return 0;
