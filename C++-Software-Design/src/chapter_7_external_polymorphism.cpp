@@ -77,7 +77,7 @@ public:
 struct DefaultDrawer {
     template <class T>
     void operator()(const T& obj) {
-        draw(obj);
+        draw(obj);  // この記述が許される意味が今の私には理解できない、つまり operator() に関する基本的な知識がなさ過ぎる。
     }
 };
 
@@ -106,18 +106,24 @@ private:
 class OepnGLDrawStrategy final {
 private:
     /* Drawing related data members, e.g. colors, textures, ... */
+    string color = "none";
 public:
-    explicit OepnGLDrawStrategy(/* Drawing related arguments */) {}
+    explicit OepnGLDrawStrategy(/* Drawing related arguments */) 
+    {}
+    explicit OepnGLDrawStrategy(const string& _color) : color{_color}
+    {}
 
     // Circle 用、関数コール演算子
     void operator()(const Circle& circle) const {
         puts("--- circle draw");
         ptr_lambda_debug<const char*,const double&>("radius is ",circle.getRadius());
+        ptr_lambda_debug<const char*,const string&>("color is ",color);
     }
     // Square 用、関数コール演算子
     void operator()(const Square& square) const {
         puts("--- square draw");
         ptr_lambda_debug<const char*,const double&>("side is ",square.getSide());
+        ptr_lambda_debug<const char*,const string&>("color is ",color);
     }
 };
 
@@ -145,17 +151,17 @@ int test_External_Polymorphism() {
 
         shapes.emplace_back(
             std::make_unique<CircleModel>(
-                Circle{3.3},OepnGLDrawStrategy(/* ... red ... */)
+                Circle{3.3},OepnGLDrawStrategy("red")
             )
         );
         shapes.emplace_back(
             std::make_unique<SquareModel>(
-                Square(6.0),OepnGLDrawStrategy(/* ... green ... */)
+                Square(6.0),OepnGLDrawStrategy("green")
             )
         );
         shapes.emplace_back(
             std::make_unique<CircleModel>(
-                Circle{9.9},OepnGLDrawStrategy(/* ... blue ... */)
+                Circle{9.9},OepnGLDrawStrategy("blue")
             )
         );
 
