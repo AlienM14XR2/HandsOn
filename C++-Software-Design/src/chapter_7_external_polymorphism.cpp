@@ -7,13 +7,51 @@
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_7_external_polymorphism.cpp -o ../bin/main
 */
 #include <iostream>
+#include <memory>
+#include <functional>
+#include <utility>
 
 using namespace std;
 
 template <class M, class D>
 void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
-    cout << "DEBUG: " << message << '\t' << debug << endl;
+    cout << "DEBUG: " << message << '\t' << debug << "\taddress is " << &debug << endl;
 };
+
+/**
+ * 図形描画と Circle クラスの最新版へ立ち返ってみる。
+*/
+
+class Shape {
+public:
+    virtual ~Shape() = default;
+    virtual void draw(/* some arguments */) const = 0;
+};
+
+class Circle final : public Shape {
+public:
+    using DrawStrategy = std::function<void(const Circle&/* ... */)>;
+
+    explicit Circle(double r, DrawStrategy ds):radius(r),drawer(std::move(ds))
+    {
+        /**
+         * Checking the given radius is valid ant that
+         * the given 'std::function' instance is not empty.
+        */
+    }
+
+    void draw() const override {
+        drawer(*this);
+    }
+    double getRadius() const { return radius; }
+private:
+    double radius;
+    DrawStrategy drawer;
+};
+
+/**
+ * 上例は、Strategy パターンの std::function を用いたもの。
+*/
 
 int main(void) {
     puts("START External Polymorphism パターン ===");
