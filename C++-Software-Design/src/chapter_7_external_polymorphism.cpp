@@ -14,6 +14,7 @@
 #include <memory>
 #include <functional>
 #include <utility>
+#include <stdexcept>
 
 using namespace std;
 
@@ -65,6 +66,32 @@ private:
  * 基本図形（Circle、Shape）としての本来の形にまで縮退しており、多態性は完全に排除されています。
  * 具象クラスに代わり機能を実装するのが、ShapeConcept 基底クラスと ShapeModel クラステンプレートによる実装です。
 */
+
+class ShapeConcept {
+public:
+    virtual ~ShapeConcept() = default;
+    virtual void draw(/* some arguments */) const = 0;
+};
+
+template <class ShapeT>
+class ShapeModel : public ShapeConcept {
+public:
+    using DrawStrategy = std::function<void(const Shape&)>;
+
+    explicit ShapeModel(ShapeT _shape, DrawStrategy _drawer) : shape{std::move(_shape)}, drawer{std::move(_drawer)}
+    {
+        /*
+        *  Checking that the given 'std::function' is not empty
+        */
+    }
+
+    void draw() const override {
+        drawer(shape);
+    }
+private:
+    ShapeT shape;
+    DrawStrategy drawer;
+};
 
 int main(void) {
     puts("START External Polymorphism パターン ===");
