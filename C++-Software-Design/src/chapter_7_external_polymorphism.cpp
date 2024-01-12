@@ -3,6 +3,10 @@
  * 
  * ガイドライン 31 ：干渉しない実行時多態を実現するには External Polymorphism パターン
  * 
+ * External Polymorphism パターン
+ * 目的：継承関係にない、もしくは仮想メソッドを持たない C++ クラスでも、多態性持つものとして扱えるようにする。
+ *       関係を持たないクラスでも画一的に扱える。
+ * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_7_external_polymorphism.cpp -o ../bin/main
 */
@@ -28,29 +32,38 @@ public:
     virtual void draw(/* some arguments */) const = 0;
 };
 
-class Circle final : public Shape {
+class Circle final {
 public:
-    using DrawStrategy = std::function<void(const Circle&/* ... */)>;
-
-    explicit Circle(double r, DrawStrategy ds):radius(r),drawer(std::move(ds))
+    explicit Circle(double _radius):radius(_radius)
     {
         /**
-         * Checking the given radius is valid ant that
-         * the given 'std::function' instance is not empty.
+         * Checking the given radius is valid.
         */
     }
 
-    void draw() const override {
-        drawer(*this);
-    }
     double getRadius() const { return radius; }
 private:
     double radius;
-    DrawStrategy drawer;
+};
+
+class Square final {
+public:
+    explicit Square(double _side) : side(_side)
+    {
+        /**
+         * Checking the given side is valid.
+        */
+    }
+
+    double getSide() const { return side; }
+private:
+    double side;
 };
 
 /**
- * 上例は、Strategy パターンの std::function を用いたもの。
+ * 上例はShape との継承関係を無くしたもの。
+ * 基本図形（Circle、Shape）としての本来の形にまで縮退しており、多態性は完全に排除されています。
+ * 具象クラスに代わり機能を実装するのが、ShapeConcept 基底クラスと ShapeModel クラステンプレートによる実装です。
 */
 
 int main(void) {
