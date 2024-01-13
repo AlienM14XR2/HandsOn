@@ -3,6 +3,13 @@
  * 
  * ガイドライン 32 Type Erasure パターンでの継承階層の置換を検討する
  * 
+ * 本書において繰り返し提言していること。
+ * - 依存関係を最小化せよ。
+ * - 関心を分離せよ。
+ * - 継承よりコンポジションを優先せよ。
+ * - 既存コードに干渉しない解を優先せよ。
+ * - 参照セマンティクスより値セマンティクスを優先せよ。
+ * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_8_type_erasure.cpp -o ../bin/main
 */
