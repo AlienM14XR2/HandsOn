@@ -66,8 +66,9 @@
 #include <any>
 #include <cstdlib>
 #include <string>
-#include <memory>
 #include <cassert>
+#include <memory>
+#include <utility>
 
 using namespace std;
 
@@ -117,6 +118,70 @@ int sample_2() {
         return EXIT_FAILURE;
     }
 }
+
+/**
+ * 所有権を持つ Type Erasure パターンの実装
+ * 図形とその描画に関してサンプル実装を行う。
+*/
+
+class Circle {
+private:
+    double radius;      //  半径
+public:
+    explicit Circle(double _radius):radius(_radius) {}
+    double getRadius() const { return radius; }
+};
+
+class Square {
+private:
+    double side;        // 横幅
+public:
+    explicit Square(double _side):side(_side) {}
+    double getSide() const { return side; }
+};
+
+/**
+ * 上記の 2 つのクラスにおける最も重要な点は、どの基底クラスからも派生しておらず、自ら仮想関数を持つこともない、
+ * 非多態なクラスであるということです。
+*/
+
+namespace detail {      // namespace を利用しているその意味を考えてみよう。
+
+/**
+ * ShapeConcept クラス
+ * 仮想関数 draw() を持ち、図形描画の要件を表現します。
+*/
+class ShapeConcept {
+public:
+    virtual ~ShapeConcept() = default;
+    virtual void draw() const = 0;
+    virtual std::unique_ptr<ShapeConcept> clone() const = 0;
+};
+
+/**
+ * OwningShapeModel クラス
+ * ShapeConcept の派生クラスで図形とその描画の抽象処理を実装している。
+ * 具体的な実装ではなくあくまでテンプレートによる実装である。
+*/
+template <class ShapeT
+            ,class DrawStrategy>
+class OwningShapeModel : public ShapeConcept {
+private:
+    ShapeT shape;
+    DrawStrategy drawer;
+public:
+    explicit OwningShapeModel(ShapeT _shape, DrawStrategy _drawer):shape{std::move(_shape)}, drawer{std::move(_drawer)}
+    {}
+    void draw() const override {
+        drawer(shape);
+    }
+    std::unique_ptr<ShapeConcept> clone() const override {
+        return std::make_unique<OwningShapeModel>(*this);
+    }
+};
+
+}   // namespace detail
+
 
 int main(void) {
     puts("START Type Erasure パターンでの継承階層の置換を検討する ===");
