@@ -27,6 +27,8 @@
 #include <any>
 #include <cstdlib>
 #include <string>
+#include <memory>
+#include <cassert>
 
 using namespace std;
 
@@ -52,6 +54,31 @@ int sample_1() {
     }
 }
 
+int sample_2() {
+    /**
+     * その他には、std::shared_ptr があります。与えられたデリータを内部に保持する際に型消去技術を使用しています。
+    */
+    puts("--- sample_2");
+    try {
+        // 専用デリータを指定し std::shared_ptr を作成する。デリータは型の一部ではない点に注意！
+        std::shared_ptr<int> shared{
+            new int(42)
+            , [](int* ptr){
+                delete ptr;
+            }
+        };
+
+        // スコープから抜ければ std::shared_ptr は破棄され、int は専用デリータが delete する。
+        int result = -1;
+        ptr_lambda_debug<const char*,const int&>("*shared.get() is ",result = *shared.get()); 
+        assert(result == 42);
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START Type Erasure パターンでの継承階層の置換を検討する ===");
     if(0.01) {
@@ -60,6 +87,9 @@ int main(void) {
     }
     if(1.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",sample_1());
+    }
+    if(1.01) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",sample_2());
     }
     puts("=== Type Erasure パターンでの継承階層の置換を検討する END");
     return 0;
