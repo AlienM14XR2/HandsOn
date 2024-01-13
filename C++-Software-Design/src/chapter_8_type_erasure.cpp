@@ -180,6 +180,15 @@ public:
     }
 };
 
+/**
+ * Shape クラス
+ * OwningShapeModel クラステンプレートのインスタンス化、ポインタ管理、
+ * メモリ割当、ライフ管理等のラッパクラス。
+*/
+class Shape {
+
+};
+
 }   // namespace detail
 
 
