@@ -10,6 +10,16 @@
  * - 既存コードに干渉しない解を優先せよ。
  * - 参照セマンティクスより値セマンティクスを優先せよ。
  * 
+ * External Polymorphism パターンの値セマンティクスベースの実装モデル。
+ * この技術を一般に Type Erasure （型消去）技術と言います。
+ * 
+ * 著者が知る限り、この技術が最初に考案されたのは 2000 年の Kevin Henney の論文です。
+ * これは標準ライブラリにも採用されており、すでに紹介した、std::function や std::any
+ * がそれにあたります。
+ * std::function は、callable を値ベースに抽象化します。また、std::any は仮想的にどんな
+ * ものでも（原語は anything。名前の由来）、その内容／機能を隠蔽したまま、コンテナライク
+ * な値に抽象化します。 
+ * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_8_type_erasure.cpp -o ../bin/main
 */
