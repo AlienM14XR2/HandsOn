@@ -186,10 +186,60 @@ public:
  * メモリ割当、ライフ管理等のラッパクラス。
 */
 class Shape {
+private:
+    std::unique_ptr<detail::ShapeConcept> pimpl;
+public:
+    // Shape で最も重要なものが、このテンプレートコンストラクタ
+    template <class ShapeT,class DrawStrategy>
+    Shape(ShapeT _shape, DrawStrategy _drawer) {
+        using Model = detail::OwningShapeModel<ShapeT, DrawStrategy>;
+        // 新規作成したモデルを用いて pimpl を初期化すます。
+        pimpl = std::make_unique<Model>(std::move(_shape), std::move(_drawer));
+    }
+    /**
+     * このクラスが Bridge パターンになっている。
+     * 渡された ShapeT と DrawStrategy を基に OwningShapeModel をコンストラクトし、
+     * ShapeConcept を指すポインタとして保持します。
+     * これにより実装詳細への橋（Bridge）、及び実際の図形クラスへの橋ができます。
+     * しかし、pimpl の初期化とコンストラクタが完了すると、Shape はもう実際の型を覚えていません。
+     * Shape はテンプレート引数も、具象型を返すメンバ関数も持っておらず、渡された型を保持するメンバ変数も持っていません。
+     * ShapeConcept 基底クラスを指すポインタしか持っていないのです。
+     * このため、実際の図形クラスは完全に消去されます。この動作がデザインパターンの名前、型消去（Type Erasure）の由来です。
+     * 
+     * この Shape クラスに欠けているものは実際の値型に必要な機能、コピー演算とムーブ演算です。
+     * 幸いにも std::unique_ptr を用いているため、一部のみ対処すれば済みます。コンパイラが生成するデストラクタと 2 つの
+     * ムーブ演算は十分に機能するため、対処しなければならないのはコピー演算 2 つだけです。
+    */
 
+    // コピーコンストラクタは、実装するのが難しい関数かもしれません。other の Shape 内にある、具象図形クラスを知らないためです。
+    // しかし、ShapeConcept 基底クラスに clone() 関数があるため、具象クラスを知らないままコピーが得られます。
+    Shape(const Shape& other) : pimpl( other.pimpl->clone() )
+    {}
+
+    // コピー代入演算子の簡便で手軽な実装方法は copy-swap イディオムです。
+    Shape& operator=(const Shape& other) {
+        // Copy-and-Swap Idiom
+        Shape copy(other);
+        pimpl.swap(copy.pimpl);
+        return *this;
+    }
+
+    ~Shape() = default;
+    Shape(Shape&&) = default;
+    Shape& operator=(Shape&&) = default;
+private:
+    // この friend 関数はフリー関数ですが Shape 内で定義されているため、『隠された friend 関数』とも呼ばれます。
+    // フレンド関数である以上、private なメンバ変数を使用でき、名前空間にも属せます。
+    // この関数はメンバ関数とすることも勿論できます。
+    // しかし、著者はフリー関数を選択しました。その理由は、ここでの最終目的が draw() 処理を切り出し、依存関係を削減する
+    // ことにあるためです。
+    friend void draw(const Shape& shape) {
+        shape.pimpl->draw();
+    }
 };
-
 }   // namespace detail
+
+
 
 
 int main(void) {
