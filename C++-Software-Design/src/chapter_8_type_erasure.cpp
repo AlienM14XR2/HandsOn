@@ -239,7 +239,29 @@ private:
 };
 }   // namespace detail
 
+int test_Shape() {
+    puts("--- test_Shape");
+    try {
+        Circle circle{3.14};
+        // ラムダ式で描画 strategy を作成
+        auto drawer = [](const Circle& c) {
+            puts("------ circle drawer (strategy)");
+            ptr_lambda_debug<const char*,const double&>("radius is ",c.getRadius());
+        };
 
+        // Shape 抽象化で図形と描画 strategy を組み合わせる。このコンストラクタが、渡した円とラムダ式を用いて、
+        // detail::OwningShapeModel をインスタンス化する。
+        detail::Shape shape1(circle, drawer);
+        // コピーコンストラクトにより図形のコピーを作成する。
+        detail::Shape shape2( shape1 );
+        // コピーの方を描画しても結果は同じになる。
+        draw( shape2 );
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
 
 
 int main(void) {
@@ -253,6 +275,9 @@ int main(void) {
     }
     if(1.01) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",sample_2());
+    }
+    if(2.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Shape());
     }
     puts("=== Type Erasure パターンでの継承階層の置換を検討する END");
     return 0;
