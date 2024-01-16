@@ -155,7 +155,7 @@ class Discounted final : public DecoratedItem {
 private:
     double factor;
 public:
-    explicit Discounted(double discount, std::unique_ptr<Item> item):DecoratedItem(std::move(item)), factor(1.0 - discount)     // この初期化順番を逆にはできないから注意が必要。
+    explicit Discounted(double discount, std::unique_ptr<Item> item): DecoratedItem(std::move(item)), factor(1.0 - discount)     // この初期化順番を逆にはできないから注意が必要。
     {
         if( discount < 0.0 || discount > 1.0 ) {
             ptr_lambda_debug<const char*,const double&>("your input discount is ",discount);
@@ -169,7 +169,20 @@ public:
 };
 
 class Taxed final : public DecoratedItem {
+private:
+    double factor;
+public:
+    explicit Taxed(double taxRate, std::unique_ptr<Item> item): DecoratedItem(std::move(item)), factor(1.0 + taxRate)
+    {
+        if( taxRate < 0.0 ) {
+            ptr_lambda_debug<const char*,const double&>("your input taxRate is ",taxRate);
+            throw std::invalid_argument("Invalid tax");
+        }
+    } 
 
+    Money price() const override {
+        return getItem().price() * factor;
+    }
 };
 
 int main(void) {
