@@ -139,6 +139,22 @@ public:
     Money price() const override { return money; }
 };
 
+/**
+ * CppBook クラスと ConferenceTicket クラスは Item の具象実装です。
+ * 重要なのは両クラスとも price() をオーバーライドし、money を返す点です。
+ * どちらも、税率や値引きを意識していませんが、どちらもその影響を受け、価格が
+ * 変化するのは明らかです。
+ * 価格変更要因は Discounted クラスと Taxed クラスという形で実装します。
+*/
+
+class Discounted final : public DecoratedItem {
+
+};
+
+class Taxed final : public DecoratedItem {
+    
+};
+
 int main(void) {
     puts("START カスタマイズを階層化するには Decorator パターン ===");
     if(0.01) {
