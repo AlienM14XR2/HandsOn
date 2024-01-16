@@ -39,6 +39,7 @@ void (*ptr_lambda_debug)(Message, Debug) = [](auto message, auto debug) -> void 
 class Money {
 private:
     double amount;      // 額（金額）
+    // TODO 今回の学習とは全く関係がないが、951.048 等の場合、小数点以下第 3 位を切り上げする方法を考えてみよう。
     double price;       // 価格
     Money(): amount{0}, price{0} {}
 public:
@@ -54,12 +55,17 @@ public:
         return price;
     }
     Money operator*(const double& factor) {
-        price = amount + (amount * factor);
+        price = amount + (amount * factor);     // 私の実装では、ここで税率を含めた計算を行っているので、サンプルとは実装が異なる。
         return *this;
     }
     Money operator+(Money rhs) {
         amount = amount + rhs.amount;
         price = price + rhs.price;
+        return *this;
+    }
+    Money operator-(Money rhs) {
+        amount = amount - rhs.amount;
+        price = price -rhs.price;
         return *this;
     }
 };
@@ -159,7 +165,7 @@ class Discounted final : public DecoratedItem {
 private:
     double factor;
 public:
-    explicit Discounted(double discount, std::unique_ptr<Item> item): DecoratedItem(std::move(item)), factor(1.0 - discount)     // この初期化順番を逆にはできないから注意が必要。
+    explicit Discounted(double discount, std::unique_ptr<Item> item): DecoratedItem(std::move(item)), factor(discount)     // この初期化順番を逆にはできないから注意が必要。
     {
         if( discount < 0.0 || discount > 1.0 ) {
             ptr_lambda_debug<const char*,const double&>("your input discount is ",discount);
@@ -172,7 +178,9 @@ public:
     */
 
     Money price() const override {
-        return getItem().price() * factor;
+        double amount = getItem().price().getAmount() - (getItem().price().getAmount() * factor);
+        return Money{amount};
+//        return getItem().price() * factor;
     }
 };
 
@@ -184,7 +192,7 @@ class Taxed final : public DecoratedItem {
 private:
     double factor;
 public:
-    explicit Taxed(double taxRate, std::unique_ptr<Item> item): DecoratedItem(std::move(item)), factor(1.0 + taxRate)
+    explicit Taxed(double taxRate, std::unique_ptr<Item> item): DecoratedItem(std::move(item)), factor(taxRate)
     {
         if( taxRate < 0.0 ) {
             ptr_lambda_debug<const char*,const double&>("your input taxRate is ",taxRate);
@@ -200,6 +208,29 @@ public:
 int test_DecoratedItem() {
     puts("--- test_DecoratedItem");
     try {
+        // 7% tax: 19 * 1.07 = 20.33
+        std::unique_ptr<Item> item1(
+            std::make_unique<Taxed>(
+                0.07
+                , std::make_unique<CppBook>("Effective C++",19)
+            )
+        );
+
+        std::unique_ptr<Item> item2(
+            std::make_unique<Taxed>(
+                0.19
+                ,std::make_unique<Discounted>(0.2
+                    ,std::make_unique<ConferenceTicket>("CppCon",999.0))
+                
+            )
+        );
+
+        const Money totalPrice1 = item1->price();
+        double result1 = -1.0;
+        ptr_lambda_debug<const char*,const double&>("totalPrice1.getPrice() is ",result1 = totalPrice1.getPrice());
+        assert(result1 == 20.33);
+        const Money totalPrice2 = item2->price();
+        ptr_lambda_debug<const char*,const double&>("totalPrice2.getPrice() is ",totalPrice2.getPrice());
         return EXIT_SUCCESS;
     } catch(exception& e) {
         cout << e.what() << endl;
