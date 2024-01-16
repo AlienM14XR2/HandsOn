@@ -151,6 +151,10 @@ public:
  * 価格変更要因は Discounted クラスと Taxed クラスという形で実装します。
 */
 
+/**
+ * Discounted クラス
+ * Item を指す std::unique_ptr と 値引き率を表す double 型（0.0 から 1.0）で初期化します。
+*/
 class Discounted final : public DecoratedItem {
 private:
     double factor;
@@ -163,11 +167,19 @@ public:
         }
     }
 
+    /**
+     * price() 関数こそが、Decorator パターンをフル活用する箇所になる。
+    */
+
     Money price() const override {
         return getItem().price() * factor;
     }
 };
 
+/**
+ * Taxed クラス
+ * コンストラクタで税率を計算している。
+*/
 class Taxed final : public DecoratedItem {
 private:
     double factor;
@@ -185,6 +197,16 @@ public:
     }
 };
 
+int test_DecoratedItem() {
+    puts("--- test_DecoratedItem");
+    try {
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START カスタマイズを階層化するには Decorator パターン ===");
     if(0.01) {
@@ -193,6 +215,9 @@ int main(void) {
     }
     if(1.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Money());
+    }
+    if(1.01) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_DecoratedItem());
     }
     puts("=== カスタマイズを階層化するには Decorator パターン END");
     return 0;
