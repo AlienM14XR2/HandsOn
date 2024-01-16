@@ -16,6 +16,10 @@
 */
 #include <iostream>
 #include <cassert>
+#include <stdexcept>
+#include <utility>
+#include <memory>
+#include <string>
 
 using namespace std;
 
@@ -29,6 +33,9 @@ void (*ptr_lambda_debug)(Message, Debug) = [](auto message, auto debug) -> void 
  * まずは、Decorator パターンの古典的実装から行う。
 */
 
+/**
+ * 金額クラス
+*/
 class Money {
 private:
     double amount;      // 額（金額）
@@ -75,6 +82,62 @@ int test_Money() {
         return EXIT_FAILURE;
     }
 }
+
+/**
+ * 商品基底クラス
+*/
+class Item {
+public:
+    virtual ~Item() = default;
+    virtual Money price() const = 0;
+};
+
+/**
+ * 商品拡張クラス
+ * Decorator パターンの肝になるもの。
+*/
+class DecoratedItem : public Item {
+private:
+    std::unique_ptr<Item> item;
+protected:
+    Item&       getItem()       { return *item; }
+    const Item& getItem() const { return *item; }
+public:
+    explicit DecoratedItem(std::unique_ptr<Item> _item) : item(std::move(_item))
+    {}
+};
+
+/**
+ * C++ 書籍
+ * 商品の具象クラス。
+*/
+class CppBook final : public Item {
+private:
+    std::string title;
+    Money money{0};
+public:
+    explicit CppBook(std::string _title, Money _money) : title{std::move(_title)}, money{std::move(_money)}
+    {}
+
+    const std::string& getTitle() const { return title; }
+    Money price() const override { return money; }
+};
+
+/**
+ * カンファレンスチケット
+ * 商品の具象クラス。
+*/
+class ConferenceTicket final : public Item {
+private:
+    std::string name;
+    Money money{0};
+public:
+    explicit ConferenceTicket(std::string _name, Money _money): name{std::move(_name)}, money{std::move(_money)} 
+    {}
+
+    const std::string& getName() const { return name; }
+    Money price() const override { return money; }
+};
 
 int main(void) {
     puts("START カスタマイズを階層化するには Decorator パターン ===");
