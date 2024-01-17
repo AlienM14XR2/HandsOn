@@ -20,6 +20,11 @@
 #include <utility>
 #include <memory>
 #include <string>
+#include <array>
+#include <vector>
+#include <cstddef>
+#include <cstdlib>
+#include <memory_resource>
 
 using namespace std;
 
@@ -238,6 +243,40 @@ int test_DecoratedItem() {
     }
 }
 
+/**
+ * Decorator パターンの例 その 2
+ * C++17 で再実装された STL アロケータです。
+*/
+
+int test_allocator() {
+    puts("--- test_allocator");
+    try {
+        std::array<std::byte,1000> raw;       // 注意：未初期化
+
+        std::pmr::monotonic_buffer_resource buffer{raw.data(), raw.size(), std::pmr::null_memory_resource()};
+        /**
+         * std::pmr::null_memory_resource() は
+         * buffer を使い切った場合は、bad_alloc 例外をスローするためのもの。
+         * 
+         * std::pmr::new_delete_resource() は
+         * 動的にメモリ割当を行う。
+        */
+        std::pmr::vector<std::pmr::string> strings{&buffer};
+
+        strings.emplace_back("String longer than SSO can handle");
+        strings.emplace_back("Another long string that goes beyond SSO");
+        strings.emplace_back("A third long string that cannot be handle by SSO");
+
+        for(std::pmr::string s: strings) {
+            cout << s << endl;
+        }
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START カスタマイズを階層化するには Decorator パターン ===");
     if(0.01) {
@@ -249,6 +288,9 @@ int main(void) {
     }
     if(1.01) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_DecoratedItem());
+    }
+    if(2.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_allocator());
     }
     puts("=== カスタマイズを階層化するには Decorator パターン END");
     return 0;
