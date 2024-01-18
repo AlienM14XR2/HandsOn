@@ -9,6 +9,8 @@
 #include <iostream>
 #include <cassert>
 #include <memory>
+#include <string>
+#include <utility>
 
 using namespace std;
 
@@ -188,8 +190,25 @@ public:
  * 通常商品の種類が増えた場合や、新たな価格変更要因に対応する decorator を容易に追加できるように
  * することが目的です。
  * ConferenceTicket クラスを例に進めます。
+ * 
+ * ConferenceTicket クラスは値型にうってつけです。基底クラスも仮想関数もありません。
+ * すなわち、基底クラスを指すポインタを介し修飾する必要がありません。
+ * その代わり、コンポジションか、または非 public な直接継承で修飾します。
+ * 
+ * Discounted クラスと Taxed クラスの実装例を挙げます。
 */
 
+class ConferenceTicket final {      // Item の継承を止める
+private:
+    std::string name;
+    Money money;
+public:
+    ConferenceTicket(std::string _name, Money _money): name{std::move(name)}, money{std::move(_money)} 
+    {}
+
+    const std::string& getName() const { return name; }
+    Money price() const { return money; }
+};
 
 
 int main(void) {
