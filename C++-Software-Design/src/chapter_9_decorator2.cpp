@@ -17,6 +17,12 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
 
 /**
  * 値ベースのコンパイル時 Decorator パターン
+ * 
+ * 抽象化の主要部分にはテンプレートを使います。また　C++20　のコンセプトも転送参照も使います。
+ * ですが、そんなことよりも Decorator パターンを用いた設計という重要な目的を見失ってはいけません。
+ * 通常商品の種類が増えた場合や、新たな価格変更要因に対応する decorator を容易に追加できるように
+ * することが目的です。
+ * ConferenceTicket クラスを例に進めます。
 */
 
 int main(void) {
