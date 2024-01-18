@@ -135,54 +135,6 @@ public:
 };
 
 /**
- * Discounted クラス
- * Item を指す std::unique_ptr と 値引き率を表す double 型（0.0 から 1.0）で初期化します。
-*/
-class Discounted final : public DecoratedItem {
-private:
-    double factor;
-public:
-    explicit Discounted(double discount, std::unique_ptr<Item> item): DecoratedItem(std::move(item)), factor(discount)     // この初期化順番を逆にはできないから注意が必要。
-    {
-        if( discount < 0.0 || discount > 1.0 ) {
-            ptr_lambda_debug<const char*,const double&>("your input discount is ",discount);
-            throw std::invalid_argument("Invalid discount");
-        }
-    }
-
-    /**
-     * price() 関数こそが、Decorator パターンをフル活用する箇所になる。
-    */
-
-    Money price() const override {
-        double amount = getItem().price().getAmount() - (getItem().price().getAmount() * factor);
-        return Money{amount};
-//        return getItem().price() * factor;
-    }
-};
-
-/**
- * Taxed クラス
- * コンストラクタで税率を計算している。
-*/
-class Taxed final : public DecoratedItem {
-private:
-    double factor;
-public:
-    explicit Taxed(double taxRate, std::unique_ptr<Item> item): DecoratedItem(std::move(item)), factor(taxRate)
-    {
-        if( taxRate < 0.0 ) {
-            ptr_lambda_debug<const char*,const double&>("your input taxRate is ",taxRate);
-            throw std::invalid_argument("Invalid tax");
-        }
-    } 
-
-    Money price() const override {
-        return getItem().price() * factor;
-    }
-};
-
-/**
  * 値ベースのコンパイル時 Decorator パターン
  * 
  * 抽象化の主要部分にはテンプレートを使います。また　C++20　のコンセプトも転送参照も使います。
@@ -198,6 +150,10 @@ public:
  * Discounted クラスと Taxed クラスの実装例を挙げます。
 */
 
+
+/**
+ * ConferenceTicket クラス
+*/
 class ConferenceTicket final {      // Item の継承を止める
 private:
     std::string name;
@@ -210,6 +166,47 @@ public:
     Money price() const { return money; }
 };
 
+/**
+ * PricedItem コンセプト
+ * 注意：concept は c++20 から利用可能
+*/
+template <class T>
+concept PricedItem = 
+    requires (T item) {
+        { item.price() } -> std::same_as<Money>;        // この書き方も知らなかった。
+    };
+
+/**
+ * Discounted クラス
+*/
+template <double discount, PricedItem Item>
+class Discounted final {        // コンポジションを利用する。
+private:
+    Item item;
+public:
+    template <class... Args>
+    explicit Discounted(Args&&... args): item{ std::forward<Args>(args)... }    // この書き方もエグイ。
+    {}
+
+    Money price() const {
+        return item.price() * (discount);
+    }
+};
+
+/**
+ * Taxed クラス
+*/
+template <double taxRate, PricedItem Item>
+class Taxed final : private Item {      // 継承を利用する。
+public:
+    template <class...  Args>
+    explicit Taxed( Args&&... args ):Item{ std::forward<Args>(args)... } 
+    {}
+
+    Money price() const {
+        return Item::price() * (taxRate);
+    }
+};
 
 int main(void) {
     puts("START Decorator パターン ===");
