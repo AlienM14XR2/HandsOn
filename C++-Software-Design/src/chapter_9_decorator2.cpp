@@ -18,16 +18,6 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
 };
 
 /**
- * 値ベースのコンパイル時 Decorator パターン
- * 
- * 抽象化の主要部分にはテンプレートを使います。また　C++20　のコンセプトも転送参照も使います。
- * ですが、そんなことよりも Decorator パターンを用いた設計という重要な目的を見失ってはいけません。
- * 通常商品の種類が増えた場合や、新たな価格変更要因に対応する decorator を容易に追加できるように
- * することが目的です。
- * ConferenceTicket クラスを例に進めます。
-*/
-
-/**
  * 金額クラス
 */
 class Money {
@@ -59,7 +49,7 @@ public:
     }
     Money operator-(Money rhs) {
         amount = amount - rhs.amount;
-        price = price -rhs.price;
+        price = price - rhs.price;
         return *this;
     }
 };
@@ -68,7 +58,7 @@ int test_Money() {
     puts("--- test_Money");
     try {
         Money m1{30}, m2{60};
-        Money m3 = m1 + m2;
+        Money m3 = m1 + m2;         // こわいな、これはまず、m1 に m2 を足している、つまりこの段階で m1 の amount は 90 になっている。
         m3 = m3 * 0.1;
         double resultAmount = -1;
         double resultPrice = -1;
@@ -76,6 +66,21 @@ int test_Money() {
         ptr_lambda_debug<const char*,const double&>("m3 price is ",resultPrice = m3.getPrice());
         assert(resultAmount == 90);
         assert(resultPrice == 99);
+
+        m1 = Money(30);
+        m2 = Money(60);
+        Money m4{0};
+        m4 = (m2 - m1);
+        ptr_lambda_debug<const char*,const double&>("m4 amount is ",resultAmount = m4.getAmount());
+        ptr_lambda_debug<const char*,const double&>("m4 price is ",m4.getPrice());
+        assert(resultAmount == 30);
+
+        m1 = Money(30);
+        m2 = Money(60);
+        Money m5 = (m1 - m2);
+        ptr_lambda_debug<const char*,const double&>("m4 amount is ",resultAmount = m5.getAmount());
+        ptr_lambda_debug<const char*,const double&>("m4 price is ",m5.getPrice());
+        assert(resultAmount == -30);
         return EXIT_SUCCESS;
     } catch(exception& e) {
         cout << e.what() << endl;
@@ -175,12 +180,26 @@ public:
     }
 };
 
+/**
+ * 値ベースのコンパイル時 Decorator パターン
+ * 
+ * 抽象化の主要部分にはテンプレートを使います。また　C++20　のコンセプトも転送参照も使います。
+ * ですが、そんなことよりも Decorator パターンを用いた設計という重要な目的を見失ってはいけません。
+ * 通常商品の種類が増えた場合や、新たな価格変更要因に対応する decorator を容易に追加できるように
+ * することが目的です。
+ * ConferenceTicket クラスを例に進めます。
+*/
+
+
 
 int main(void) {
     puts("START Decorator パターン ===");
     if(0.01) {
         double pi = 3.141592;
         ptr_lambda_debug<const char*,const double&>("pi is ",pi);
+    }
+    if(1.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Money());
     }
     puts("=== Decorator パターン END");
     return 0;
