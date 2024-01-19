@@ -68,12 +68,20 @@ public:
 
 class Item {
 private:
+    /**
+     * Concept 基底クラスは、通例通りラッピングした型に対する要件（期待される動作）を表現します。
+    */
     struct Concept {
         virtual ~Concept() = default;
         virtual Money price() const = 0;
         virtual std::unique_ptr<Concept> clone() const = 0;
     };
 
+    /**
+     * Model クラステンプレートは、Concept 基底クラスの具象化を行う。
+     * すなわち、price()、 clone() 関数の実装。
+     * ただし、あくまで クラステンプレートなので、具体的な処理は T で表現されるところによる。
+    */
     template <class T>
     struct Model : public Concept {
         T item;
@@ -91,6 +99,10 @@ private:
     };
     std::unique_ptr<Concept> pimpl;
 public:
+    /**
+     * 五関数同時ルール（https://oreil.ly/fzS3f）に従い実装し、さらに全種類の商品を受け取れる
+     * テンプレートのコンストラクタも実装します。
+    */
     template <class T>
     Item(T item): pimpl{ std::make_unique<Model<T>>(std::move(item)) } 
     {}
@@ -104,10 +116,23 @@ public:
         pimpl = item.pimpl->clone();
         return *this;
     }
+    /**
+     * 全商品に必要なインタフェースの再現です。
+    */
     Money price() const {
         return pimpl->price();
     }
 };
+
+/**
+ * 上例のラッパクラスを用いれば、新商品を容易に追加でき、既存コードに干渉しない。
+ * また、特定の基底クラスの使用を強制することもありません。
+ * price() メンバ関数を持ち、かつコピー可能なクラスならば、何でも追加できます。
+ * 先に挙げた、コンパイル時 Decorator パターンの実装にある ConferenceTicket がまさにこれに該当します。
+ * 必要なものが揃っており、確かに値セマンティクスを基にしています。しかし Discounted クラスと Taxed クラスは
+ * 違います。テンプレート引数に修飾された Item を必要とします。
+ * そのため、この2つのクラスは Type Erasure パターン用に再実装する必要があります。
+*/
 
 int main(void) {
     puts("START 9 章 Decorator パターン 値ベースの実行時 Decorator パターン ===");
