@@ -134,6 +134,44 @@ public:
  * そのため、この2つのクラスは Type Erasure パターン用に再実装する必要があります。
 */
 
+class Discounted {
+private:
+    Item item;
+    double factor;
+public:
+    Discounted(double discount, Item _item): item{std::move(_item)}, factor(discount)
+    {}
+
+    Money price() const {
+        return item.price() * factor;
+    }
+};
+
+class Taxed {
+private:
+    Item item;
+    double factor;
+public:
+    Taxed(double taxRate, Item _item): item{std::move(_item)}, factor(taxRate) 
+    {}
+
+    Money price() const {
+        return item.price() * factor;
+    }
+};
+
+class ConferenceTicket {
+private:
+    std::string name;
+    Money money{0};
+public:
+    explicit ConferenceTicket(std::string _name, Money _money): name{std::move(_name)}, money{std::move(_money)} 
+    {}
+
+    const std::string& getName() const { return name; }
+    Money price() const { return money; }
+};
+
 int main(void) {
     puts("START 9 章 Decorator パターン 値ベースの実行時 Decorator パターン ===");
     if(0.01) {
