@@ -180,7 +180,7 @@ concept PricedItem =
  * Discounted クラス
 */
 template <double discount, PricedItem Item>
-class Discounted final {        // コンポジションを利用する。
+class Discounted {        // コンポジションを利用する。
 private:
     Item item;
 public:
@@ -189,7 +189,9 @@ public:
     {}
 
     Money price() const {
-        return item.price() * (discount);
+        double amount = item.price().getAmount() - (item.price().getAmount() * discount);
+        return Money{amount};
+//        return item.price() * (discount);     Money の実装がサンプルとは異なるため（サンプルには具体的な実装がなかったはず）、これでは駄目。
     }
 };
 
@@ -197,7 +199,7 @@ public:
  * Taxed クラス
 */
 template <double taxRate, PricedItem Item>
-class Taxed final : private Item {      // 継承を利用する。
+class Taxed : private Item {      // 継承を利用する。
 public:
     template <class...  Args>
     explicit Taxed( Args&&... args ):Item{ std::forward<Args>(args)... } 
@@ -208,6 +210,31 @@ public:
     }
 };
 
+/**
+ * Discounted クラスと Taxed クラスは、他の Item 用の decorator です。
+ * 今回の実装はクラステンプレートという形です。それぞれのテンプレートの先頭引数に値引き率、税率を指定し、
+ * 次の引数には修飾した Item の型を指定します。
+ * 
+ * ここで特筆すべきは制約引数の PricedItem です（テンプレートの第 2 引数）。
+ * 制約引数とは論理的な要件、すなわち期待する動作を表現します。この制約により、指定できるをメンバ関数 price() を持つ Item 
+ * のみに制限でき、他の型を指定するとその場でコンパイルエラーとなります。
+ * この PricedItem は 「ガイドライン 35」の Decorator パターン実装の Item 基底クラスと同じ役割を持ち、また『単一責任の原則』
+ * に基づいた関心の分離も実現しています。
+*/
+
+int test_ConferenceTicket() {
+    puts("--- test_ConferenceTicket");
+    try {
+        Taxed<0.15, Discounted<0.2,ConferenceTicket>> item{"Core C++", 499.0};
+        const Money total = item.price();
+        ptr_lambda_debug<const char*,const double&>("total price is ",total.getPrice());
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START Decorator パターン ===");
     if(0.01) {
@@ -216,6 +243,9 @@ int main(void) {
     }
     if(1.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Money());
+    }
+    if(2.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_ConferenceTicket());        
     }
     puts("=== Decorator パターン END");
     return 0;
