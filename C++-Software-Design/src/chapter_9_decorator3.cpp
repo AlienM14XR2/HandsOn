@@ -9,6 +9,7 @@
 #include <iostream>
 #include <memory>
 #include <utility>
+#include <cassert>
 
 using namespace std;
 
@@ -143,7 +144,8 @@ public:
     {}
 
     Money price() const {
-        return item.price() * factor;
+        double amount = item.price().getAmount() - (item.price().getAmount() * factor);
+        return Money{amount};
     }
 };
 
@@ -172,11 +174,31 @@ public:
     Money price() const { return money; }
 };
 
+int test_Item() {
+    puts("--- test_Item");
+    try {
+        // 20% discount, 15% tax : (499*0.8)*1.15 = 459.08
+        double expects = 459.08;
+        Item item(Taxed(0.15, Discounted(0.2, ConferenceTicket{"Core C++",499.0})));
+        Money total = item.price();
+        ptr_lambda_debug<const char*,const double&>("total price is ",total.getPrice());
+        ptr_lambda_debug<const char*,const double&>("expects is ",expects);
+        assert(total.getPrice() == expects);
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START 9 章 Decorator パターン 値ベースの実行時 Decorator パターン ===");
     if(0.01) {
         double pi = 3.141592;
         ptr_lambda_debug<const char*,const double&>("pi is ",pi);
+    }
+    if(1.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Item());
     }
     puts("=== 9 章 Decorator パターン 値ベースの実行時 Decorator パターン END");
     return 0;
