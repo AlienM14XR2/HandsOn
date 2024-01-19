@@ -62,7 +62,52 @@ public:
  * 
  * 値セマンティクスの実装へ変身させるデザインパターン、Type Erasure パターンです。
  * 次に挙げる Item クラスは、価格をつけた商品用に、自らが所有権を持つ Type Erasure ラッパクラスを実装します。
+ * 
+ * Type Erasure = External Polymorphism + Bridge + prototype
 */
+
+class Item {
+private:
+    struct Concept {
+        virtual ~Concept() = default;
+        virtual Money price() const = 0;
+        virtual std::unique_ptr<Concept> clone() const = 0;
+    };
+
+    template <class T>
+    struct Model : public Concept {
+        T item;
+        explicit Model(const T& _item): item(_item)
+        {}
+        explicit Model(T&& _item): item(std::move(_item))
+        {}
+
+        Money price() const override {
+            return item.price();
+        }
+        std::unique_ptr<Concept> clone() const override {
+            return std::make_unique<Model<T>>(*this);
+        }
+    };
+    std::unique_ptr<Concept> pimpl;
+public:
+    template <class T>
+    Item(T item): pimpl{ std::make_unique<Model<T>>(std::move(item)) } 
+    {}
+    Item(const Item& item): pimpl{ item.pimpl->clone() }
+    {}
+    ~Item() = default;
+    Item(Item&&) = default;
+    Item& operator=(Item&&) = default;
+
+    Item& operator=(const Item& item) {
+        pimpl = item.pimpl->clone();
+        return *this;
+    }
+    Money price() const {
+        return pimpl->price();
+    }
+};
 
 int main(void) {
     puts("START 9 章 Decorator パターン 値ベースの実行時 Decorator パターン ===");
