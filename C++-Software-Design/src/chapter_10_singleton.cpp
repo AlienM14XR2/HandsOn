@@ -47,8 +47,16 @@
  * 
  * ... ここでやっとサンプルの出番かな。
  * 
+ * ガイドライン 38 の要約
+ * - Singleton パターンはその短所もすべて含み、グローバルな状態を表現する。
+ * - グローバルな状態変数は可能な限り避ける。
+ * - Singleton パターンを用いるときは工夫を凝らし、限られた数のグローバルアスペクトにのみ用いる。
+ * - Singleton パターンでの双方向のデータの流れはできるだけ避ける。
+ * - Singleton パターンに付随する変更しやすさとテスト可用性の阻害を排除するには、Singleton パターンを用い依存関係を逆転する。
+ * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_10_singleton.cpp -o ../bin/main
+ * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall chapter_10_singleton.cpp -o ../bin/main
 */
 #include <iostream>
 #include <cassert>
@@ -144,6 +152,93 @@ int sample_pmr() {
     }
 }
 
+/**
+ * Strategy パターンの適用
+ * 依存オブジェクト注入ポイントを設ける。
+ * サンプルとして Database クラスを修正する。
+*/
+
+class PersistenceInterface {
+private:
+    virtual bool do_read() const = 0;
+    virtual bool do_write() = 0;
+public:
+    virtual ~PersistenceInterface() = default;
+
+    bool read() const {
+        return do_read();
+    }
+    bool write() {
+        return do_write();
+    }
+};
+PersistenceInterface* get_persistence_interface();          // 本来はヘッダファイルに記述する
+void set_persistence_interface(PersistenceInterface*);      // 本来はヘッダファイルに記述する
+extern PersistenceInterface* instance;                      // 本来はヘッダファイルに記述する
+
+class DatabaseV2 final : public PersistenceInterface {
+private:
+    bool do_read() const override {
+        puts("------ do_read");
+        return true;
+    }
+    bool do_write() override {
+        puts("------ do_write");
+        return true;
+    }
+public:
+    DatabaseV2() = default;
+    DatabaseV2(const DatabaseV2&) = delete;
+    DatabaseV2& operator=(const DatabaseV2&) = delete;
+    DatabaseV2(DatabaseV2&&) = delete;
+    DatabaseV2& operator=(DatabaseV2&&) = delete;
+};
+
+/**
+ * PersistenceInterface.cpp
+ * 本来であれば上記ソースファイルに記述するべき内容になる。
+*/
+namespace picpp {
+    PersistenceInterface* instance = nullptr;
+
+    PersistenceInterface* get_persistence_interface() {
+        static bool init = []() {
+            if( !instance ) {
+                static DatabaseV2 db;
+                instance = &db;
+            }
+            return true;    // 戻り値は重要ではないため false でも構わない。
+        }();    // ラムダ式直後の () により、ラムダ式を実行する。
+        return instance;
+    }
+    
+    void set_persistence_interface(PersistenceInterface* _instance) {
+        instance = _instance;
+    }
+
+}   // namespace picpp
+
+int test_PersistenceInterface() {
+    puts("--- test_PersistenceInterface");
+    try {
+        PersistenceInterface* persistence = picpp::get_persistence_interface();
+        persistence->read();
+        persistence->write();
+
+        PersistenceInterface* persistence2 = picpp::get_persistence_interface();
+        ptr_lambda_debug<const char*,PersistenceInterface*>("persistence addr is ",persistence);
+        ptr_lambda_debug<const char*,PersistenceInterface*>("persistence2 addr is ",persistence2);
+        assert(persistence == persistence2);
+
+        // delete persistence;      // これは必要なかった、ラムダ式のスタティックローカル変数を参照しているだけだから（二重開放になる）。
+
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START Singleton パターン ===");
     if(0.01) {
@@ -155,6 +250,9 @@ int main(void) {
     }
     if(2.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",sample_pmr());
+    }
+    if(3.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_PersistenceInterface());
     }
     puts("=== Singleton パターン END");
     return 0;
