@@ -52,6 +52,12 @@
 */
 #include <iostream>
 #include <cassert>
+#include <array>
+#include <cstddef>
+#include <cstdlib>
+#include <memory_resource>
+#include <string>
+#include <vector>
 
 using namespace std;
 
@@ -111,6 +117,28 @@ int test_Database() {
  * C++17 pmr ( polymorphic memory resources ) の世界。
 */
 
+int sample_pmr() {
+    puts("--- sample_pmr");
+    try {
+        std::array<std::byte, 1000> raw;        // 注意：未初期化
+        std::pmr::monotonic_buffer_resource buffer{raw.data(), raw.size(), std::pmr::null_memory_resource()};
+        /**
+         * std::pmr::null_memory_resource() を用いメモリを追加しようとします。この上流アロケータは何らメモリを返さず、常に失敗したら
+         * std::bad_alloc() 例外をスローします。すなわち、buffer が使えるメモリは raw が持つ 1000 バイトに制限されます。
+         * これは Decorator であり Singleton です。
+         * std::pmr::null_memory_resource() はコールされる度に同じアロケータを指すポインタを返すため、1 だけ存在する std::pmr::null_memory_resource 
+         * インスタンスを使用するシングルポイントかのように振る舞います。結果的に、返されたアロケータは Singleton パターンとして機能します。
+         * メモリという一種のグローバルな状態を表現する妥当な選択です。
+        */
+        std::pmr::vector<std::pmr::string> strings {&buffer};
+        // ...
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START Singleton パターン ===");
     if(0.01) {
@@ -119,6 +147,9 @@ int main(void) {
     }
     if(1.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Database());
+    }
+    if(2.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",sample_pmr());
     }
     puts("=== Singleton パターン END");
     return 0;
