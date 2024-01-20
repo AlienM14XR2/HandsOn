@@ -129,6 +129,11 @@ int sample_pmr() {
          * std::pmr::null_memory_resource() はコールされる度に同じアロケータを指すポインタを返すため、1 だけ存在する std::pmr::null_memory_resource 
          * インスタンスを使用するシングルポイントかのように振る舞います。結果的に、返されたアロケータは Singleton パターンとして機能します。
          * メモリという一種のグローバルな状態を表現する妥当な選択です。
+         * 
+         * std::pmr::null_memory_resource() コールを std::pmr::get_default_resouce() に変更すると話が変化します。
+         * std::pmr::get_default_resouce() も std::pmr::memory_resource を指すポインタを返しますが、これはシステムデフォルトアロケータです。
+         * デフォルトでは std::pmr::new_delete_resource() 関数が返すアロケータに一致します。意外なことにこのデフォルトアロケータは std::pmr::set_default_resource() を
+         * 用いるとカスタマイズできるのです。
         */
         std::pmr::vector<std::pmr::string> strings {&buffer};
         // ...
