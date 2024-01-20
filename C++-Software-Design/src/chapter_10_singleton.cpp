@@ -19,6 +19,7 @@
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_10_singleton.cpp -o ../bin/main
 */
 #include <iostream>
+#include <cassert>
 
 using namespace std;
 
@@ -46,9 +47,11 @@ public:
     }
 
     bool write(/* some arguments */) {
+        puts("------ write");
         return true;
     }
     bool read(/* some arguments */) {
+        puts("------ read");
         return true;
     }
     // ... その他データベース特有の機能
@@ -57,6 +60,13 @@ public:
 int test_Database() {
     puts("--- test_Database");
     try {
+        Database& db1 = Database::instance();
+        Database& db2 = Database::instance();
+        db1.write();
+        db2.read();
+        assert(&db1 == &db2);
+        ptr_lambda_debug<const char*,Database*>("db1 addr is ",&db1);
+        ptr_lambda_debug<const char*,Database*>("db2 addr is ",&db2);
         return EXIT_SUCCESS;
     } catch(exception& e) {
         cout << e.what() << endl;
