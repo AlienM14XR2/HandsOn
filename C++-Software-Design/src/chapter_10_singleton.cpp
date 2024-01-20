@@ -45,6 +45,8 @@
  * 
  * Singleton パターンは変更しやすさとテスト可用性を阻害する
  * 
+ * ... ここでやっとサンプルの出番かな。
+ * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_10_singleton.cpp -o ../bin/main
 */
@@ -103,6 +105,11 @@ int test_Database() {
         return EXIT_FAILURE;
     }
 }
+
+/**
+ * Singleton パターンの依存関係逆転
+ * C++17 pmr ( polymorphic memory resources ) の世界。
+*/
 
 int main(void) {
     puts("START Singleton パターン ===");
