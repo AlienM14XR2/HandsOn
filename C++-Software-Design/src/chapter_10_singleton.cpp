@@ -239,6 +239,18 @@ int test_PersistenceInterface() {
     }
 }
 
+/**
+ * PersistenceInterface の問題点、それはスレッドセーフではないことです。
+ * どの時点でも、set_persistence_interface() によりグローバル変数の状態を変更できてしまいます。
+ * したがって set_persistence_interface() で設定したものを get_persistence_interface() が返却する
+ * 保証は一般にはありません。
+ * この点に関しては対処は不要です。
+ * set_persistence_interface() での設定を任意ではなく、プログラム開始直後か、あるいは 1 テスト項目開始時
+ * とすべきです。
+ * 
+ * 依存注入という考えにすることで、アーキテクチャの境界が変化したことがまず重要と考える。
+*/
+
 int main(void) {
     puts("START Singleton パターン ===");
     if(0.01) {
