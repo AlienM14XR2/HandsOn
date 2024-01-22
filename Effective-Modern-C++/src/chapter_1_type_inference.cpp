@@ -84,6 +84,33 @@ int test_f2() {
     }
 }
 
+template <class T>
+void fp(T* param) {
+    puts("------ fp");
+    ptr_lambda_debug<const char*,const T&>("param is ",*param);
+}
+
+int test_fp() {
+    puts("--- fp");
+    try {
+        int x = 27;             // x  は int
+        const int* px = &x;     // 先の例と変わらず、px は const int としての x を指す
+
+        fp(&x);                 // T は int, param の型は int*
+        fp(px);                 // T は const int, param の型は const int*
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
+/**
+ * C++ の型推論は、参照やポインタの仮引数に対してごく自然に動作するため、改めて言葉で
+ * 説明されても退屈で居眠りをしてしまったかもしれません。すべて自明で分かりきったことです！
+ * 型推論システムは期待通りに動作します。
+*/
+
 int main(void) {
     puts("START 1 章 型推論 ===");
     if(0.01) {
@@ -93,6 +120,7 @@ int main(void) {
     if(1.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_f());
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_f2());
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_fp());
     }
     puts("=== 1 章 型推論 END");
     return 0;
