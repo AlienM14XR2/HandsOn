@@ -6,6 +6,8 @@
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_1_type_inference.cpp -o ../bin/main
 */
 #include <iostream>
+#include <cassert>
+#include <memory>
 
 using namespace std;
 
@@ -167,6 +169,134 @@ int test_f_uref() {
     }
 }
 
+/**
+ * ユニバーサル参照に関する理解とヒマ潰しのために。
+ * 
+ * ここから少し私の興味を掘り下げる。
+ * Strategy パターンを利用して、オブジェクト同士の add（足し算） について考えてみる。
+ * operator+() で解決できるかもしれないがそれはそれ、これはこれだ。
+*/
+
+/**
+ * 座標クラス
+*/
+class Point final {
+private:
+    double x=0.0, y=0.0;
+    explicit Point():x{0.0}, y{0.0} {}
+public:
+    // explicit Point(double _x, double _y): x(_x), y(_y) {}
+    explicit Point(const double& _x, const double& _y): x{_x}, y{_y} {}
+    Point(const Point& own) {*this = own;}
+    ~Point() {}
+    // ...
+    /**
+     * operator はまだ理解が不十分だった。
+     * 次の記述により意図した動作にならなかった。
+    */
+    // Point& operator=(const Point&) {
+    //     return *this;
+    // }
+    // Point(Point&&)            = default;
+    // Point& operator=(Point&&) = default;
+    // ...
+    std::unique_ptr<Point> clone() {
+        return std::make_unique<Point>(*this);
+    }
+    double getX() const {
+        return x;
+    }
+    double getY() const {
+        return y;
+    }
+};
+
+/**
+ * 追加（加算）クラステンプレート
+*/
+template <class T>
+class AddStrategy {
+public:
+    virtual ~AddStrategy() = default;
+    virtual T add(const T&& rhs) = 0;     // rhs ... right-hand side.
+};
+
+/**
+ * 座標加算ストラテジクラス
+*/
+class PointAddStrategy final : public AddStrategy<Point> {
+private:
+    Point point{0.0, 0.0};
+public:
+    PointAddStrategy(const Point& _point): point(_point) 
+    {}
+    PointAddStrategy(const PointAddStrategy& own) {*this = own;}
+    ~PointAddStrategy() {}
+    // ...
+    Point add(const Point&& rhs) override {
+        Point result{point.getX()+rhs.getX(), point.getY() + rhs.getY()};
+        return result;
+    }
+};
+
+int test_PointAddStrategy() {
+    puts("--- test_PointAddStrategy");
+    try {
+        std::unique_ptr<AddStrategy<Point>> addStrategy = std::make_unique<PointAddStrategy>(PointAddStrategy{Point{30.0, 60.0}});
+        // x: 30.0 + 3.0 = 33.0
+        // y: 60.0 + 3.0 = 63.0
+        Point result = addStrategy->add(Point{3.0, 3.0});
+        // Point p1{30.0, 60.0};
+        // PointAddStrategy strategy{p1};
+        // Point result = strategy.add(Point{3.0, 3.0});
+        ptr_lambda_debug<const char*, const double&>("x is ",result.getX());
+        ptr_lambda_debug<const char*, const double&>("y is ",result.getY());
+        assert(result.getX() == 33.0);
+        assert(result.getY() == 63.0);
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
+template <class Number>
+class NumberAddStrategy final : public AddStrategy<Number> {
+private:
+    Number num;
+public:
+    NumberAddStrategy(const Number& _num): num(_num) {}
+    // ...
+    Number add(const Number&& rhs) override {
+        return num+rhs;
+    }
+};
+
+int test_NumberAddStrategy() {
+    puts("--- test_NumberAddStrategy");
+    try {
+        NumberAddStrategy<int> int_strategy{12};
+        int int_result = int_strategy.add(9);
+        ptr_lambda_debug<const char*,const int&>("int_result is ",int_result);
+        assert(int_result == 21);
+
+        NumberAddStrategy<double> double_strategy{3.0};
+        double double_result = double_strategy.add(6.0);
+        ptr_lambda_debug<const char*, const double&>("double_result is ",double_result);
+        assert(double_result == 9.0);
+
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
+/**
+ * test_PointAddStrategy() と test_NumberAddStrategy() の結果内容を見ると
+ * 関数定義の仮引数の型はユニバーサル参照にした方が 数値リテラルを扱えるので良いと言えるのか。
+*/
+
 int main(void) {
     puts("START 1 章 型推論 ===");
     if(0.01) {
@@ -178,6 +308,8 @@ int main(void) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_f2());
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_fp());
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_f_uref());
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_PointAddStrategy());
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_NumberAddStrategy());
     }
     puts("=== 1 章 型推論 END");
     return 0;
