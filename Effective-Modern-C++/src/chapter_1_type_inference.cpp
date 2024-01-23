@@ -396,6 +396,21 @@ int test_f_by_val() {
  * の const 性は型を推論しても失われません。
 */
 
+/**
+ * 配列実引数
+ * 
+ * 配列型とポインタ型は交換可能と言われることもありますが、両者は異なる型であるという点です。
+ * この目眩ましのような状態の元凶は、配列は、多くの場面で、その先頭要素を指すポインタに『成り下がる（decay）』
+ * という動作です。この動作から次のようなコードがコンパイル可能になります。
+*/
+
+void sample_array() {
+    puts("--- sample_array");
+    const char name[] = "J. P. Briggs";
+    const char* ptrToName = name;
+    ptr_lambda_debug<const char*,const char*>("ptrToName is ", ptrToName);
+}
+
 int main(void) {
     puts("START 1 章 型推論 ===");
     if(0.01) {
@@ -410,6 +425,7 @@ int main(void) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_PointAddStrategy());
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_NumericAddStrategy());
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_f_by_val());
+        sample_array();
     }
     puts("=== 1 章 型推論 END");
     return 0;
