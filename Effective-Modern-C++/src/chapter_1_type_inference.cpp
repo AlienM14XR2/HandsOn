@@ -365,6 +365,25 @@ int test_f_by_val() {
         f_by_val(cx);       // T と param の型はいずれもやはり int
         f_by_val(rx);       // T と param の型はいずれもやはり int
 
+        /**
+         * アスタリスクの右にある const は ptr が const であることを意味します。
+         * ptr は他のアドレスを指すことも、NULL ポインタになることもありません。
+         * const char なのでその値も変更できません。
+        */
+        const char* const ptr = "Fun with pointers";
+        ptr_lambda_debug<const char*, const char*>("Before f_by_bal ptr is ", ptr);
+        printf("ptr addr is %p\n",(void*)ptr);
+        /**
+         * ptr を f_by_val に渡すと、ptr を構成する全ビットが param にコピーされます。
+         * 『ポインタ自身（ptr）を値渡しする動作です。』仮引数を値渡しする際の型推論規則により、
+         * ptr の const 性は無視され、param に推論される型は const char* となります。
+         * すなわち、const な文字列を指す変更可能なポインタです。
+         * 型を推論しても、ptr が指すオブジェクトの const 性は維持されますが、ptr をコピーし新たな
+         * ポインタ param を作成する時点で、ptr 自身の const 性は失われます。
+        */
+        f_by_val(ptr);
+        ptr_lambda_debug<const char*, const char*>("After f_by_bal ptr is ", ptr);
+
         return EXIT_SUCCESS;
     } catch(exception& e) {
         cout << e.what() << endl;
