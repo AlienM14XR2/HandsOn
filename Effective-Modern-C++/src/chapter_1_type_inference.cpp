@@ -260,14 +260,14 @@ int test_PointAddStrategy() {
     }
 }
 
-template <class Number>
-class NumberAddStrategy final : public AddStrategy<Number> {
+template <class Numeric>
+class NumericAddStrategy final : public AddStrategy<Numeric> {
 private:
-    Number num;
+    Numeric num;
 public:
-    NumberAddStrategy(const Number& _num): num(_num) {}
+    NumericAddStrategy(const Numeric& _num): num(_num) {}
     // ...
-    Number add(const Number&& rhs) override {
+    Numeric add(const Numeric&& rhs) override {
         return num+rhs;
     }
 };
@@ -275,12 +275,12 @@ public:
 int test_NumberAddStrategy() {
     puts("--- test_NumberAddStrategy");
     try {
-        NumberAddStrategy<int> int_strategy{12};
+        NumericAddStrategy<int> int_strategy{12};
         int int_result = int_strategy.add(9);
         ptr_lambda_debug<const char*,const int&>("int_result is ",int_result);
         assert(int_result == 21);
 
-        NumberAddStrategy<double> double_strategy{3.0};
+        NumericAddStrategy<double> double_strategy{3.0};
         double double_result = double_strategy.add(6.0);
         ptr_lambda_debug<const char*, const double&>("double_result is ",double_result);
         assert(double_result == 9.0);
