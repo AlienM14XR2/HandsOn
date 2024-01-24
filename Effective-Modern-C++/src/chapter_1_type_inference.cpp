@@ -452,7 +452,64 @@ int test_array_f_by_val() {
  * 型はポインタ型と推論されます。このことは、テンプレート f_by_val を呼び出すと、その型仮引数
  * T は const char* と推論されることを意味します。 
  * 
+ * ここで変化球の登場です。関数は仮引数を真の配列とは宣言できないけれど、配列の『参照としてし
+ * ては宣言できる』のです！ 次に確認してみます。
 */
+
+int test_array_f() {
+    puts("--- test_array_f");
+    try {
+        const char name[] = "J. P. Briggs";
+        ptr_lambda_debug<const char*,const char*>("name is ", name);
+        printf("name addr is %p\n", (void*)name);
+        f(name);        // f へ配列を渡す
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
+/**
+ * すると、T に推論される型は配列になります！ この型は配列の要素数も含んでおり、上例では 
+ * const char[13] です。また、f の仮引数の型は（配列の参照）、const char(&)[13] となります。
+ * そう、この構文には毒もあるのです。この点を押さえておくと、こんなことまで意識するごく一部
+ * の人々と議論する際に役立つこともあるでしょう。
+ * 
+ * 面白いことに、配列の参照を宣言できるようになると、配列の要素数を推論するテンプレートを
+ * 記述できます。
+*/
+
+/**
+ * 配列の要素数をコンパイル時定数として返す（要素数のみを考慮するため、仮引数の配列に名前はない）。
+*/
+template <class T, std::size_t N>
+constexpr std::size_t arraySize(T(&)[N]) noexcept {
+    return N;
+}
+/**
+ * 項目 15 でも述べますが、constexpr と宣言することで、その戻り値をコンパイル時に使用できます。
+ * これにより、例えば、配列の宣言時に要素数を明示しなくとも、波括弧用いた初期化から要素数を算出
+ * できるようになります。
+*/
+
+int test_arraySize() {
+    puts("--- test_arraySize");
+    try {
+        int keyVals[] = {1,3,7,9,11,22,35};
+        int mappedVals[arraySize(keyVals)];
+        size_t mappedValsSize = sizeof(mappedVals) / sizeof(mappedVals[0]);
+        ptr_lambda_debug<const char*,const size_t&>("mappedValsSize is ", mappedValsSize);
+        // もちろん、現代の C++ 開発者ならば、組み込み配列よりも std::array の方が当然好みでしょう。
+        std::array<int, arraySize(keyVals)> mappedVals2;
+        ptr_lambda_debug<const char*,const size_t&>("mappedVals2 size is ", mappedVals2.size());
+        
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
 
 int main(void) {
     puts("START 1 章 型推論 ===");
@@ -470,6 +527,8 @@ int main(void) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_f_by_val());
         sample_array();
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_array_f_by_val());
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_array_f());
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_arraySize());
     }
     puts("=== 1 章 型推論 END");
     return 0;
