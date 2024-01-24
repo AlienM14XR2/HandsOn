@@ -28,7 +28,7 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
 */
 
 template <class T>
-void f(T& param) {      // const なし
+void f(T& param) {      // const なし、参照渡しの仮引数を持つ関数テンプレート。
     puts("------ f");
     // param += 1;      // コンパイルエラー、 param is read-only reference
     ptr_lambda_debug<const char*,const T&>("param is ",param);
@@ -61,7 +61,7 @@ int test_f() {
 }
 
 template <class T>
-void fc(const T& param) {       // const あり
+void fc(const T& param) {       // const あり、参照渡しの仮引数を持つ関数テンプレート。
     puts("------ fc");
     // param += 1;      // コンパイルエラー、 param is read-only reference
     ptr_lambda_debug<const char*,const T&>("param is ",param);
@@ -411,6 +411,49 @@ void sample_array() {
     ptr_lambda_debug<const char*,const char*>("ptrToName is ", ptrToName);
 }
 
+/**
+ * 上例では、const char* のポインタ ptrToName は const char[13] である name により初期化されます。
+ * const char* と const char[13] は同じ型ではありませんが、配列からポインタへの変換する規則により、
+ * コンパイル可能なのです。
+ * 私なりの補足、name は 配列の先頭、name[0] であり、配列の仕組み自体内部でポインタを利用している。
+ * 
+ * では、仮引数を値渡しするテンプレートに配列を渡すのはどうでしょうか？
+*/
+
+int test_array_f_by_val() {
+    puts("--- test_array_f_by_val");
+    try {
+        const char name[] = "J. P. Briggs";
+        ptr_lambda_debug<const char*,const char*>("name is ",name);
+        printf("name addr is %p\n",&name[0]);
+        f_by_val(name);
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
+/**
+ * まず、仮引数として配列なぞあり得ないという事実から確認しましょう。もちろん、文法的には問題
+ * ありません。
+ * 
+ * void myFunc(int param[]);
+ * 
+ * しかし、配列として宣言してもポインタの宣言として扱われます。つまり、上例の myFunc は次のよう
+ * にも宣言可能です。
+ * 
+ * void myFunc(int* param);
+ * 
+ * 仮引数の配列とポインタの等価性は、C++ の土台である C 言語を根として、成長した枝葉のようなも
+ * ので、ここから配列とポインタは同じものであるという幻想が醸し出されています。
+ * 
+ * 配列仮引数の宣言は、ポインタ仮引数として扱われるため、テンプレート関数へ値渡しされた配列の
+ * 型はポインタ型と推論されます。このことは、テンプレート f_by_val を呼び出すと、その型仮引数
+ * T は const char* と推論されることを意味します。 
+ * 
+*/
+
 int main(void) {
     puts("START 1 章 型推論 ===");
     if(0.01) {
@@ -426,6 +469,7 @@ int main(void) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_NumericAddStrategy());
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_f_by_val());
         sample_array();
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_array_f_by_val());
     }
     puts("=== 1 章 型推論 END");
     return 0;
