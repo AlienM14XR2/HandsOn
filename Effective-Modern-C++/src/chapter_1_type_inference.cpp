@@ -3,6 +3,12 @@
  * 
  * 項目 1 ：テンプレートの型推論を理解する
  * 
+ * 重要ポイント
+ * - テンプレートの型推論時には、参照実引数は参照とは扱われない。即ち参照性は無視される。
+ * - ユニバーサル参照仮引数の型を推論する際には、左辺値実引数を特別扱いする。
+ * - 値渡しの仮引数の型を推論する際には、const および／または volatile 実引数は 非 const、非 volatile と扱われる。
+ * - 参照を初期化するものでなければ、配列または関数実引数はテンプレートの型推論時にポインタに成り下がる。
+ *  
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_1_type_inference.cpp -o ../bin/main
 */
 #include <iostream>
@@ -515,6 +521,64 @@ int test_arraySize() {
     }
 }
 
+/**
+ * 関数実引数
+ * 
+ * C++ でポインタに成り下がるのは配列だけではありません。関数も関数ポインタに成り下がり、先に述べた
+ * 配列の型推論に関することはすべて、関数の型推論および関数ポインタへの成り下がりにも適用されます。
+*/
+
+int add(int lhs, double rhs) {  // add は関数、型は int(int, double)
+    return lhs + rhs;
+}
+
+template <class FUNC, class RET>
+void f_func(FUNC param) {       // param は値渡し
+    puts("------ f_func");
+    RET ret = param(3, 6.6);
+    ptr_lambda_debug<const char*,const RET&>("ret is ",ret);
+}
+
+template <class FUNC, class RET>
+void f_func2(FUNC& param) {     // param は参照渡し
+    puts("------ f_func2");
+    RET ret = param(6, 6.6);
+    ptr_lambda_debug<const char*,const RET&>("ret is ",ret);
+}
+
+template <class FUNC>
+void f_func3(FUNC param) {      // param は値渡し
+    puts("------ f_func3");
+    auto ret = param(3, 6.6);
+    printf("ret is %d\n",ret);
+}
+
+template<class FUNC>
+void f_func4(FUNC& param) {     // param は参照渡し
+    puts("------ f_func4");
+    auto ret = param(6, 6.6);
+    printf("ret is %d\n",ret);
+}
+
+int test_func() {
+    puts("--- test_func");
+    try {
+        f_func<int(int,double),int>(add);
+        f_func2<int(int,double),int>(add);
+        f_func3(add);       // param は関数を指すポインタと推論、型は int(*)(int,double)
+        f_func4(add);       // param は関数の参照と推論、型は int(&)(int,double)
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
+/**
+ * 現実に何らかの差異が生まれることはまずありませんが、配列がポインタに成り下がる点を覚えるならば、
+ * 関数がポインタに成り下がることも知っておくと良いでしょう。
+*/
+
 int main(void) {
     puts("START 1 章 型推論 ===");
     if(0.01) {
@@ -533,6 +597,9 @@ int main(void) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_array_f_by_val());
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_array_f());
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_arraySize());
+    }
+    if(2.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_func());
     }
     puts("=== 1 章 型推論 END");
     return 0;
