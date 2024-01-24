@@ -9,7 +9,9 @@
  * - 値渡しの仮引数の型を推論する際には、const および／または volatile 実引数は 非 const、非 volatile と扱われる。
  * - 参照を初期化するものでなければ、配列または関数実引数はテンプレートの型推論時にポインタに成り下がる。
  *  
+ * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_1_type_inference.cpp -o ../bin/main
+ * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall chapter_1_type_inference.cpp -o ../bin/main
 */
 #include <iostream>
 #include <cassert>
@@ -579,6 +581,99 @@ int test_func() {
  * 関数がポインタに成り下がることも知っておくと良いでしょう。
 */
 
+/**
+ * 個人的な演習
+ * 
+ * GoF 古典からの第一歩を探して。
+ * 
+ * 継承は必要最小限する。
+ * 具体的な実装詳細は別クラスにする。
+ * 操作はインタフェースで行う。
+ * 必要な機能はコンポジションする。
+*/
+
+template <class T>
+class ParseStrategy {
+public:
+    virtual ~ParseStrategy() = default;
+    // ...
+    virtual void parse(T&) = 0;
+    // virtual std::unique_ptr<ParseStrategy<T>> clone() const = 0;
+};
+
+template <class T>
+class DataAccessStrategy {
+public:
+    virtual ~DataAccessStrategy() = default;
+    virtual void access(T&) = 0;
+    // virtual std::unique_ptr<DataAccessStrategy<T>> clone() const = 0;
+};
+
+class Repository {      // 言うなれば単なるタグ
+public:
+    virtual ~Repository() = default;
+    virtual void parse() = 0;
+    virtual void access() = 0;
+};
+
+class Insert final : public Repository {
+private:
+    // std::unique_ptr<ParseStrategy<Insert>> parser;
+    // std::unique_ptr<DataAccessStrategy<Insert>> accessor;
+    ParseStrategy<Insert>* parser;
+    DataAccessStrategy<Insert>* accessor;
+    Insert() : parser{nullptr}, accessor{nullptr} {}
+public:
+    // 外部から好きな Parser や Accessor を 依存注入できる。
+    Insert(ParseStrategy<Insert>& _parser, DataAccessStrategy<Insert>& _accessor) : parser{std::move(&_parser)}, accessor{std::move(&_accessor)}
+    {}
+    Insert(const Insert& own) {*this = own;}
+    ~Insert() {}
+    // ...
+    void parse() override {
+        parser->parse(*this);
+    }
+    void access() override {
+        accessor->access(*this);
+    }
+};
+
+class InsertParser final : public ParseStrategy<Insert> {
+public:
+    void parse(Insert& insert) override {
+        puts("------ TODO parse");
+    }
+};
+
+class InsertAccessor final : public DataAccessStrategy<Insert> {
+public:
+    void access(Insert& insert) override {
+        puts("------ TODO access");
+    }
+};
+
+int test_Insert() {
+    puts("--- test_Insert");
+    try {
+        InsertParser parser;
+        InsertAccessor accessor;
+        std::unique_ptr<Repository> insert = std::make_unique<Insert>(Insert{
+            parser
+            , accessor
+        });
+        insert->parse();
+        insert->access();
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what()  << endl;
+        return EXIT_FAILURE;
+    }
+}
+
+/**
+ * これが、今の私の実力であり理解度ということか。
+*/
+
 int main(void) {
     puts("START 1 章 型推論 ===");
     if(0.01) {
@@ -600,6 +695,9 @@ int main(void) {
     }
     if(2.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_func());
+    }
+    if(3.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Insert());
     }
     puts("=== 1 章 型推論 END");
     return 0;
