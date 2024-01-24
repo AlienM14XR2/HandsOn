@@ -33,6 +33,10 @@ void f(T& param) {      // const なし、参照渡しの仮引数を持つ関�
     // param += 1;      // コンパイルエラー、 param is read-only reference
     ptr_lambda_debug<const char*,const T&>("param is ",param);
     ptr_lambda_debug<const char*,const T*>("param addr is ",&param);
+
+    // T の具体的なオブジェクトが何か不明なのに、配列と断定したコードは、実引数が int であった場合などは、次のコードはコンパイルエラーになる。
+    // size_t size = sizeof(param) / sizeof(param[0]);
+    // ptr_lambda_debug<const char*,const size_t&>("size is ", size);
 }
 
 int test_f() {
