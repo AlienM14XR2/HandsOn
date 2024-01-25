@@ -40,8 +40,40 @@ void sample_auto() {
 }
 
 /**
+ * auto を用いた変数宣言では、型指定子が ParamType に相当し、やはり 3 種類に分けられます
+ * - ケース 1 ：型指定子が参照もしくはポインタだが、ユニバーサル参照ではない。
+ * - ケース 2 ：型指定子がユニバーサル参照である。
+ * - ケース 3 ：型指定子がポインタでも参照でもない。
  * 
+ * e.g. 関数テンプレートの場合。
+ * 
+ * template <class T>
+ * void f(ParamType param)
+ * 
+ * f(expr)                  // call with some expression ... f に式を与え呼び出す。
 */
+
+void sample_auto2() {
+    puts("--- sample_auto2");
+    auto x = 27;            // ケース 3 （x はポインタでも参照でもない）
+    const auto cx = x;      // ケース 3 （cx はポインタでも参照でもない）
+    const auto& rx = x;     // ケース 1 （rx は参照であり、ユニバーサル参照ではない）
+    ptr_lambda_debug<const char*,const int&>("x is ",x);
+    ptr_lambda_debug<const char*,const int&>("cx is ",cx);
+    ptr_lambda_debug<const char*,const int&>("rx is ",rx);
+
+    // 次はすべて ケース 2
+    auto&& uref1 = x;       // ケース 2 （x は int かつ左辺値のため、 uref の型は int&）
+    auto&& uref2 = cx;      // ケース 2 （cx は const int かつ左辺値のため、 uref2 の型は const int&）
+    auto&& uref3 = 27;      // ケース 2 （27 は int かつ右辺値のため、uref3 の型は int&&）
+    // 私の現在の理解では「ユニバーサル参照」は数値リテラルなどの、右辺値と通常の変数である左辺値を同様に扱えるというものなのだが、あってるのかな。
+    ptr_lambda_debug<const char*,const int&>("uref1 is ",uref1);
+    ptr_lambda_debug<const char*,const int&>("uref2 is ",uref2);
+    ptr_lambda_debug<const char*,const int&>("uref3 is ",uref3);
+    ptr_lambda_debug<const char*,const int*>("uref1 addr is ",&uref1);
+    ptr_lambda_debug<const char*,const int*>("uref2 addr is ",&uref2);
+    ptr_lambda_debug<const char*,const int*>("uref3 addr is ",&uref3);
+}
 
 int main(void) {
     puts("START 項目 2 ：auto 型推論を理解する ===");
@@ -51,6 +83,7 @@ int main(void) {
     }
     if(1.00) {
         sample_auto();
+        sample_auto2();
     }
     puts("=== 項目 2 ：auto 型推論を理解する END");
     return 0;
