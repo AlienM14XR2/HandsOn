@@ -13,6 +13,7 @@
 */
 #include <iostream>
 #include <vector>
+#include <variant>
 #include <cassert>
 
 using namespace std;
@@ -29,6 +30,7 @@ void (*ptr_lambda_debug)(M,D) = [](auto message, auto debug) -> void {
 */
 
 bool foo(int lhs, double rhs) {
+    puts("------ foo");
     int ret = lhs + rhs;
     ptr_lambda_debug<const char*,const int&>("ret is ", ret);
     return true;
@@ -53,6 +55,63 @@ void sample() {
     // これができるから何が嬉しいのか今はわからない。 関数の別名として利用できるわけではなくあくまで型の定義に過ぎない。
 }
 
+/**
+ * C++11 での decltype の主要用途は、おそらく、戻り値が仮引数の型により決定される
+ * 関数テンプレートの宣言でしょう
+*/
+
+template <class Container, class Index>
+decltype(auto) authAndAccess(Container& c, const Index& i) {
+    puts("------ authAndAccess");
+    return c[i];
+}
+
+int test_authAndAccess() {
+    puts("--- test_authAndAccess");
+    try {
+        std::vector<int> v{10, 11, 12, 13, 14};
+        auto ret = authAndAccess(v, 4);
+        ptr_lambda_debug<const char*,decltype(ret)&>("ret is ", ret);   // うん、言いたいことは分かるが、サンプルに説得力があまりない。
+        
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
+
+/**
+ * Coffee Break ： C 言語の関数ポインタについて
+*/
+
+int (*ptr_f)(int,double);
+
+int add(int lhs, double rhs) {
+    return (lhs + (int)rhs);
+}
+int multi(int lhs, double rhs) {
+    return (lhs * (int)rhs);
+}
+
+int test_add_multi() {
+    puts("--- test_add_multi");
+    try {
+        ptr_f = &add;
+        ptr_lambda_debug<const char*,const int&>("ptr_f(3, 6.3) ... ", ptr_f(3, 6.3));
+        ptr_f = &multi;
+        ptr_lambda_debug<const char*,const int&>("ptr_f(9, 9.9) ... ", ptr_f(9, 9.9));
+        /**
+         * これも 単純なポリモーフィズムであり、Strategy パターンの原型と考えられないだろうか。
+        */
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
+
 int main(void) {
     puts("START 項目 3 ：decltype を理解する ===");
     if(0.01) {
@@ -61,6 +120,8 @@ int main(void) {
     }
     if(1.00) {
         sample();
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_authAndAccess());
+        ptr_lambda_debug<const char*,const int &>("Play and Result ... ",test_add_multi());
     }
     puts("=== 項目 3 ：decltype を理解する END");
     return 0;
