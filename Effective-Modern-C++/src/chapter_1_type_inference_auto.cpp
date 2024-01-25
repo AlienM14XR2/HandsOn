@@ -104,7 +104,42 @@ void sample_auto3() {
 /**
  * 上例が示す通り、auto の型推論はテンプレートの場合と同様に動作します。
  * いわば一枚のコインの表裏です。
+ * 
+ * しかし、異なる動作を示す場面が 1 つだけあります。初期値を 27 とする int を宣言する場合を
+ * 考えてみましょう。C++98 では 2 通りの記述があります。
 */
+
+void sample_auto4() {
+    puts("--- sample_auto4");
+    // C++98 では 2 通りの記述があります。
+    int x1 = 27;
+    int x2(27);
+    ptr_lambda_debug<const char*,const int&>("x1 is ", x1);
+    ptr_lambda_debug<const char*,const int&>("x2 is ", x2);
+
+    // C++11 では初期化の統一記法を採用したため、次の記述も可能です。
+    int x3 = {27};
+    int x4{27};
+    ptr_lambda_debug<const char*,const int&>("x3 is ", x3);
+    ptr_lambda_debug<const char*,const int&>("x4 is ", x4);
+    // 記述は 4 通りでも結果は 1 つしかありません。値を 27 とする int です。
+
+    // 項目 5 で述べるように auto は型を明示した変数宣言より利点が多く、上例の変数宣言 int は
+    // auto に置き換えるのが良いでしょう。単純に字面を置き換えれば次のようになります。
+
+    auto x10 = 27;          // 型は int、値は 27
+    auto x20{27};           // 型は int、値は 27
+    auto x30 = {27};        // これは、配列や array の初期化記法ではなかったかな？ ... 型は std::initializer_list<int> 値は {27}
+    auto x40{27};           // 型は int、値は 27
+    ptr_lambda_debug<const char*,const int&>("x10 is ", x10);
+    ptr_lambda_debug<const char*,const int&>("x20 is ", x20);
+    // ptr_lambda_debug<const char*,const int&>("x30 is ", x30);       // error: invalid initialization of reference of type ‘const int&’ from expression of type ‘std::initializer_list<int>’
+    ptr_lambda_debug<const char*,const int*>("x30 is ", x30.begin());
+    for(int n: x30) {
+        printf("n is %d\n",n);
+    }
+    ptr_lambda_debug<const char*,const int&>("x40 is ", x40);
+}
 
 int main(void) {
     puts("START 項目 2 ：auto 型推論を理解する ===");
@@ -116,6 +151,7 @@ int main(void) {
         sample_auto();
         sample_auto2();
         sample_auto3();
+        sample_auto4();
     }
     puts("=== 項目 2 ：auto 型推論を理解する END");
     return 0;
