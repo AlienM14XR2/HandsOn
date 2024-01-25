@@ -11,6 +11,10 @@
  * 対象としないのはその通りですが、問題にはなりません。テンプレートの型推論と auto の型推論は直接的に対応しており、
  * 機械的に字面を置き換えるだけのことです。
  * 
+ * 重要ポインタ
+ * - auto の型推論は通常はテンプレートのそれと同様だが、auto では波括弧で囲んだ初期化子を std::initializer_list と想定する点が異なる。
+ * - 関数の戻り値型やラムダ式の仮引数での auto はテンプレートの型推論と同じ動作となり、auto の型推論とは異なる。
+ * 
  * e.g. ) compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_1_type_inference_auto.cpp -o ../bin/main
 */
@@ -109,6 +113,13 @@ void sample_auto3() {
  * 考えてみましょう。C++98 では 2 通りの記述があります。
 */
 
+template <class T>
+void f_list(std::initializer_list<T> initList) {
+    for(T t: initList) {
+        ptr_lambda_debug<const char*,const T&>("t is ",t);
+    }
+}
+
 void sample_auto4() {
     puts("--- sample_auto4");
     // C++98 では 2 通りの記述があります。
@@ -139,6 +150,14 @@ void sample_auto4() {
         printf("n is %d\n",n);
     }
     ptr_lambda_debug<const char*,const int&>("x40 is ", x40);
+
+    auto x50 = {11, 23, 9}; // 型は std::initializer_list<int>
+    for(int n: x50) {
+        printf("n is %d\n",n);
+    }
+
+    f_list({11,23,9});      // T は int と initList は std::initializer_list<int> と推察される。
+
 }
 
 int main(void) {
