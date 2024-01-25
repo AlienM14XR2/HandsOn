@@ -75,6 +75,37 @@ void sample_auto2() {
     ptr_lambda_debug<const char*,const int*>("uref3 addr is ",&uref3);
 }
 
+/**
+ * 項目 1 の最後では、配列および関数名が非参照型指定子のポインタに成り下がることを述べましたが、同様のことが
+ * auto の型推論でも発生します。
+*/
+
+void someFunc(int lhs, double rhs) {    // someFunc は関数、型は void(int,double)
+    puts("------ someFunc");
+    ptr_lambda_debug<const char*, const int&>("lhs + rhs = ", lhs + rhs);
+}
+
+void sample_auto3() {
+    puts("--- sample_auto3");
+    const char name[] = "R. N. Briggs";     // name の型は const char[13]
+
+    auto arr1 = name;       // arr1 の型は const char*
+    auto& arr2 = name;      // arr2 の型は const char(&)[13]
+    ptr_lambda_debug<const char*,const char*>("arr1 is ", arr1);
+    ptr_lambda_debug<const char*,const char*>("arr2 is ", arr2);
+
+    auto func1 = someFunc;  // func1 の型は void (*)(int,double)
+    func1(3,6.6);
+
+    auto& func2 = someFunc; // func2 の型は void (&)(int,double)
+    func2(3,9.9);
+}
+
+/**
+ * 上例が示す通り、auto の型推論はテンプレートの場合と同様に動作します。
+ * いわば一枚のコインの表裏です。
+*/
+
 int main(void) {
     puts("START 項目 2 ：auto 型推論を理解する ===");
     if(0.01) {
@@ -84,6 +115,7 @@ int main(void) {
     if(1.00) {
         sample_auto();
         sample_auto2();
+        sample_auto3();
     }
     puts("=== 項目 2 ：auto 型推論を理解する END");
     return 0;
