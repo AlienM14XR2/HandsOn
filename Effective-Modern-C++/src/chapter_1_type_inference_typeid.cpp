@@ -13,6 +13,7 @@
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_1_type_inference_typeid.cpp -o ../bin/main
 */
 #include <iostream>
+#include <vector>
 
 using namespace std;
 
@@ -29,6 +30,7 @@ void (*ptr_lambda_debug)(Message, Debug) = [](auto message, auto debug) -> void 
 */
 
 void sample() {
+    puts("--- sample");
     const int theAnswer = 42;
     auto x = theAnswer;     // IDE のエディタは恐らく、x に推論した型を int と表示するはず。
     auto y = &theAnswer;    // y に推論した型は、const int* と表示するはず。
@@ -49,6 +51,90 @@ void sample() {
  * エラーメッセージにはその原因となった型の情報が、まず間違いなく含まれています。
 */
 
+/**
+ * 実行時出力
+ * 
+ * printf を用いた方法では、実行時まで結果がわかりません（printf を推奨している訳ではないが）。
+ * しかし、この方法は情報の書式を完全に制御できる利点があります。重要となるのは、目的の型の、
+ * 表示に適したテクスト表現です。「そんなに大変じゃない」と読者は思うかもしれません。
+ * 「typeid と std::type_info::name でいいんじゃないか」と。
+*/
+
+void sample2() {
+    puts("--- sample2");
+    const int theAnswer = 42;
+    auto x = theAnswer;
+    auto y = &theAnswer;
+
+    cout << typeid(x).name() << endl;
+    cout << typeid(y).name() << endl;
+    /**
+     * 処理系は std::type_info::name が意味がある内容を返すよう努めますが、その保証はありません。
+     * GNU 及び Clang コンパイラでは、x の型を「i」、y の型を「PKi」と表示します。
+     * 意味が分かればこの表示も納得できます。
+     * 「i」は「int」を、「PKi」は「Pointer to （Konst）const 」を意味します。
+     * （両コンパイラともこの種の「変形された」型を復元するツール c++filt に対応している）。
+     * 次はもう少し複雑な例を考えてみましょう。
+    */
+}
+
+class Widget {
+private:
+    double x, y;
+public:
+    explicit Widget() {}
+    explicit Widget(double _x, double _y): x{_x}, y{_y}
+    {}
+    Widget(const Widget& own) {*this = own;}
+    ~Widget() {}
+    // ...
+    double& getX() noexcept { return x; }
+    double& getY() noexcept { return y; }
+};
+
+std::vector<Widget> createVec() {
+    std::vector<Widget> vec{Widget{0.0, 0.0}, Widget{3.0,6.0}, Widget{9.9, 21.3}};
+    return vec;
+}
+
+template <class T>
+void f(const T& param) {
+    puts("------ f");
+    cout << "T \t= \t" << typeid(T).name() << endl; 
+    cout << "param \t= \t" << typeid(param).name() << endl; 
+}
+
+int test_Widget() {
+    puts("--- test_Widget");
+    try {
+        std::vector<Widget> vec = createVec();
+        for(Widget w: vec) {
+            ptr_lambda_debug<const char*,const double&>("x is ", w.getX());
+            ptr_lambda_debug<const char*,const double&>("y is ", w.getY());
+        }
+
+        // ここからが書籍の本題。
+        const auto vec2 = createVec();
+        if(!vec2.empty()) {
+            f(&vec2[0]);
+            // ...
+            /**
+             * GNU および Clang コンパイラにより作成した実行ファイルは、次のように表示します。
+             * T     = PK6Widget
+             * param = PK6Widget
+             * 
+             * PK は「Pointer to const」を意味することは分かっていますので、残る謎は 6 という数字です。これは
+             * 単に対象クラス名の文字数を表しています（Widget）。
+             * 最終的に T も param も const Widget* という型であると言っています。
+            */
+        }
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START 項目 4 ：推論された型を確認する ===");
     if(0.01) {
@@ -58,6 +144,10 @@ int main(void) {
     }
     if(1.00) {
         sample();
+        sample2();
+    }
+    if(1.50) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ",test_Widget());
     }
     puts("=== 項目 4 ：推論された型を確認する END");
     return 0;
