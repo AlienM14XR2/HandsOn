@@ -7,6 +7,12 @@
  * 予想通りの型を教えてくれますが、頭をかきむしったり、確認のため仕様やオンライン上の Q&A 
  * サイトを探しまくらなければならないような結果を返すこともあります。
  * 
+ * 重要ポイント
+ * - decltype はほぼ常に、変数または式の型をそのまま返す。
+ * - 名前ではなく、型 T とする左辺値式については、常に T& という型を返す。
+ * - C++14 では decltype(auto) が追加された、auto のように初期化子から型を推論するが、
+ *   適用される推論規則は decltype のものである。
+ * 
  * e.g. ) compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_1_type_inference_decltype.cpp -o ../bin/main
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall chapter_1_type_inference_decltype.cpp -o ../bin/main
@@ -60,10 +66,17 @@ void sample() {
  * 関数テンプレートの宣言でしょう
 */
 
+/**
+ * authAndAccess が『左辺値』にも『右辺値』にもバインド可能な参照仮引数を受け付けるように宣言します。
+ * このユニバーサル参照の動作については項目 24 で解説します。
+ * 最終的に authAndAccess は次のようになります。
+ * 項目 25 の忠告にもあるように、テンプレートの実装はユニバーサル参照を std::forward するように変更する必要があります。
+*/
+
 template <class Container, class Index>
-decltype(auto) authAndAccess(Container& c, const Index& i) {
+decltype(auto) authAndAccess(Container&& c, const Index& i) {
     puts("------ authAndAccess");
-    return c[i];
+    return std::forward<Container>(c)[i];
 }
 
 int test_authAndAccess() {
@@ -73,6 +86,43 @@ int test_authAndAccess() {
         auto ret = authAndAccess(v, 4);
         ptr_lambda_debug<const char*,decltype(ret)&>("ret is ", ret);   // うん、言いたいことは分かるが、サンプルに説得力があまりない。
         
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
+/**
+ * int x = 0; 
+ * decltype(x) と decltype((x)) の違い。
+ * 前者は int 後者は int& になる。
+*/
+
+decltype(auto) f1() {
+    int x = 3;
+    return x;
+}
+
+decltype(auto) f2() {
+    /**
+     * このローカル変数から static を取ったら異なる現象が見られる、まずコンパイル時の Warning、実行時のコアダンプだ。
+     * その理由は、ローカル変数はスタック領域のメモリ開放が約束されたものだから、関数終了時点で x は開放される。
+     * その参照は関数を抜けた先では使うことができないためだ。
+     * 
+     * スタックとヒープの違い。
+    */
+    static int x = 6;
+    return (x);
+}
+
+int test_f1_f2() {
+    puts("--- test_f1_f2");
+    try {
+        int r1 = f1();
+        int& r2 = f2();
+        ptr_lambda_debug<const char*,const int&>("r1 is ",r1);
+        ptr_lambda_debug<const char*,const int&>("r2 is ",r2);
         return EXIT_SUCCESS;
     } catch(exception& e) {
         cout << e.what() << endl;
@@ -121,6 +171,7 @@ int main(void) {
     if(1.00) {
         sample();
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_authAndAccess());
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_f1_f2());
         ptr_lambda_debug<const char*,const int &>("Play and Result ... ",test_add_multi());
     }
     puts("=== 項目 3 ：decltype を理解する END");
