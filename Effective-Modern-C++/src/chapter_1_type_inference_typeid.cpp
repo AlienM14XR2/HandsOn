@@ -9,6 +9,10 @@
  * - コンパイル時に得る。
  * - 実行時に得る。
  * 
+ * 重要ポイント
+ * - 推論された型は、通常は、IED のエディタ、コンパイラのエラーメッセージ、Boost の TypeIndex ライブラリを用いると確認できる。
+ * - 一部の方法では、表示される型が正確でも有用でもない。そのため、C++ の型推論規則に対する理解が必要不可欠であることは変わらない。
+ * 
  * e.g. ) compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_1_type_inference_typeid.cpp -o ../bin/main
 */
