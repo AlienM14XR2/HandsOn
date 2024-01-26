@@ -129,6 +129,8 @@ public:
     InsertParser(): parser{nullptr} {}
     InsertParser(ParseStrategy<Insert>& _parser): parser{std::move(&_parser)} 
     {}
+    InsertParser(ParseStrategy<Insert>* _parser): parser{_parser}
+    {}
     InsertParser(const InsertParser& own) {*this = own;}
     ~InsertParser() {}
     // ...
@@ -184,17 +186,44 @@ public:
     InsertSyntaxParser(): parser{nullptr} {}
     InsertSyntaxParser(ParseStrategy<Insert>& _parser): parser{std::move(&_parser)}
     {}
+    InsertSyntaxParser(ParseStrategy<Insert>* _parser): parser{_parser}
+    {}
     InsertSyntaxParser(const InsertSyntaxParser& own) {*this = own;}
     ~InsertSyntaxParser() {}
     // ...
     void parse(Insert& insert) override {
-        puts("------ TODO Insert Syntax parse");
+        puts("--------- TODO Insert Syntax parse");
         if(parser) {
             parser->parse(insert);
         }
     }
 };
 
+int test_Insert_V2() {
+    puts("--- test_Insert_V2");
+    try {
+        std::unique_ptr<InsertSyntaxParser> systaxParserA = std::make_unique<InsertSyntaxParser>(InsertSyntaxParser{});
+        std::unique_ptr<InsertSyntaxParser> systaxParserB = std::make_unique<InsertSyntaxParser>(InsertSyntaxParser{systaxParserA.get()});
+        std::unique_ptr<ParseStrategy<Insert>> parserA = std::make_unique<InsertParser>(InsertParser{systaxParserB.get()});
+
+        InsertParser parser{parserA.get()};
+        InsertAccessor accessor;
+        std::unique_ptr<Repository> insert = std::make_unique<Insert>(Insert{
+            parser
+            , accessor
+        });
+        insert->parse();
+        /**
+         * Decorator パターンの基本的な考え方としてはあってると思う。
+         * 実際には異なる処理単位のラッピングにはなる。
+        */
+        insert->access();
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
 
 int main(void) {
     puts("START 2 章 auto ===");
@@ -202,6 +231,7 @@ int main(void) {
         auto pi = 3.141592;
         ptr_lambda_debug<const char*,const decltype(pi)&>("pi is ",pi);
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Insert());
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_Insert_V2());
     }
     if(1.00) {
         sample();
