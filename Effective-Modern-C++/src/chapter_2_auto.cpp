@@ -135,10 +135,10 @@ public:
     ~InsertParser() {}
     // ...
     void parse(Insert& insert) override {
-        puts("------ TODO Insert parse");
         if(parser) {
             parser->parse(insert);
         }
+        puts("------ TODO Insert parse");
     }
 };
 
@@ -192,10 +192,10 @@ public:
     ~InsertSyntaxParser() {}
     // ...
     void parse(Insert& insert) override {
-        puts("--------- TODO Insert Syntax parse");
         if(parser) {
             parser->parse(insert);
         }
+        puts("--------- TODO Insert Syntax parse");
     }
 };
 
