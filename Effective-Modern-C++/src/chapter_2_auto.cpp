@@ -15,9 +15,11 @@
  * 
  * e.g.) compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_2_auto.cpp -o ../bin/main
+ * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall chapter_2_auto.cpp -o ../bin/main
 */
 #include <iostream>
 #include <memory>
+#include <vector>
 
 using namespace std;
 
@@ -225,6 +227,54 @@ int test_Insert_V2() {
     }
 }
 
+template <class Ite>
+void dwim(Ite* b) {       // dwim ( "do what i mean" ) こちらの意図通りに実行せよ ... 数値型であればすべて 0 で初期化する。
+    puts("------ dwim");
+    size_t i = 0;
+    for( auto curValue: *b) {
+       curValue *= 0;
+        (*b)[i] = curValue;
+        i++;
+    }
+}
+
+template <class Ite>
+void dwimRef(Ite& b) {       // dwim ( "do what i mean" ) こちらの意図通りに実行せよ ... 数値型であればすべて 0 で初期化する。
+    puts("------ dwimRef");
+    size_t i = 0;
+    for( auto curValue: b) {    // ここで auto を利用している。
+       curValue *= 0;
+        (b)[i] = curValue;
+        i++;
+    }
+}
+
+int test_dwim() {
+    puts("--- test_dwim");
+    try {
+        vector<int> vec = {1,2,3,4,5};
+        dwim(&vec);
+        for(int value: vec) {
+            ptr_lambda_debug<const char*,const int&>("value is ",value);
+        }
+        vector<int> vec2 = {10,20,30,40,50};
+        dwimRef(vec2);
+        for(int value: vec2) {
+            ptr_lambda_debug<const char*,const int&>("value is ",value);
+        }
+        // 以下は個人的興味だね ... これはコンパイルエラーになった。error: no match for ‘operator*=’ (operand types are ‘std::__cxx11::basic_string<char>’ and ‘int’)
+        // vector<string> vec3 = {"Jack", "Derek", "Alice"};
+        // dwimRef(vec3);
+        // for(string value: vec3) {
+        //     ptr_lambda_debug<const char*,const string&>("value is ",value);
+        // }
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START 2 章 auto ===");
     if(0.01) {
@@ -235,6 +285,7 @@ int main(void) {
     }
     if(1.00) {
         sample();
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_dwim());
     }
     puts("=== 2 章 auto END");
     return 0;
