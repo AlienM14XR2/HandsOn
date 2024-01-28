@@ -231,7 +231,7 @@ template <class Ite>
 void dwim(Ite* b) {       // dwim ( "do what i mean" ) こちらの意図通りに実行せよ ... 数値型であればすべて 0 で初期化する。
     puts("------ dwim");
     size_t i = 0;
-    for( auto curValue: *b) {
+    for( auto curValue: *b) {   // ここで auto を利用している。
        curValue *= 0;
         (*b)[i] = curValue;
         i++;
@@ -275,6 +275,36 @@ int test_dwim() {
     }
 }
 
+/**
+ * auto は型を推論するため（項目 2）、コンパイラにしか分からない型でも表現できます。
+*/
+
+template <class L, class R>
+auto (*ptr_lambda_upless)(L,R) = [](const auto& p1, const auto& p2) -> auto {
+    // ポインタライクならば、どんなものでもその指す値を比較する C++14 関数
+    return *p1 < *p2;
+};
+
+int test_ptr_lambda_upless() {
+    puts("--- test_ptr_lambda_upless");
+    try {
+        auto x = 30;
+        auto y = 60;
+        // auto ret = ptr_lambda_upless<const decltype(x),const decltype(y)>(&x,&y);    // これがうまく動作しない。
+
+        auto upless = [](const auto& p1, const auto& p2) {
+            // ポインタライクならば、どんなものでもその指す値を比較する C++14 関数
+            return *p1 < *p2;
+        };
+        auto ret2 = upless(&x,&y);
+        ptr_lambda_debug<const char*,decltype(ret2)&>("ret2 is ", ret2);
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START 2 章 auto ===");
     if(0.01) {
@@ -286,6 +316,7 @@ int main(void) {
     if(1.00) {
         sample();
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_dwim());
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_ptr_lambda_upless());
     }
     puts("=== 2 章 auto END");
     return 0;
