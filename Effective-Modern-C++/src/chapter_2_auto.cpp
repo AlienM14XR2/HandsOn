@@ -20,6 +20,7 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <functional>
 
 using namespace std;
 
@@ -279,31 +280,94 @@ int test_dwim() {
  * auto は型を推論するため（項目 2）、コンパイラにしか分からない型でも表現できます。
 */
 
-template <class L, class R>
-auto (*ptr_lambda_upless)(L,R) = [](const auto& p1, const auto& p2) -> auto {
+template <class T>
+auto (*ptr_lambda_upless)(T& lhs,T& rhs) = [](const auto& p1, const auto& p2) -> auto {
     // ポインタライクならば、どんなものでもその指す値を比較する C++14 関数
     return *p1 < *p2;
 };
 
+template<class T>
+auto f_upless(T* lhs, T* rhs) {
+    return *lhs < *rhs;     // 真偽判定は bool を返す
+}
+
 int test_ptr_lambda_upless() {
     puts("--- test_ptr_lambda_upless");
     try {
-        auto x = 30;
-        auto y = 60;
-        // auto ret = ptr_lambda_upless<const decltype(x),const decltype(y)>(&x,&y);    // これがうまく動作しない。
+        int x = 30;
+        int y = 60;
+        // auto ret = ptr_lambda_upless<const int>(&x,&y);    // これがうまく動作しない。
+        auto ret2 = f_upless(&y, &x);
+        ptr_lambda_debug<const char*,decltype(ret2)&>("ret2 is ", ret2);
+        ptr_lambda_debug<const char*,const char*>("ret2 type is ", typeid(ret2).name());
 
         auto upless = [](const auto& p1, const auto& p2) {
             // ポインタライクならば、どんなものでもその指す値を比較する C++14 関数
             return *p1 < *p2;
         };
-        auto ret2 = upless(&x,&y);
-        ptr_lambda_debug<const char*,decltype(ret2)&>("ret2 is ", ret2);
+        auto ret3 = upless(&x,&y);
+        ptr_lambda_debug<const char*,decltype(ret3)&>("ret3 is ", ret3);
         return EXIT_SUCCESS;
     } catch(exception& e) {
         cout << e.what() << endl;
         return EXIT_FAILURE;
     }
 }
+
+/**
+ * std::function とは、関数ポインタの概念を一般化した、C++11 標準ライブラリのテンプレートです。
+ * 関数ポインタが関数しか指せないのに対し、std::function オブジェクトは呼び出し可能なオブジェクト、
+ * すなわち関数のように実行できるものならば何でも参照できます。関数ポインタの作成時にはその関数の型
+ * を指定しなければならないのと同様に（対象関数に共通するシグネチャ）、std::function オブジェクト作
+ * 成時にも関数の型を指定しなければなりません。これは std::function のテンプレート仮引数を用います。
+*/
+
+class Widget {
+private:
+    int x;
+public:
+    Widget():x{0} {}
+    Widget(const int& _x): x{_x} {}
+    Widget(const Widget& own) {*this = own;}
+    ~Widget() {}
+    // ...
+    int getX() noexcept {return x;}
+    bool operator<(const Widget& rhs) {
+        return x < rhs.x;
+    }
+};
+
+/**
+ * 案外不親切な本だから、上記と下記は著者の意図を汲むかたちで独自に実装した。
+ * つまり、サンプルはなかった。
+*/
+
+std::function<bool(const std::unique_ptr<Widget>&, const std::unique_ptr<Widget>&)> funcComp;
+
+int test_funcComp() {
+    puts("--- test_funcComp");
+    try {
+        // ラムダ式を std::function オブジェクトの funcComp に設定している。
+        funcComp = [](const std::unique_ptr<Widget>& lhs, const std::unique_ptr<Widget>& rhs)-> bool{
+            return *(lhs.get()) < *(rhs.get());
+        };
+
+        std::unique_ptr<Widget> w1 = std::make_unique<Widget>(Widget{});
+        std::unique_ptr<Widget> w2 = std::make_unique<Widget>(Widget{30});
+        bool ret = funcComp(w1,w2);
+        ptr_lambda_debug<const char*,const bool&>("ret is ",ret);
+        ret = funcComp(w2,w1);
+        ptr_lambda_debug<const char*,const bool&>("ret is ",ret);
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
+/**
+ * 著者の意見を簡潔にまとめると、std::function は実行速度、メモリ使用量の観点から、ラムダ式や auto に劣る。
+*/
 
 int main(void) {
     puts("START 2 章 auto ===");
@@ -317,6 +381,7 @@ int main(void) {
         sample();
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_dwim());
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_ptr_lambda_upless());
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_funcComp());
     }
     puts("=== 2 章 auto END");
     return 0;
