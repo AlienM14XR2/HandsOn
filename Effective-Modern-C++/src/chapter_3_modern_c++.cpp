@@ -51,6 +51,14 @@ public:
     }
 };
 
+void sample2() {
+    puts("--- sample2");
+    Widget w1;          // デフォルトコンストラクタを呼び出す。
+    Widget w2 = w1;     // コピーコンストラクタを呼び出す。代入ではない。
+    Widget w3;
+    w3 = w1;            // 代入である。コピー演算 operator= を呼び出す。
+}
+
 int main(void) {
     puts("START 項目 7 ：オブジェクト作成時の () と {} の違い ===");
     if(0.01) {
@@ -59,6 +67,7 @@ int main(void) {
     }
     if(1.00) {
         sample();
+        sample2();
     }
     puts("=== 項目 7 ：オブジェクト作成時の () と {} の違い END");
     return 0;
