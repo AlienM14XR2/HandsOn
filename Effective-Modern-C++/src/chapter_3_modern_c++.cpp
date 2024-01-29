@@ -134,6 +134,8 @@ void sample5() {
     WidgetV2 w1;
     WidgetV2 w2{};
     // WidgetV2 w3();       // もっとも厄介な構文解析！ 関数宣言となる。これは、コンパイルエラーになった。
+    Widget* w4 = new Widget(); 
+    delete w4;
 
     WidgetV2 w11({});
     WidgetV2 w12{{}};
