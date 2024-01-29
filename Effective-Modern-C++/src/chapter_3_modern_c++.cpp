@@ -3,6 +3,13 @@
  * 
  * 項目 7 ：オブジェクト作成時の () と {} の違い
  * 
+ * 重要ポイント
+ * - もっとも広範囲に使用可能な初期化構文は波括弧による初期化である。精度が落ちる変換を防ぎ、C++ の最も厄介な構文解析を回避できる。
+ * - 波括弧で囲んだ初期化子は、コンストラクタのオーバーロード解決時に、見た目ではより高く一致するコンストラクタが他にあっても、仮引数が
+ *   一致すれば std::initializer_list を取るコンストラクタに解決される。
+ * - 丸括弧か波括弧かの選択が大きな差異を生む例としては、実引数を 2 つ与えた std::vector<numeric type> の作成がある。
+ * - テンプレート内でのオブジェクト作成に、丸括弧、波括弧のどちらかを使用するかを選択するのは、楽しいながらも大変な挑戦になるだろう。
+ * 
  * e.g. ) compile. 
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_3_modern_c++.cpp -o ../bin/main
 */
@@ -45,6 +52,7 @@ public:
     Widget() {
         puts("------ Default Constructor");
     }
+
     Widget(const Widget& own) {
         puts("------ Copy Constructor");
         *this = own;
@@ -88,6 +96,9 @@ void sample3() {
     ptr_lambda_debug<const char*,const size_t&>("namesSize is ",namesSize);
     size_t namesSize2 = arraySize(names);
     ptr_lambda_debug<const char*,const size_t&>("namesSize2 is ",namesSize2);
+    for(size_t i = 0; i < namesSize; i++) {
+        ptr_lambda_debug<const char*,const string&>("name is ",names[i]);
+    }
 }
 
 /**
@@ -99,11 +110,46 @@ void sample4() {
     puts("--- sample4");
     std::atomic<int> ai1{3};        // 問題なし
     std::atomic<int> ai2(6);        // 問題なし
-    std::atomic<int> ai3 = 99;       // エラー ... えっ、エラーにならないね。
+    std::atomic<int> ai3 = 99;      // エラー ... えっ、エラーにならないね。
 
     ptr_lambda_debug<const char*,const int&>("ai1 is ",ai1);
     ptr_lambda_debug<const char*,const int&>("ai2 is ",ai2);
     ptr_lambda_debug<const char*,const int&>("ai3 is ",ai3);
+}
+
+class WidgetV2 {
+public:
+    WidgetV2() {
+        puts("------ Default Constructor");
+    }
+    WidgetV2(std::initializer_list<int> il) {
+        puts("------ std::initializer_list<int> Constructor");
+    }
+    WidgetV2(const Widget& own) {*this = own;}
+    ~WidgetV2() {}
+};
+
+void sample5() {
+    puts("--- sample5");
+    WidgetV2 w1;
+    WidgetV2 w2{};
+    // WidgetV2 w3();       // もっとも厄介な構文解析！ 関数宣言となる。これは、コンパイルエラーになった。
+
+    WidgetV2 w11({});
+    WidgetV2 w12{{}};
+}
+
+void sample6() {
+    puts("--- sample6");
+    std::vector<int> v1(10,20);     // 要素数 10 個 の 初期値 20 の std::vector を作成する。
+    for(auto elm: v1) {
+        ptr_lambda_debug<const char*,const decltype(elm)&>("elm is ",elm);
+    }
+    puts("これは確かに、混乱させるかもね。");
+    std::vector<int> v2{10,20};     // 要素数 2 個の 初期値がそれぞれ、10 と 20 の std::vector を作成する。
+    for(auto elm: v2) {
+        ptr_lambda_debug<const char*,const decltype(elm)&>("elm is ",elm);
+    }
 }
 
 int main(void) {
@@ -117,6 +163,8 @@ int main(void) {
         sample2();
         sample3();
         sample4();
+        sample5();
+        sample6();
     }
     puts("=== 項目 7 ：オブジェクト作成時の () と {} の違い END");
     return 0;
