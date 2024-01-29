@@ -13,6 +13,16 @@
  * 
  * 項目 5 ：明示的型宣言よりも auto を優先する
  * 
+ * 重要ポイント
+ * - auto で宣言した変数は初期化する必要があり、一般に可搬性や効率に関する問題を引き起こす型の不一致を防げ、
+ *   リファクタリング作業を容易にし、型を明示的に記述するよりも通常はタイプ量が少なくて済む。 
+ * - auto で型付した変数は 項目 2 および項目 6 で述べた落とし穴に嵌りやすい。
+ * ```
+ * 『落とし穴』とは
+ * - auto の型推論は通常はテンプレートのそれと同様だが、auto では波括弧で囲んだ初期化子を std::initializer_list と想定する点が異なる。
+ * - 関数の戻り値型やラムダ式の仮引数での auto はテンプレートの型推論と同じ動作となり、auto の型推論とは異なる。
+ * ```
+ * 
  * e.g.) compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_2_auto.cpp -o ../bin/main
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall chapter_2_auto.cpp -o ../bin/main
@@ -21,6 +31,7 @@
 #include <memory>
 #include <vector>
 #include <functional>
+#include <map>
 
 using namespace std;
 
@@ -369,6 +380,22 @@ int test_funcComp() {
  * 著者の意見を簡潔にまとめると、std::function は実行速度、メモリ使用量の観点から、ラムダ式や auto に劣る。
 */
 
+void sample2() {
+    puts("--- sample2");
+    std::unordered_map<std::string, int> map{{"jack",99},{"derek",3},{"Alice",66}};
+    for(const std::pair<const std::string,int>& p : map) {                          // 書籍は std::pair<const std::string,int>& p この記述の複雑さ、特に const std::string の const ありについて強調している。
+        // ... do something with p
+        ptr_lambda_debug<const char*,const string&>("name is ", p.first);
+        ptr_lambda_debug<const char*,const int&>("number is ", p.second);
+    }
+    // ... auto を使うと
+    puts("... auto を使うと");
+    for(const auto& p: map) {                                                       // 記述が簡潔になる
+        ptr_lambda_debug<const char*,const string&>("name is ", p.first);
+        ptr_lambda_debug<const char*,const int&>("number is ", p.second);
+    }
+}
+
 int main(void) {
     puts("START 2 章 auto ===");
     if(0.01) {
@@ -382,6 +409,7 @@ int main(void) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_dwim());
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_ptr_lambda_upless());
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ",test_funcComp());
+        sample2();
     }
     puts("=== 2 章 auto END");
     return 0;
