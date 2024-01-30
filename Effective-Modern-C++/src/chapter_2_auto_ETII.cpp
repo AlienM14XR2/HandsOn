@@ -114,6 +114,10 @@ int test_Shape() {
         Circle circleA = dynamic_cast<Circle&>(*shape);
         circleA.draw();
 
+        // Square squareA = dynamic_cast<Square&>(*shape);     // コンパイルは通るが実行時にエラーになる。 std::bad_cast
+        // puts("---- check point 1");
+        // squareA.draw();
+
         circleB = dynamic_cast<Circle*>(shape);
         circleB->draw();
         if(shape) {
@@ -127,7 +131,7 @@ int test_Shape() {
         return EXIT_SUCCESS;
     } catch(exception& e) {
         if(shape) { delete shape; }
-        cout << e.what() << endl;
+        cout << "ERROR: " <<  e.what() << endl;
         return EXIT_FAILURE;
     }
 }
