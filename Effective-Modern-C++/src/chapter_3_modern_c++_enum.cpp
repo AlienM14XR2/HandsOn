@@ -7,6 +7,8 @@
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_3_modern_c++_enum.cpp -o ../bin/main
 */
 #include <iostream>
+#include <tuple>
+#include <string>
 
 using namespace std;
 
@@ -45,6 +47,41 @@ void sample(const Color& color) {
     }
 }
 
+/**
+ * 次のような場合は、スコープを持つ enum では冗長になる。
+ * スコープなし enum の方がスッキリと見える。
+*/
+
+using UserInfo = std::tuple<string,         // 名前
+                            string,         // email
+                            size_t>;        // 評価
+
+enum struct UserInfoField {
+    uiName,
+    uiEmail,
+    uiReputation,
+};
+
+enum GlobalUserInfoField {
+    uiName,
+    uiEmail,
+    uiReputation,
+};
+
+void sample2() {
+    puts("--- sample2");
+    UserInfo userInfo{"jack", "jack@loki.org",0U};
+
+    auto val = std::get<0>(userInfo);       // この 0 が一体何を指すものなのか、分かりづらいという問題がある。
+    ptr_lambda_debug<const char*,const decltype(val)&>("val is ",val);
+
+    auto val2 = std::get<(static_cast<int>(UserInfoField::uiName))>(userInfo);       // 非常に冗長に思うが、スコープを持つ enum ではこうなる
+    ptr_lambda_debug<const char*,const decltype(val2)&>("val2 is ",val2);
+
+    auto val3 = std::get<GlobalUserInfoField::uiName>(userInfo);                    // スコープなし enum の方がスッキリみえる
+    ptr_lambda_debug<const char*,const decltype(val3)&>("val3 is ",val3);
+}
+
 int main(void) {
     puts("START 項目 10 ：enum にはスコープを設ける ===");
     if(0.01) {
@@ -55,6 +92,7 @@ int main(void) {
         // Color black = Color::black;
         auto white = Color::white;
         sample(white);
+        sample2();
     }
     puts("=== 項目 10 ：enum にはスコープを設ける END");
     return 0;
