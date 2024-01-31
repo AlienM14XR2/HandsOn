@@ -3,10 +3,17 @@
  * 
  * 項目 9 ：typedef よりも エイリアス宣言を優先する
  * 
+ * 重要ポイント
+ * - typedef はテンプレート化に対応していないが、エイリアス宣言は対応している。
+ * - エイリアステンプレートでは接尾語「::type」、およびテンプレート内で typedef を表すのに頻繁に
+ *   必要になる接頭語「typename」を排除できる。
+ * - C++14 は、C++11 での型特性転換のすべてをエイリアステンプレートとして提供している。
+ * 
  * e.g.) compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_3_modern_c++_using_alias.cpp -o ../bin/main
 */
 #include <iostream>
+#include <list>
 
 using namespace std;
 
@@ -43,8 +50,18 @@ void sample() {
 }
 
 /**
+ * typedef より エイリアス宣言を優先すべきだと
  * 著者が考える妥当な理由は、テンプレートにあるようだ。
+ * 
+ * typedef では不可能だか、エイリアス宣言はテンプレート化可能である点
+ * （この場合をエイリアステンプレートと言う）。
+ * C++98 ではテンプレート化した struct 内で typedef をネストするような技
+ * を駆使しなかればならなかった場面でも、C++11 では直接的に表現できるよう
+ * になりました。
 */
+
+// template <class T>
+// using MyAllocList = std::list<T, MyAlloc<T>>;
 
 int main(void) {
     puts("START 項目 9 ：typedef よりも エイリアス宣言を優先する ===");
