@@ -15,6 +15,14 @@ void (*ptr_lambda_debug)(M, D) = [](const auto message, const auto debug) -> voi
     cout << "DEBUG: " << message << '\t' << debug << endl;
 };
 
+/**
+ * スコープを持つ enum は「enum class」と宣言するため、enum class と表記することもあります。
+ * スコープを持つ enum により名前空間が汚染される機会を減らせる点だけでも、スコープを持たない
+ * enum よりも優先する充分な理由ですが、スコープをもつ enum の利点はもう 1 つあります。
+ * 列挙子がとても強力に型付けされる点です。
+ * スコープを持たない enum の列挙子は、汎用整数に暗黙に変換されます（また、整数型から浮動小数点型へも変換される）。
+*/
+
 enum struct Color {
     black,
     white,
