@@ -200,6 +200,68 @@ int test_WidgetV2() {
     }
 }
 
+/**
+ * 個人的興味と演習
+ * 独自定義しない場合のコピーコンストラクタの動作確認。
+*/
+
+class Foo {
+private:
+    double point;
+    std::vector<string> names;
+    const Derived* const derived = nullptr;
+public:
+    Foo() = delete;
+    Foo(const double& _point, const std::vector<string>& _names, const Derived* const _derived): point{_point}, names{std::move(_names)}, derived{_derived}
+    {}
+    // ... コピーコンストラクタは独自定義しない。
+    double& getPoint()              noexcept { return point; }
+    std::vector<string>& getNames() noexcept { return names; }
+    const Derived* const getDerived()              noexcept { return derived; }
+};
+
+void f_foo(Foo foo) {       // 値渡し
+    puts("------ f_foo");
+    double point = foo.getPoint();
+    ptr_lambda_debug<const char*,const double&>("point is ",point);
+    point += point;
+    ptr_lambda_debug<const char*,const double&>("foo.getPoint() is ",foo.getPoint());
+    ptr_lambda_debug<const char*,const double&>("point is ",point);
+    puts("------");
+    auto names1 = foo.getNames();
+    names1.emplace_back("Dante");
+    for(auto name: names1) {
+        ptr_lambda_debug<const char*,const decltype(name)&>("name is ", name);
+    }
+    puts("------");
+    auto names2 = foo.getNames();
+    for(auto name: names2) {
+        ptr_lambda_debug<const char*,const decltype(name)&>("name is ", name);
+    }
+    puts("---------");
+    auto derived = foo.getDerived();
+    ptr_lambda_debug<const char*,const decltype(derived)>("derived                addr is ", derived);
+    ptr_lambda_debug<const char*,const Derived* const>("foo.getDerived()       addr is ", foo.getDerived());
+}
+
+/**
+ * デフォルトコピーコンストラクタで充分だね。
+*/
+
+int test_Foo() {
+    puts("--- test_Foo");
+    try {
+        Derived derived;
+        std::vector<string> names = {"Jack", "Derek", "Alice"};
+        Foo foo{3.00, names, &derived};
+        f_foo(foo);
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << "ERROR: " << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START 項目 12 ：オーバーライドする関数は override と宣言する ===");
     if(0.01) {
@@ -213,6 +275,9 @@ int main(void) {
     }
     if(1.01) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_WidgetV2());
+    }
+    if(2.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_Foo());
     }
     puts("=== 項目 12 ：オーバーライドする関数は override と宣言する END");
     return 0;
