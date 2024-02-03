@@ -11,6 +11,12 @@
  * constexpr は、その値が単なる定数というよりも、コンパイル時に既知の定数であることを概念的に表現します。
  * この基礎概念から出発し、関数に対して constexpr を用いた場合は他にも多くのニュアンスを含みます。
  * 
+ * 重要ポイント
+ * - constexpr オブジェクトは const であり、コンパイル時に既知な値で初期化する。
+ * - constexpr 関数は、コンパイル時に既知な値を実引数に与えられれば、コンパイル時に使用可能な値を返す。
+ * - constexpr オブジェクト、関数は、constexpr ではないオブジェクト、関数よりも広い場面に使用でき、適用性が高い。
+ * - constexpr はオブジェクトインタフェース、関数インタフェースの一部である（つまり、改訂する場合は覚悟が必要だと）。
+ * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_3_modern_c++_constexpr.cpp -o ../bin/main
 */
@@ -139,8 +145,8 @@ public:
     constexpr Point(double _x, double _y): x{_x}, y{_y}
     {}
     // ...
-    constexpr double getX() noexcept { return x; }
-    constexpr double getY() noexcept { return y; }
+    constexpr double getX() const { return x; }                 // 私の環境では、noexcept では reflection() 関数でコンパイルエラーとなった
+    constexpr double getY() const { return y; }                 // 同上
     constexpr void   setX( double _x ) noexcept { x = _x; }
     constexpr void   setY( double _y ) noexcept { y = _y; }
 private:
@@ -165,6 +171,48 @@ int test_Point() {
     }
 }
 
+/**
+ * 上例を用いると次のような関数も記述できます。
+ * 
+ * constexpr が誤りだったと分かり宣言を削除すると、予想もつかないほど大量な利用者コードがコンパイルできなくなる
+ * 事態を引き起こす恐れがあります（デバッグや性能改善を目的とした、関数への単純な I/O 追加でもこのような問題は発生し得ます。
+ * 一般に constexpr 関数はI/O は認められていないためです）。
+ * 「可能な場面では常に constexpr を用いる」の「可能な場面では常に」とは、オブジェクトや関数に課す制約を長期的な約束事とする
+ * 意思を表明するものです。
+ * 
+ * つまり、私の解釈では、変更が短期的に加えられるような場合にはそぐわないと。
+*/
+
+constexpr Point reflection(const Point& p) noexcept {
+    Point result{0.0, 0.0};
+    result.setX(-p.getX());
+    result.setY(-p.getY());
+    return result;
+}
+
+int test_reflection() {
+    try {
+        constexpr Point p1{9.4, 27.7};
+        constexpr Point p2{28.8, 5.3};
+        ptr_lambda_debug<const char*,const double&>("p1 x is ", p1.getX());
+        ptr_lambda_debug<const char*,const double&>("p1 y is ", p1.getY());
+        ptr_lambda_debug<const char*,const double&>("p2 x is ", p2.getX());
+        ptr_lambda_debug<const char*,const double&>("p2 y is ", p2.getY());
+
+        auto ret1 = reflection(p1);        
+        auto ret2 = reflection(p2);
+
+        ptr_lambda_debug<const char*,const double&>("ret1 x is ", ret1.getX());
+        ptr_lambda_debug<const char*,const double&>("ret1 y is ", ret1.getY());
+        ptr_lambda_debug<const char*,const double&>("ret2 x is ", ret2.getX());
+        ptr_lambda_debug<const char*,const double&>("ret2 y is ", ret2.getY());
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << "ERROR: " << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START 項目 15 ：可能な場面では常に constexpr を用いる ===");
     if(0.01) {
@@ -174,6 +222,9 @@ int main(void) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_arraySize());
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_pow());
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_Point());
+    }
+    if(1.02) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_reflection());
     }
     puts("=== 項目 15 ：可能な場面では常に constexpr を用いる END");
 }
