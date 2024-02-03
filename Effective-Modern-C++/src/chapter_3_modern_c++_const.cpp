@@ -7,6 +7,8 @@
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_3_modern_c++_const.cpp -o ../bin/main
 */
 #include <iostream>
+#include <vector>
+#include <mutex>
 
 using namespace std;
 
@@ -28,10 +30,67 @@ int test_debug() {
     }
 }
 
+class Prime {
+public:
+    using PrimeNumbers = std::vector<int>;
+    /**
+     * n までの素数を求める。
+     * 
+     * 書籍に沿ったスレッドセーフの学習なので無駄のある実装
+     * （メンバ変数を const 修飾したメンバ関数で変更）をしている。
+     * 私が考える一番単純なスレッドセーフの考え方は、スタック（関数内宣言された変数）のみを利用することだが。
+     * それも本当に合っているのか自信はない（少なくともコンパイラに !readable、変更を行っている旨のエラーはない：）。
+    */
+    PrimeNumbers compute(const int n) const {       // メンバ関数を const 修飾するということは、メンバ変数は read-only であるべき、これが基本的な考え方のはず。
+        puts("------ Prime::compute");
+        std::lock_guard<std::mutex> g(m);           // lock mutex
+        if(n <= 1) { return primeNumbers; }
+        int counter = 0;
+        for(int i=2 ; i<=n; i++) {
+            for(int j=2; j<=i; j++) {
+                if( i%j == 0){
+                    counter++;
+                    if(counter >= 2) {
+                        break;
+                    }
+                }
+            }
+            if(counter == 1) {
+                primeNumbers.push_back(i);
+            }
+            counter = 0;
+        } 
+        return primeNumbers;
+    }                                               // unlock mutex
+    PrimeNumbers getPrimeNumbers() noexcept { return primeNumbers; }
+private:
+    mutable std::mutex m;
+    mutable PrimeNumbers primeNumbers{};
+};
+
+int test_Prime() {
+    puts("--- test_Prime");
+    try {
+        Prime prime;
+        auto primeNumbers = prime.compute(100);
+        ptr_lambda_debug<const char*,const size_t&>("sum is ", primeNumbers.size());
+        for(auto i: primeNumbers) {
+            ptr_lambda_debug<const char*,const decltype(i)&>("i is prime number ... ", i);
+        }
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        cout << "ERROR: " << e.what() << endl;
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START 項目 16 ：const メンバ関数はスレッドセーフにする ===");
     if(0.01) {
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_debug());
+    }
+    if(1.00) {
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_Prime());
     }
     puts("=== 項目 16 ：const メンバ関数はスレッドセーフにする END");
     return 0;
