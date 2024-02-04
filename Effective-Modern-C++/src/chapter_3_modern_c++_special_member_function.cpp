@@ -153,6 +153,75 @@ int test_Widget() {
  * を意味する。
 */
 
+/**
+ * 上記の確認と演習を兼ねて、リソース管理を行うクラスを実装してみる。
+ * 
+ * - 何ら有効なクラスである必要はない。
+ * - メモリの動的取得と解放を行えればそれでいいはず。
+ * - タロットの「愚者」は旅のはじまりの暗示があるという。
+*/
+
+class Fool final {
+private:
+    std::size_t size = 0;
+    char* memory = nullptr;
+    // ...
+    void copyProc(const Fool& own) {
+        this->size = own.size;
+        this->memory = new char(own.size);
+    }
+public:
+    Fool(const std::size_t _size): size{_size}
+    {
+        memory = new char(size);
+    }
+    ~Fool() {
+        puts("------ デストラクタ");
+        ptr_lambda_debug<const char*,const Fool*>("this addr is ",this);
+        if(memory) {
+            delete memory;
+        }
+    }
+    Fool(const Fool& own) {
+        puts("------ コピーコンストラクタ");
+        copyProc(own);
+    }
+    Fool& operator=(const Fool& lhs) {
+        puts("------ コピー代入演算子");
+        if(memory) {
+            delete memory;
+        }
+        copyProc(lhs);
+        return *this;
+    }
+    // ...
+};
+
+/**
+ * 上のクラスは別に特殊なことは何もしていない、ただ内部でメモリ（ヒープ）を動的に確保しているだけだ。
+ * にも関わらず、考慮すべきことが格段に増えた。リソース管理はしない方がいいということがこれだけでも分かる。
+*/
+
+int test_The_Fool() {
+    puts("--- test_The_Fool");
+    try {
+        Fool f1{1000};
+        Fool f2 = f1;
+        Fool f3{100};
+        f3 = f1;
+
+        ptr_lambda_debug<const char*,const Fool*>("f1 addr is ",&f1);
+        ptr_lambda_debug<const char*,const Fool*>("f2 addr is ",&f2);
+        ptr_lambda_debug<const char*,const Fool*>("f3 addr is ",&f3);
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+
+
 int main(void) {
     puts("START 項目 17 ：自動的に生成される特殊メンバ関数を理解する ===");
     if(0.01) {
@@ -162,6 +231,7 @@ int main(void) {
     }
     if(1.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_Widget());
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_The_Fool());
     }
 
     puts("=== 項目 17 ：自動的に生成される特殊メンバ関数を理解する END");
