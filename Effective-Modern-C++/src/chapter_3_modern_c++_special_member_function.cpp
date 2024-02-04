@@ -170,6 +170,12 @@ private:
         this->size = own.size;
         this->memory = new char(own.size);
     }
+    // void moveProc(Fool&& rhs) {     // 内部ポインタの差し替え
+    //     this->size = rhs.size;
+    //     this->memory = rhs.memory;
+    //     rhs = 0;
+    //     rhs.memory = nullptr;
+    // }
 public:
     Fool(const std::size_t _size): size{_size}
     {
@@ -194,6 +200,25 @@ public:
         copyProc(lhs);
         return *this;
     }
+    Fool(Fool&& rhs) {
+        puts("------ ムーブコンストラクタ");
+        this->size = rhs.size;
+        this->memory = rhs.memory;
+        rhs = 0;
+        rhs.memory = nullptr;
+    }
+    // Fool& operator=(Fool&& rhs) {        // これが循環して、コアダンプで終了する
+    //     puts("------ ムーブ代入演算子");
+    //     if(memory) {
+    //         delete memory;
+    //     }
+    //     this->size = rhs.size;
+    //     this->memory = rhs.memory;
+    //     rhs = 0;
+    //     rhs.memory = nullptr;
+    //     return *this;
+    // }
+
     // ...
 };
 
@@ -209,10 +234,17 @@ int test_The_Fool() {
         Fool f2 = f1;
         Fool f3{100};
         f3 = f1;
+        puts("--- before f4");
+        Fool f4 = std::move(Fool{30});
+        Fool f5{50};
+        puts("--- before f5");
+        f5 = std::move(Fool{60});
 
         ptr_lambda_debug<const char*,const Fool*>("f1 addr is ",&f1);
         ptr_lambda_debug<const char*,const Fool*>("f2 addr is ",&f2);
         ptr_lambda_debug<const char*,const Fool*>("f3 addr is ",&f3);
+        ptr_lambda_debug<const char*,const Fool*>("f4 addr is ",&f4);
+        ptr_lambda_debug<const char*,const Fool*>("f5 addr is ",&f5);
         return EXIT_SUCCESS;
     } catch(exception& e) {
         ptr_print_error<const decltype(e)&>(e);
@@ -220,7 +252,11 @@ int test_The_Fool() {
     }
 }
 
-
+/**
+ * 上記のコーディングとコンパイル、及び実行結果から、私は次のように判断した。
+ * コピー代入演算子とムーブ代入演算子の併用はできない、どちらか片方でよい。
+ * クラス設計の戦略の問題だと結論付けた。
+*/
 
 int main(void) {
     puts("START 項目 17 ：自動的に生成される特殊メンバ関数を理解する ===");
