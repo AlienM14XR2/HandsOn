@@ -3,6 +3,12 @@
  * 
  * 項目 16 ：const メンバ関数はスレッドセーフにする
  * 
+ * 重要ポイント
+ * - 並行実行はあり得ないことが『確実でもない限り』、const メンバ関数はスレッドセーフにする。
+ * 
+ * - std::atomic 変数を用いれば mutex よりも性能を改善できる可能性がある。しかし、適しているのは
+ *   単独の変数やメモリ領域を操作する場合のみである。
+ * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_3_modern_c++_const.cpp -o ../bin/main
 */
@@ -43,7 +49,7 @@ public:
     */
     PrimeNumbers compute(const int n) const {       // メンバ関数を const 修飾するということは、メンバ変数は read-only であるべき、これが基本的な考え方のはず。
         puts("------ Prime::compute");
-        std::lock_guard<std::mutex> g(m);           // lock mutex
+        std::lock_guard<std::mutex> guard(m);           // lock mutex
         if(n <= 1) { return primeNumbers; }
         int counter = 0;
         for(int i=2 ; i<=n; i++) {
