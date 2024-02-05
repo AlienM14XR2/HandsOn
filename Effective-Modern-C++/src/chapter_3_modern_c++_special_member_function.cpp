@@ -81,7 +81,8 @@ public:
     {}
     Point(const Point& own) = default;
     Point& operator=(const Point& lhs) = default;
-    // ~Point() {}
+    // Point(Point&& rhs) = default;
+    // Point& operator=(Point&& rhs) = default;
     // ...
     double getx() noexcept { return x; }
     double gety() noexcept { return y; }
@@ -192,34 +193,33 @@ public:
             delete memory;
         }
     }
-    Fool(const Fool& own) {
-        puts("------ コピーコンストラクタ");
-        copyProc(own);
-    }
-    Fool& operator=(const Fool& lhs) {
-        puts("------ コピー代入演算子");
-        if(memory) {
-            delete memory;
-        }
-        copyProc(lhs);
-        return *this;
-    }
+    // Fool(const Fool& own) {
+    //     puts("------ コピーコンストラクタ");
+    //     copyProc(own);
+    // }
+    // Fool& operator=(const Fool& lhs) {
+    //     puts("------ コピー代入演算子");
+    //     if(memory) {
+    //         delete memory;
+    //     }
+    //     copyProc(lhs);
+    //     return *this;
+    // }
     Fool(Fool&& rhs) {
         puts("------ ムーブコンストラクタ");
         this->memory = rhs.memory;
         rhs.memory = nullptr;
     }
-    // Fool& operator=(Fool&& rhs) {        // これが循環して、コアダンプで終了する
-    //     puts("------ ムーブ代入演算子");
-    //     if(memory) {
-    //         delete memory;
-    //     }
-    //     this->size = rhs.size;
-    //     this->memory = rhs.memory;
-    //     rhs = 0;
-    //     rhs.memory = nullptr;
-    //     return *this;
-    // }
+    // デストラクタを明示的に宣言した場合は、コピー演算は非推奨ということを踏まえた実装。
+    Fool& operator=(Fool&& rhs) {
+        puts("------ ムーブ代入演算子");
+        if(memory) {
+            delete memory;
+        }
+        this->memory = rhs.memory;
+        rhs.memory = nullptr;
+        return *this;
+    }
 
     // ...
     void intput(const char* src) {
@@ -243,9 +243,9 @@ int test_The_Fool() {
     puts("--- test_The_Fool");
     try {
         Fool f1{};
-        Fool f2 = f1;
+        // Fool f2 = f1;
         Fool f3{};
-        f3 = f1;
+        // f3 = f1;
         puts("--- before f4");
         Fool f4 = std::move(Fool{});
         Fool f5{};
@@ -253,8 +253,8 @@ int test_The_Fool() {
         f5 = std::move(Fool{});
 
         ptr_lambda_debug<const char*,const Fool*>("f1 addr is ",&f1);
-        ptr_lambda_debug<const char*,const Fool*>("f2 addr is ",&f2);
-        ptr_lambda_debug<const char*,const Fool*>("f3 addr is ",&f3);
+        // ptr_lambda_debug<const char*,const Fool*>("f2 addr is ",&f2);
+        // ptr_lambda_debug<const char*,const Fool*>("f3 addr is ",&f3);
         ptr_lambda_debug<const char*,const Fool*>("f4 addr is ",&f4);
         ptr_lambda_debug<const char*,const Fool*>("f5 addr is ",&f5);
         return EXIT_SUCCESS;
