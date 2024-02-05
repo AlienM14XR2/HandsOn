@@ -14,6 +14,7 @@
  * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_3_modern_c++_special_member_function.cpp -o ../bin/main
+ * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall chapter_3_modern_c++_special_member_function.cpp -o ../bin/main
 */
 #include <iostream>
 #include <cassert>
@@ -163,23 +164,15 @@ int test_Widget() {
 
 class Fool final {
 private:
-    std::size_t size = 0;
-    char* memory = nullptr;
+    string* memory = nullptr;
     // ...
     void copyProc(const Fool& own) {
-        this->size = own.size;
-        this->memory = new char(own.size);
+        this->memory = new string();
     }
-    // void moveProc(Fool&& rhs) {     // 内部ポインタの差し替え
-    //     this->size = rhs.size;
-    //     this->memory = rhs.memory;
-    //     rhs = 0;
-    //     rhs.memory = nullptr;
-    // }
 public:
-    Fool(const std::size_t _size): size{_size}
+    Fool()
     {
-        memory = new char(size);
+        memory = new string();
     }
     ~Fool() {
         puts("------ デストラクタ");
@@ -202,9 +195,7 @@ public:
     }
     Fool(Fool&& rhs) {
         puts("------ ムーブコンストラクタ");
-        this->size = rhs.size;
         this->memory = rhs.memory;
-        rhs = 0;
         rhs.memory = nullptr;
     }
     // Fool& operator=(Fool&& rhs) {        // これが循環して、コアダンプで終了する
@@ -220,6 +211,16 @@ public:
     // }
 
     // ...
+    void intput(const char* src) {
+        *memory = src;
+    }
+    string output() {
+        string ret = "";
+        if(memory) {
+            ret = *memory;
+        }
+        return ret;
+    }
 };
 
 /**
@@ -230,15 +231,15 @@ public:
 int test_The_Fool() {
     puts("--- test_The_Fool");
     try {
-        Fool f1{1000};
+        Fool f1{};
         Fool f2 = f1;
-        Fool f3{100};
+        Fool f3{};
         f3 = f1;
         puts("--- before f4");
-        Fool f4 = std::move(Fool{30});
-        Fool f5{50};
+        Fool f4 = std::move(Fool{});
+        Fool f5{};
         puts("--- before f5");
-        f5 = std::move(Fool{60});
+        f5 = std::move(Fool{});
 
         ptr_lambda_debug<const char*,const Fool*>("f1 addr is ",&f1);
         ptr_lambda_debug<const char*,const Fool*>("f2 addr is ",&f2);
@@ -258,6 +259,27 @@ int test_The_Fool() {
  * クラス設計の戦略の問題だと結論付けた。
 */
 
+int test_The_Fool_IO() {
+    puts("--- test_The_Fool_IO");
+    try {
+        Fool f1{};
+        f1.intput("Who is Jolly Rogers ?");
+        string str1 = f1.output();
+        ptr_lambda_debug<const char*,const string&>("str1 is ", str1);
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        ptr_print_error<decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+/**
+ * Try and Errors、実践することの重要性を改めて実感した。
+ * C++ ではもう二度と char の配列は使わないと肝に銘じること。リファクタの前後をよく見比べてみよう。
+ * そもそも Fool クラスは無意味なクラスで、リソース管理（メモリの動的取得と解放）とクラスのコピー、ムーブ
+ * の確認が主たる目的だったが、char 配列を最初に採用したことで、『酷い旅』に出かけることになった。
+*/
+
 int main(void) {
     puts("START 項目 17 ：自動的に生成される特殊メンバ関数を理解する ===");
     if(0.01) {
@@ -268,6 +290,7 @@ int main(void) {
     if(1.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_Widget());
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_The_Fool());
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_The_Fool_IO());
     }
 
     puts("=== 項目 17 ：自動的に生成される特殊メンバ関数を理解する END");
