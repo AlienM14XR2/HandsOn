@@ -180,6 +180,7 @@ private:
     // ...
     void copyProc(const Fool& own) {
         this->memory = new string();
+        *memory = *own.memory;
     }
 public:
     Fool()
@@ -193,18 +194,18 @@ public:
             delete memory;
         }
     }
-    // Fool(const Fool& own) {
-    //     puts("------ コピーコンストラクタ");
-    //     copyProc(own);
-    // }
-    // Fool& operator=(const Fool& lhs) {
-    //     puts("------ コピー代入演算子");
-    //     if(memory) {
-    //         delete memory;
-    //     }
-    //     copyProc(lhs);
-    //     return *this;
-    // }
+    Fool(const Fool& own) {
+        puts("------ コピーコンストラクタ");
+        copyProc(own);
+    }
+    Fool& operator=(const Fool& lhs) {
+        puts("------ コピー代入演算子");
+        if(memory) {
+            delete memory;
+        }
+        copyProc(lhs);
+        return *this;
+    }
     Fool(Fool&& rhs) {
         puts("------ ムーブコンストラクタ");
         this->memory = rhs.memory;
@@ -243,9 +244,9 @@ int test_The_Fool() {
     puts("--- test_The_Fool");
     try {
         Fool f1{};
-        // Fool f2 = f1;
+        Fool f2 = f1;
         Fool f3{};
-        // f3 = f1;
+        f3 = f1;
         puts("--- before f4");
         Fool f4 = std::move(Fool{});
         Fool f5{};
@@ -253,8 +254,8 @@ int test_The_Fool() {
         f5 = std::move(Fool{});
 
         ptr_lambda_debug<const char*,const Fool*>("f1 addr is ",&f1);
-        // ptr_lambda_debug<const char*,const Fool*>("f2 addr is ",&f2);
-        // ptr_lambda_debug<const char*,const Fool*>("f3 addr is ",&f3);
+        ptr_lambda_debug<const char*,const Fool*>("f2 addr is ",&f2);
+        ptr_lambda_debug<const char*,const Fool*>("f3 addr is ",&f3);
         ptr_lambda_debug<const char*,const Fool*>("f4 addr is ",&f4);
         ptr_lambda_debug<const char*,const Fool*>("f5 addr is ",&f5);
         return EXIT_SUCCESS;
@@ -274,9 +275,16 @@ int test_The_Fool_IO() {
     puts("--- test_The_Fool_IO");
     try {
         Fool f1{};
+        ptr_lambda_debug<const char*,const Fool*>("f1 addr is ",&f1);
         f1.intput("Who is Jolly Rogers ?");
         string str1 = f1.output();
         ptr_lambda_debug<const char*,const string&>("str1 is ", str1);
+        
+        Fool f2{};
+        f2 = f1;
+        ptr_lambda_debug<const char*,const Fool*>("f2 addr is ",&f2);
+        string str2 = f2.output();
+        ptr_lambda_debug<const char*,const string&>("str2 is ", str2);
         return EXIT_SUCCESS;
     } catch(exception& e) {
         ptr_print_error<decltype(e)&>(e);
