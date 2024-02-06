@@ -88,18 +88,27 @@ int test_debug() {
  * 
  * - 取引に関して、Stragety パターンを実装してみる。 ... DONE
  * - 一部の取引（Stock）に Decorator パターンを実装してみる。... DONE
+ * - 一部の取引（Stock）に Observer パターンを実装してみる、取引完了通知を Investor（投資家） に行う。
 */
 
 class Investment {
 public:
-    ~Investment() = default;
+    virtual ~Investment() = default;
     virtual void deal() = 0;
 };
 
 template<class T>
 class DealStrategy {
 public:
+    virtual ~DealStrategy() = default;
     virtual void deal(T&) = 0;
+};
+
+template<class Subject>
+class Observer {
+public:
+    virtual ~Observer() = default;
+    virtual void update(Subject&) = 0;
 };
 
 class Stock final : public Investment {
