@@ -87,7 +87,7 @@ int test_debug() {
  * Stock 株式、Bond 債権、RealEstate 不動産。
  * 
  * - 取引に関して、Stragety パターンを実装してみる。 ... DONE
- * - 一部の取引（Stock）に Decorator パターンを実装してみる。
+ * - 一部の取引（Stock）に Decorator パターンを実装してみる。... DONE
 */
 
 class Investment {
