@@ -48,6 +48,7 @@
 */
 #include <iostream>
 #include <memory>
+#include <set>
 
 using namespace std;
 
@@ -104,16 +105,18 @@ public:
     virtual void deal(T&) = 0;
 };
 
-template<class Subject>
+template<class Subject, class Obs>
 class Observer {
 public:
     virtual ~Observer() = default;
-    virtual void update(Subject&) = 0;
+    virtual void update(Subject&, Obs&) = 0;
 };
 
+class Investor;     // クラスの前方宣言
 class Stock final : public Investment {
 private:
     std::unique_ptr<DealStrategy<Stock>> dealStrategy;
+    std::set<unique_ptr<Observer<Stock,Investor>>> observers;   // TODO using
 public:
     Stock(std::unique_ptr<DealStrategy<Stock>>& _dealStrategy) : dealStrategy{std::move(_dealStrategy)}
     {}
@@ -121,6 +124,18 @@ public:
     virtual void deal() override {
         puts("------ Stock::deal");
         dealStrategy.get()->deal(*this);
+    }
+    bool attach() {
+        // TODO jack
+                // ptr_lambda_debug<const char*,const string&>("email is ", investor.getEmail());
+        return true;
+    }
+    bool detach() {
+        // TODO jack
+        return true;
+    }
+    void notify() {
+        // TODO jack
     }
 };
 
@@ -223,43 +238,45 @@ public:
     }
 };
 
-class InvestorObserver final : public Observer<Stock> {
-public:
-    virtual void update(Stock& stock) override {
-        puts("------ InvestorObserver::update");
-        ptr_lambda_debug<const char*,Investment*>("stock addr is ", &stock);
-    }
-};
-
-class SystemAdminObserver final : public Observer<Stock> {
-public:
-    virtual void update(Stock& stock) override {
-        puts("------ SystemAdminObserver::update");
-        ptr_lambda_debug<const char*,Investment*>("stock addr is ", &stock);
-    }
-};
-
-class Investor final {
-private:
+class Investor {
+protected:
     string name;
     string email;
 public:
     Investor(const string& _name, const string& _email): name{_name}, email{_email} 
     {}
+    Investor(const Investor&) = default; 
+    virtual ~Investor() = default;
 
     // ...
     string getName() const { return name; }
     string getEmail() const { return email; }
 };
 
-class SystemAdmin final {
-private:
-    string email;
+class SystemAdmin final : public Investor {
 public:
-    SystemAdmin(const string& _email) : email{_email}
+    SystemAdmin(const string& _name, const string& _email): Investor{_name, _email}
     {}
     // ...
-    string getEmail() const { return email; }
+};
+
+class InvestorObserver final : public Observer<Stock,Investor> {
+public:
+    virtual void update(Stock& stock, Investor& investor) override {
+        puts("------ InvestorObserver::update");
+        ptr_lambda_debug<const char*,Investment*>("stock addr is ", &stock);
+        ptr_lambda_debug<const char*,const string&>("name is ", investor.getName());
+        ptr_lambda_debug<const char*,const string&>("email is ", investor.getEmail());
+    }
+};
+
+class SystemAdminObserver final : public Observer<Stock,SystemAdmin> {
+public:
+    virtual void update(Stock& stock, SystemAdmin& systemAdmin) override {
+        puts("------ SystemAdminObserver::update");
+        ptr_lambda_debug<const char*,Investment*>("stock addr is ", &stock);
+        ptr_lambda_debug<const char*,const string&>("email is ", systemAdmin.getEmail());
+    }
 };
 
 std::unique_ptr<Investment> stockFactory() {
