@@ -47,6 +47,7 @@
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_4_smart_pointer.cpp -o ../bin/main
 */
 #include <iostream>
+#include <memory>
 
 using namespace std;
 
@@ -86,10 +87,90 @@ int test_debug() {
  * Stock 株式、Bond 債権、RealEstate 不動産。
 */
 
+class Investment {
+public:
+    ~Investment() = default;
+    virtual void deal() = 0;
+};
+
+class Stock final : public Investment {
+public:
+    virtual void deal() override {
+        puts("------ Stock::deal");
+    }
+};
+
+class Bond final : public Investment {
+public:
+    virtual void deal() override {
+        puts("------ Bond::deal");
+    }
+};
+
+class RealEstate final : public Investment {
+public:
+    virtual void deal() override {
+        puts("------ RealEstate::deal");
+    }
+};
+
+enum struct InvestmentType {
+    STOCK,
+    BOND,
+    REAL_ESTATE,
+    FUTURES_CONTRACT,
+};
+
+std::unique_ptr<Investment> stockFactory() {
+    return std::make_unique<Stock>(Stock{});
+}
+std::unique_ptr<Investment> bondFactory() {
+    return std::make_unique<Bond>(Bond{});
+}
+std::unique_ptr<Investment> realEstateFactory() {
+    return std::make_unique<RealEstate>(RealEstate{});
+}
+std::unique_ptr<Investment> investmentFactory(InvestmentType type) {
+    switch(type) {
+        case InvestmentType::STOCK: return stockFactory();
+        case InvestmentType::BOND:  return bondFactory();
+        case InvestmentType::REAL_ESTATE: return realEstateFactory();
+        default: throw runtime_error("No match InvestmentType. @see investmentFactory()");
+    }
+}
+
+int test_investmentFactory() {
+    puts("--- test_investmentFactory");
+    try {
+        std::unique_ptr<Investment> ic_1 = investmentFactory(InvestmentType::STOCK);
+        ptr_lambda_debug<const char*,Investment*>("Investment* is ", ic_1.get());
+        ic_1.get()->deal();
+        ic_1.release();
+        ptr_lambda_debug<const char*,Investment*>("Investment* is ", ic_1.get());
+
+        ic_1 = investmentFactory(InvestmentType::BOND);
+        ic_1.get()->deal();
+        ic_1.release();
+
+        ic_1 = investmentFactory(InvestmentType::REAL_ESTATE);
+        ic_1.get()->deal();
+        ic_1.release();
+
+        ic_1 = investmentFactory(InvestmentType::FUTURES_CONTRACT);     // これは未実装の取引（取引自体はサービスとして定義されている）。
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START 項目 18 ：独占するリソースの管理には std::unique_ptr を用いる ===");
     if(0.01) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_debug());
+    }
+    if(1.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ...", test_investmentFactory());
     }
     puts("=== 4 章 項目 18 ：独占するリソースの管理には std::unique_ptr を用いる END");
     return 0;
