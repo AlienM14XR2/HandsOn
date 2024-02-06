@@ -86,7 +86,8 @@ int test_debug() {
  * Investment 投資を基底クラスとした次の派生クラスを作るものとする。
  * Stock 株式、Bond 債権、RealEstate 不動産。
  * 
- * 取引に関して、Stragety パターンを実装してみる。
+ * - 取引に関して、Stragety パターンを実装してみる。 ... DONE
+ * - 一部の取引（Stock）に Decorator パターンを実装してみる。
 */
 
 class Investment {
@@ -146,10 +147,54 @@ enum struct InvestmentType {
 };
 
 class StockDeal final : public DealStrategy<Stock> {
+private:
+    std::unique_ptr<DealStrategy<Stock>> dealStrategy;
 public:
+    StockDeal(std::unique_ptr<DealStrategy<Stock>>& _dealStrategy) : dealStrategy{std::move(_dealStrategy)}
+    {}
+    // ...
     virtual void deal(Stock& stock) override {
+        if(dealStrategy.get()) {
+            dealStrategy.get()->deal(stock);
+        }
         puts("------ StockDeal::deal");
         ptr_lambda_debug<const char*,Investment*>("stock addr is \t\t", &stock);
+    }
+};
+
+class StockDealA final : public DealStrategy<Stock> {
+private:
+    std::unique_ptr<DealStrategy<Stock>> dealStrategy;
+public:
+    StockDealA() 
+    {}
+    StockDealA(std::unique_ptr<DealStrategy<Stock>>& _dealStrategy): dealStrategy{std::move(_dealStrategy)}
+    {}
+    // ...
+    virtual void deal(Stock& stock) override {
+        if(dealStrategy.get()) {
+            dealStrategy.get()->deal(stock);
+        }
+        puts("------ StockDealA::deal");
+        ptr_lambda_debug<const char*,Investment*>("stock addr is ", &stock);
+    }
+};
+
+class StockDealB final : public DealStrategy<Stock> {
+private:
+    std::unique_ptr<DealStrategy<Stock>> dealStrategy;
+public:
+    StockDealB() 
+    {}
+    StockDealB(std::unique_ptr<DealStrategy<Stock>>& _dealStrategy): dealStrategy{std::move(_dealStrategy)}
+    {}
+    // ...
+    virtual void deal(Stock& stock) override {
+        if(dealStrategy.get()) {
+            dealStrategy.get()->deal(stock);
+        }
+        puts("------ StockDealB::deal");
+        ptr_lambda_debug<const char*,Investment*>("stock addr is ", &stock);
     }
 };
 
@@ -170,7 +215,10 @@ public:
 };
 
 std::unique_ptr<Investment> stockFactory() {
-    std::unique_ptr<DealStrategy<Stock>> dealStrategy = std::make_unique<StockDeal>(StockDeal{}); 
+    std::unique_ptr<DealStrategy<Stock>> dsB = std::make_unique<StockDealB>(StockDealB{});
+    std::unique_ptr<DealStrategy<Stock>> dsA = std::make_unique<StockDealA>(StockDealA{dsB});
+
+    std::unique_ptr<DealStrategy<Stock>> dealStrategy = std::make_unique<StockDeal>(StockDeal{dsA}); 
     return std::make_unique<Stock>(Stock{dealStrategy});
 }
 std::unique_ptr<Investment> bondFactory() {
