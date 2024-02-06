@@ -223,6 +223,45 @@ public:
     }
 };
 
+class InvestorObserver final : public Observer<Stock> {
+public:
+    virtual void update(Stock& stock) override {
+        puts("------ InvestorObserver::update");
+        ptr_lambda_debug<const char*,Investment*>("stock addr is ", &stock);
+    }
+};
+
+class SystemAdminObserver final : public Observer<Stock> {
+public:
+    virtual void update(Stock& stock) override {
+        puts("------ SystemAdminObserver::update");
+        ptr_lambda_debug<const char*,Investment*>("stock addr is ", &stock);
+    }
+};
+
+class Investor final {
+private:
+    string name;
+    string email;
+public:
+    Investor(const string& _name, const string& _email): name{_name}, email{_email} 
+    {}
+
+    // ...
+    string getName() const { return name; }
+    string getEmail() const { return email; }
+};
+
+class SystemAdmin final {
+private:
+    string email;
+public:
+    SystemAdmin(const string& _email) : email{_email}
+    {}
+    // ...
+    string getEmail() const { return email; }
+};
+
 std::unique_ptr<Investment> stockFactory() {
     std::unique_ptr<DealStrategy<Stock>> dsB = std::make_unique<StockDealB>(StockDealB{});
     std::unique_ptr<DealStrategy<Stock>> dsA = std::make_unique<StockDealA>(StockDealA{dsB});
