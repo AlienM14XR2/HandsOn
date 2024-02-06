@@ -67,7 +67,7 @@ void (*ptr_print_error)(Error) = [](const auto e) -> void {
 };
 
 int test_debug() {
-    puts("--- test_debug");
+    puts("=== test_debug");
     try {
         auto pi = 3.141592;
         ptr_lambda_debug<const char*,const decltype(pi)&>("pi is ", pi);
@@ -85,6 +85,8 @@ int test_debug() {
  * factory 関数の例を具体的に実装する演習でもやってみる。
  * Investment 投資を基底クラスとした次の派生クラスを作るものとする。
  * Stock 株式、Bond 債権、RealEstate 不動産。
+ * 
+ * 取引に関して、Stragety パターンを実装してみる。
 */
 
 class Investment {
@@ -93,24 +95,46 @@ public:
     virtual void deal() = 0;
 };
 
-class Stock final : public Investment {
+template<class T>
+class DealStrategy {
 public:
+    virtual void deal(T&) = 0;
+};
+
+class Stock final : public Investment {
+private:
+    std::unique_ptr<DealStrategy<Stock>> dealStrategy;
+public:
+    Stock(std::unique_ptr<DealStrategy<Stock>>& _dealStrategy) : dealStrategy{std::move(_dealStrategy)}
+    {}
+    // ...
     virtual void deal() override {
         puts("------ Stock::deal");
+        dealStrategy.get()->deal(*this);
     }
 };
 
 class Bond final : public Investment {
+private:
+    std::unique_ptr<DealStrategy<Bond>> dealStrategy;
 public:
+    Bond(std::unique_ptr<DealStrategy<Bond>>& _dealStrategy) : dealStrategy{std::move(_dealStrategy)} 
+    {}
     virtual void deal() override {
         puts("------ Bond::deal");
+        dealStrategy.get()->deal(*this);
     }
 };
 
 class RealEstate final : public Investment {
+private:
+    std::unique_ptr<DealStrategy<RealEstate>> dealStrategy;
 public:
+    RealEstate(std::unique_ptr<DealStrategy<RealEstate>>& _dealStrategy) : dealStrategy{std::move(_dealStrategy)} 
+    {}
     virtual void deal() override {
         puts("------ RealEstate::deal");
+        dealStrategy.get()->deal(*this);
     }
 };
 
@@ -121,14 +145,41 @@ enum struct InvestmentType {
     FUTURES_CONTRACT,
 };
 
+class StockDeal final : public DealStrategy<Stock> {
+public:
+    virtual void deal(Stock& stock) override {
+        puts("------ StockDeal::deal");
+        ptr_lambda_debug<const char*,Investment*>("stock addr is \t\t", &stock);
+    }
+};
+
+class BondDeal final : public DealStrategy<Bond> {
+public:
+    virtual void deal(Bond& bond) override {
+        puts("------ BondDeal::deal");
+        ptr_lambda_debug<const char*,Investment*>("bond addr is \t\t", &bond);       
+    }
+};
+
+class RealEstateDeal final : public DealStrategy<RealEstate> {
+public:
+    virtual void deal(RealEstate& realEstate) override {
+        puts("------ RealEstateDeal::deal");
+        ptr_lambda_debug<const char*,Investment*>("realEstate addr is \t", &realEstate);
+    }
+};
+
 std::unique_ptr<Investment> stockFactory() {
-    return std::make_unique<Stock>(Stock{});
+    std::unique_ptr<DealStrategy<Stock>> dealStrategy = std::make_unique<StockDeal>(StockDeal{}); 
+    return std::make_unique<Stock>(Stock{dealStrategy});
 }
 std::unique_ptr<Investment> bondFactory() {
-    return std::make_unique<Bond>(Bond{});
+    std::unique_ptr<DealStrategy<Bond>> dealStrategy = std::make_unique<BondDeal>(BondDeal{});
+    return std::make_unique<Bond>(Bond{dealStrategy});
 }
 std::unique_ptr<Investment> realEstateFactory() {
-    return std::make_unique<RealEstate>(RealEstate{});
+    std::unique_ptr<DealStrategy<RealEstate>> dealStrategy = std::make_unique<RealEstateDeal>(RealEstateDeal{});
+    return std::make_unique<RealEstate>(RealEstate{dealStrategy});
 }
 std::unique_ptr<Investment> investmentFactory(InvestmentType type) {
     switch(type) {
@@ -140,23 +191,25 @@ std::unique_ptr<Investment> investmentFactory(InvestmentType type) {
 }
 
 int test_investmentFactory() {
-    puts("--- test_investmentFactory");
+    puts("=== test_investmentFactory");
     try {
         std::unique_ptr<Investment> ic_1 = investmentFactory(InvestmentType::STOCK);
-        ptr_lambda_debug<const char*,Investment*>("Investment* is ", ic_1.get());
+        ptr_lambda_debug<const char*,Investment*>("Investment* ...(Stock) is ", ic_1.get());
         ic_1.get()->deal();
         ic_1.release();
-        ptr_lambda_debug<const char*,Investment*>("Investment* is ", ic_1.get());
+        ptr_lambda_debug<const char*,Investment*>("After release Investment* ...(Stock) is ", ic_1.get());
 
         ic_1 = investmentFactory(InvestmentType::BOND);
+        ptr_lambda_debug<const char*,Investment*>("Investment* ...(Bond) is ", ic_1.get());
         ic_1.get()->deal();
         ic_1.release();
 
         ic_1 = investmentFactory(InvestmentType::REAL_ESTATE);
+        ptr_lambda_debug<const char*,Investment*>("Investment* ...(RealEstate) is ", ic_1.get());
         ic_1.get()->deal();
         ic_1.release();
 
-        ic_1 = investmentFactory(InvestmentType::FUTURES_CONTRACT);     // これは未実装の取引（取引自体はサービスとして定義されている）。
+        ic_1 = investmentFactory(InvestmentType::FUTURES_CONTRACT);     // これは未実装の取引（取引自体は仕様として定義されている）。
         return EXIT_SUCCESS;
     } catch(exception& e) {
         ptr_print_error<const decltype(e)&>(e);
