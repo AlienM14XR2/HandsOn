@@ -263,18 +263,29 @@ public:
 };
 
 class InvestorObserver final : public Observer<Stock> {
+private:
+    Investor investor;
 public:
+    InvestorObserver(const Investor& _investor): investor{_investor}
+    {}
     virtual void update(Stock& stock) override {
         puts("------ InvestorObserver::update");
         ptr_lambda_debug<const char*,Investment*>("stock addr is ", &stock);
+        ptr_lambda_debug<const char*,const string&>("name is ", investor.getName());
+        ptr_lambda_debug<const char*,const string&>("email is ", investor.getEmail());
     }
 };
 
 class SystemAdminObserver final : public Observer<Stock> {
+    SystemAdmin systemAdmin;
 public:
+    SystemAdminObserver(const SystemAdmin& _systemAdmin): systemAdmin{_systemAdmin}
+    {}
     virtual void update(Stock& stock) override {
         puts("------ SystemAdminObserver::update");
         ptr_lambda_debug<const char*,Investment*>("stock addr is ", &stock);
+        ptr_lambda_debug<const char*,const string&>("name is ", systemAdmin.getName());
+        ptr_lambda_debug<const char*,const string&>("email is ", systemAdmin.getEmail());
     }
 };
 
@@ -283,9 +294,9 @@ std::unique_ptr<Investment> stockFactory() {
     std::unique_ptr<DealStrategy<Stock>> dsA = std::make_unique<StockDealA>(StockDealA{dsB});
 
     std::unique_ptr<DealStrategy<Stock>> dealStrategy = std::make_unique<StockDeal>(StockDeal{dsA});
-    std::unique_ptr<Observer<Stock>> investorObserver = std::make_unique<InvestorObserver>(InvestorObserver{});
-    std::unique_ptr<Observer<Stock>> systemAdminObserver = std::make_unique<SystemAdminObserver>(SystemAdminObserver{});
-    
+    std::unique_ptr<Observer<Stock>> investorObserver = std::make_unique<InvestorObserver>(InvestorObserver{Investor{"Jack","jack@loki.org"}});
+    std::unique_ptr<Observer<Stock>> systemAdminObserver = std::make_unique<SystemAdminObserver>(SystemAdminObserver{SystemAdmin{"Admin","admin@loki.org"}});
+
     Stock stock{dealStrategy};
     stock.attach(investorObserver);
     stock.attach(systemAdminObserver);
