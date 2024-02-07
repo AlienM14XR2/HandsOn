@@ -42,6 +42,13 @@
  * 一般的な使われ方は、factory 関数の戻り値型です。基底クラスのポインタを利用する場合です（実質は各派生クラスのインスタンス）。
  * デフォルトでは、delete により破棄されますが、カスタムデリータを用いるよう、std::unique_ptr 作成時に指定可能です。
  * 
+ * 重要ポイント
+ * - std::unique_ptr は、独占するリソース管理用の、サイズが小さく、高速な、ムーブ専用のスマートポインタである。
+ * 
+ * - デフォルトでは、リソースは delete により破棄されるが、カスタムデリータも指定可能である。状態を持つデリータや、
+ *   関数ポインタのデリータは std::unique_ptr オブジェクトのサイズを増加させる。
+ * 
+ * - std::unique_ptr の std::shared_ptr への変換は容易である。
  * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_4_smart_pointer.cpp -o ../bin/main
@@ -370,12 +377,28 @@ std::unique_ptr<Investment/*, decltype(deleteInvestment)*/> makeInvestment() {
     return pInv;
 }
 
-template<class T, class ... Types>
+template<class T, class ... Types>  // C++11 可変長引数テンプレートをサンプルでは利用している（ただし書籍のものは不親切でおそらく不完全）。
 std::unique_ptr<Investment/*, decltype(deleteInvestment)*/> makeInvestment(T&& t, Types&& ... params) {     // 内部でデフォルトデリータを利用してるのでこのカスタムデリータの利用は出来なかった。
+    /**
+     * この関数で注意、注目ポイントは色々あるが、まずは仮引数が「右辺値参照」であること、これはスマートポインタの扱いに
+     * おける基本で、スマートポインタはコピーは不可で、すべてムーブさせる必要があるためと考える。
+    */
     std::unique_ptr<Investment/*, decltype(deleteInvestment)*/> pInv(nullptr/*, deleteInvestment*/);
     ptr_lambda_debug<const char*,const char*>("type is ",typeid(t).name());
     
-    pInv = makeInvestment(params ...);
+    if(typeid(t) == typeid(Stock)) {
+        cout << "--------------- Stock" << endl;
+        // 本来はここで、必要な Stock のスマートポインタを返却する。
+        // 以下はサンプルのコード... これを見るに、各 Investment の派生クラスの必要情報を可変長引数で渡すものらしい。
+        // pInv.reset(new Stock(std::forward<Ts>(params)...));
+    } else if(typeid(t) == typeid(Bond)) {
+        cout << "--------------- Bond" << endl;
+        // 本来はここで、必要な Bond のスマートポインタを返却する。
+    } else if(typeid(t) == typeid(RealEstate)) {
+        cout << "--------------- RealEstate" << endl;
+        // 本来はここで、必要な RealEstate のスマートポインタを返却する。
+    }
+    pInv = makeInvestment(params ...);      // 再帰呼び出し。
     // if(typeid()) {
 
     // }
