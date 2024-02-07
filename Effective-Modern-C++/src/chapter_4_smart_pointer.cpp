@@ -89,7 +89,7 @@ int test_debug() {
  * 
  * - 取引に関して、Stragety パターンを実装してみる。 ... DONE
  * - 一部の取引（Stock）に Decorator パターンを実装してみる。... DONE
- * - 一部の取引（Stock）に Observer パターンを実装してみる、取引完了通知を Investor（投資家） に行う。
+ * - 一部の取引（Stock）に Observer パターンを実装してみる、取引完了通知を Investor（投資家） に行う。 ... DONE
 */
 
 class Investment {
@@ -346,6 +346,13 @@ int test_investmentFactory() {
         return EXIT_FAILURE;
     }
 }
+
+/**
+ * スレッドセーフや同期等の問題は正直無視した設計と実装だが、ひとまずこれが今の私の理解と実力だろう。
+ * 一年前よりは大分まともで Modern な C++ になったと思う。
+ * 時間をみてこの点を std::mutex あるいは、Thread Promise Future？ を使って再設計してみたい。
+ * 以降はまた、書籍に戻る。
+*/
 
 int main(void) {
     puts("START 項目 18 ：独占するリソースの管理には std::unique_ptr を用いる ===");
