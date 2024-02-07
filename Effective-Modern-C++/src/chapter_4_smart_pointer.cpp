@@ -354,6 +354,14 @@ int test_investmentFactory() {
  * 以降はまた、書籍に戻る。
 */
 
+/**
+ * カスタムデリータ
+*/
+auto deleteInvestment = [](Investment* pInventment) {
+    // makeLogEntry(pInventment);       // ログ出力、書籍でも具体的な実装は示していないし、本題とは関係ないが、こんな利用が考えられるという一例と解釈した。
+    delete pInventment;     // カスタムデリータなのだから、この一行は必須。
+};
+
 int main(void) {
     puts("START 項目 18 ：独占するリソースの管理には std::unique_ptr を用いる ===");
     if(0.01) {
