@@ -176,6 +176,7 @@ class StockDeal final : public DealStrategy<Stock> {
 private:
     std::unique_ptr<DealStrategy<Stock>> dealStrategy;
 public:
+    StockDeal() {}
     StockDeal(std::unique_ptr<DealStrategy<Stock>>& _dealStrategy) : dealStrategy{std::move(_dealStrategy)}
     {}
     // ...
@@ -357,10 +358,50 @@ int test_investmentFactory() {
 /**
  * カスタムデリータ
 */
-auto deleteInvestment = [](Investment* pInventment) {
-    // makeLogEntry(pInventment);       // ログ出力、書籍でも具体的な実装は示していないし、本題とは関係ないが、こんな利用が考えられるという一例と解釈した。
-    delete pInventment;     // カスタムデリータなのだから、この一行は必須。
+auto deleteInvestment = [](Investment* pInvestment) {
+    // makeLogEntry(pInvestment);       // ログ出力、書籍でも具体的な実装は示していないし、本題とは関係ないが、こんな利用が考えられるという一例と解釈した。
+    puts("------ deleteInvestment");
+    ptr_lambda_debug<const char*,Investment*>("Investment addr is ",pInvestment);
+    delete pInvestment;     // カスタムデリータなのだから、この一行は必須。
 };
+
+std::unique_ptr<Investment/*, decltype(deleteInvestment)*/> makeInvestment() {
+    std::unique_ptr<Investment/*, decltype(deleteInvestment)*/> pInv(nullptr/*, deleteInvestment*/);
+    return pInv;
+}
+
+template<class T, class ... Types>
+std::unique_ptr<Investment/*, decltype(deleteInvestment)*/> makeInvestment(T&& t, Types&& ... params) {     // 内部でデフォルトデリータを利用してるのでこのカスタムデリータの利用は出来なかった。
+    std::unique_ptr<Investment/*, decltype(deleteInvestment)*/> pInv(nullptr/*, deleteInvestment*/);
+    ptr_lambda_debug<const char*,const char*>("type is ",typeid(t).name());
+    
+    pInv = makeInvestment(params ...);
+    // if(typeid()) {
+
+    // }
+    return pInv;
+}
+
+int test_makeInvestment() {
+    puts("--- test_makeInvestment");
+    try {
+    // std::unique_ptr<DealStrategy<Stock>> dsA = std::make_unique<StockDealA>(StockDealA{dsB});
+        std::unique_ptr<DealStrategy<Stock>> stockDealStrategy = std::make_unique<StockDeal>(StockDeal{});
+        Stock stock{stockDealStrategy};
+
+        std::unique_ptr<DealStrategy<Bond>> bondDealStrategy = std::make_unique<BondDeal>(BondDeal{});
+        Bond bond{bondDealStrategy};
+
+        std::unique_ptr<DealStrategy<RealEstate>> realEstateDealStrategy = std::make_unique<RealEstateDeal>(RealEstateDeal{});
+        RealEstate realEstate{realEstateDealStrategy};
+
+        std::unique_ptr<Investment> pInv = makeInvestment(stock,bond,realEstate);
+        return EXIT_SUCCESS;
+    } catch(exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 int main(void) {
     puts("START 項目 18 ：独占するリソースの管理には std::unique_ptr を用いる ===");
@@ -369,6 +410,9 @@ int main(void) {
     }
     if(1.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ...", test_investmentFactory());
+    }
+    if(2.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ...", test_makeInvestment());
     }
     puts("=== 4 章 項目 18 ：独占するリソースの管理には std::unique_ptr を用いる END");
     return 0;
