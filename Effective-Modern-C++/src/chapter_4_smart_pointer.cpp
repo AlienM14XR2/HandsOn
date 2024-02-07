@@ -105,38 +105,40 @@ public:
     virtual void deal(T&) = 0;
 };
 
-template<class Subject, class Obs>
+template<class Subject>
 class Observer {
 public:
     virtual ~Observer() = default;
-    virtual void update(Subject&, Obs&) = 0;
+    virtual void update(Subject&) = 0;
 };
 
-class Investor;     // クラスの前方宣言
 class Stock final : public Investment {
-private:
-    std::unique_ptr<DealStrategy<Stock>> dealStrategy;
-    std::set<unique_ptr<Observer<Stock,Investor>>> observers;   // TODO using
 public:
+    using InvestorObserver = Observer<Stock>;
     Stock(std::unique_ptr<DealStrategy<Stock>>& _dealStrategy) : dealStrategy{std::move(_dealStrategy)}
     {}
     // ...
     virtual void deal() override {
         puts("------ Stock::deal");
         dealStrategy.get()->deal(*this);
+        notify();
     }
-    bool attach() {
-        // TODO jack
-                // ptr_lambda_debug<const char*,const string&>("email is ", investor.getEmail());
-        return true;
+    bool attach(std::unique_ptr<InvestorObserver>& investorObserver) {
+        auto [pos,success] = observers.insert(std::move(investorObserver));  // この書き方初めて見る、pair を返却するからか。
+        return success;
     }
-    bool detach() {
-        // TODO jack
-        return true;
+    bool detach(std::unique_ptr<InvestorObserver>& investorObserver) {
+        return (observers.erase(std::move(investorObserver)) > 0U);
     }
     void notify() {
-        // TODO jack
+        for(auto iter = begin(observers); iter != end(observers); ) {
+            const auto observer = iter++;
+            observer->get()->update(*this);         // Observer（観察者）に通知している。
+        }
     }
+private:
+    std::unique_ptr<DealStrategy<Stock>> dealStrategy;
+    std::set<std::unique_ptr<InvestorObserver>> observers;
 };
 
 class Bond final : public Investment {
@@ -260,22 +262,19 @@ public:
     // ...
 };
 
-class InvestorObserver final : public Observer<Stock,Investor> {
+class InvestorObserver final : public Observer<Stock> {
 public:
-    virtual void update(Stock& stock, Investor& investor) override {
+    virtual void update(Stock& stock) override {
         puts("------ InvestorObserver::update");
         ptr_lambda_debug<const char*,Investment*>("stock addr is ", &stock);
-        ptr_lambda_debug<const char*,const string&>("name is ", investor.getName());
-        ptr_lambda_debug<const char*,const string&>("email is ", investor.getEmail());
     }
 };
 
-class SystemAdminObserver final : public Observer<Stock,SystemAdmin> {
+class SystemAdminObserver final : public Observer<Stock> {
 public:
-    virtual void update(Stock& stock, SystemAdmin& systemAdmin) override {
+    virtual void update(Stock& stock) override {
         puts("------ SystemAdminObserver::update");
         ptr_lambda_debug<const char*,Investment*>("stock addr is ", &stock);
-        ptr_lambda_debug<const char*,const string&>("email is ", systemAdmin.getEmail());
     }
 };
 
@@ -283,8 +282,15 @@ std::unique_ptr<Investment> stockFactory() {
     std::unique_ptr<DealStrategy<Stock>> dsB = std::make_unique<StockDealB>(StockDealB{});
     std::unique_ptr<DealStrategy<Stock>> dsA = std::make_unique<StockDealA>(StockDealA{dsB});
 
-    std::unique_ptr<DealStrategy<Stock>> dealStrategy = std::make_unique<StockDeal>(StockDeal{dsA}); 
-    return std::make_unique<Stock>(Stock{dealStrategy});
+    std::unique_ptr<DealStrategy<Stock>> dealStrategy = std::make_unique<StockDeal>(StockDeal{dsA});
+    std::unique_ptr<Observer<Stock>> investorObserver = std::make_unique<InvestorObserver>(InvestorObserver{});
+    std::unique_ptr<Observer<Stock>> systemAdminObserver = std::make_unique<SystemAdminObserver>(SystemAdminObserver{});
+    
+    Stock stock{dealStrategy};
+    stock.attach(investorObserver);
+    stock.attach(systemAdminObserver);
+
+    return std::make_unique<Stock>(std::move(stock));
 }
 std::unique_ptr<Investment> bondFactory() {
     std::unique_ptr<DealStrategy<Bond>> dealStrategy = std::make_unique<BondDeal>(BondDeal{});
