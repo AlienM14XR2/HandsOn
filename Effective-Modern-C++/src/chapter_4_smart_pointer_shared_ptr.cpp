@@ -33,6 +33,7 @@
 */
 #include <iostream>
 #include <memory>
+#include <vector>
 
 template <class M, class D>
 void (*ptr_lambda_debug)(M,D) = [](const auto message, const auto debug) -> void {
@@ -70,6 +71,11 @@ int test_debug() {
 */
 
 class Widget {
+public:
+    void doSomething() noexcept {
+        puts("------ doSomething");
+        ptr_lambda_debug<const char*,Widget*>("this addr is ", this);
+    }
 };
 
 void makeLogEntry(const Widget* const pw) {
@@ -100,6 +106,42 @@ int test_custom_deleter() {
     }
 }
 
+/**
+ * std::shared_ptr の設計の方が柔軟性に優れています。std::shared_ptr<Widget> が 2 つあるとしましょう。
+ * それぞれが異なる型のカスタムデリータを持つとします（ラムダ式を用いカスタムデリータを指定したなど）。
+*/
+
+auto customDeleter1 = [](Widget* pw) {
+    puts("--- customDeleter1");
+    ptr_lambda_debug<const char*,Widget*>("pw addr is ", pw);
+    delete pw;
+};
+
+auto customDeleter2 = [](Widget* pw) {
+    puts("--- customDeleter2");
+    ptr_lambda_debug<const char*,Widget*>("pw addr is ", pw);
+    delete pw;
+};
+
+int test_shared_ptr_and_custom_deleter() {
+    puts("=== test_shared_ptr_and_custom_deleter");
+    try {
+        using SharedWidget = std::shared_ptr<Widget>;
+        SharedWidget pw1{new Widget(),customDeleter1};
+        SharedWidget pw2{new Widget(),customDeleter2};
+        /**
+         * pw1 と pw2 の型は同じため、同じコンテナに持たせられます。
+        */
+        std::vector<SharedWidget> vec{pw1, pw2};
+        for(auto w: vec) {
+            w.get()->doSomething();
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 int main(void) {
     puts("START 項目 19 ：共有するリソースの管理には std::shared_ptr を用いる ===");
@@ -108,6 +150,9 @@ int main(void) {
     }
     if(1.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_custom_deleter());
+    }
+    if(1.01) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_shared_ptr_and_custom_deleter());
     }
     puts("=== 項目 19 ：共有するリソースの管理には std::shared_ptr を用いる END");
     return 0;
