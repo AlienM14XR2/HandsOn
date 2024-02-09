@@ -182,12 +182,6 @@ double multi(const double& lhs, const double& rhs) {
     return (lhs * rhs);
 }
 
-template <class FUNC>
-void f1(FUNC** param) {
-    auto ret = param(3.0, 6.0);
-    ptr_lambda_debug<const char*, const decltype(ret)&>("ret is ", ret);
-}
-
 int test_smart_pointer_and_func() {
     /**
      * コンパイルは通るが実行時にエラーだった、私の完敗だ：）
@@ -196,11 +190,15 @@ int test_smart_pointer_and_func() {
     */
     puts("=== test_smart_pointer_and_func");
     try {
-        // using FuncPointer = double (*)(const double&,const double&);
-        std::shared_ptr<double(*)(const double&,const double&)> fpAdd = std::make_shared<double(*)(const double&,const double&)>(add);
+        using FuncPointer = double (*)(const double&,const double&);
+        std::shared_ptr<FuncPointer> fpAdd = std::make_shared<FuncPointer>(add);
         auto ret1 = (*fpAdd.get())(3.0, 6.0);   // 関数をスマートポインタに設定するとそれは二重ポインタになるのか：）
         // ptr_lambda_debug<const char*,const char*>("add1 type is ", typeid(add1).name());
         ptr_lambda_debug<const char*,const decltype(ret1)&>("ret1 is ", ret1);
+
+        std::shared_ptr<FuncPointer> fpMulti = std::make_shared<FuncPointer>(multi);
+        auto ret2 = (*fpMulti.get())(3.0, 6.0);
+        ptr_lambda_debug<const char*,const decltype(ret2)&>("ret2 is ", ret2);
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
