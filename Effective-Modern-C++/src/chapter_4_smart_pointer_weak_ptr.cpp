@@ -17,6 +17,7 @@
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_4_smart_pointer_weak_ptr.cpp -o ../bin/main
 */
 #include <iostream>
+#include <memory>
 
 template <class M, class D>
 void (*ptr_lambda_debug)(M,D) = [](const auto message, const auto debug) -> void {
@@ -55,10 +56,43 @@ int test_debug() {
  * 対象オブジェクトのレファレンスカウントには影響しません。
 */
 
+class Widget {
+
+};
+
+void sample() {
+    puts("=== sample");
+    /**
+     * spw 作成語の対象 Widget のレファレンスカウント（RC）は 1
+    */
+    auto spw = std::make_shared<Widget>();
+
+    /**
+     * wpw は spw と同じ Widget を指すが RC は 1 のまま。
+    */
+    std::weak_ptr<Widget> wpw(spw);
+
+    /**
+     * RC は 0 になり Widget は破棄される wpw は不正ポインタになる。
+    */
+    spw = nullptr;
+
+    /**
+     * 不正ポインタとなった std::weak_ptr を 『expire された』と表現します。この状態は
+     * 直接的に検査できます。
+    */
+    if(wpw.expired()) {
+        puts("... wpw is expired.");
+    }
+}
+
 int main(void) {
     puts("START 不正ポインタになり得る std::shared_ptr ライクなポインタには std::weak_ptr を用いる ===");
     if(0.01) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_debug());
+    }
+    if(1.00) {
+        sample();
     }
     puts("=== 不正ポインタになり得る std::shared_ptr ライクなポインタには std::weak_ptr を用いる END");
     return 0;
