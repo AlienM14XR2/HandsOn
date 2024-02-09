@@ -37,8 +37,12 @@
  * 最も重要な点は、組み込み配列ライクなさまざまな C++11 オブジェクトがありながら（std::array, std::vector, std::string）、単純配列
  * を指すスマートポインタを宣言するなどは、まず間違いなく悪い設計の証だということです。
  * 
- *  
- * 
+ * 重要ポイント
+ * - std::shared_ptr は、任意の共有リソースのライフタイム管理をガーベジコレクションに近付ける、有用なものである。
+ * - std::shared_ptr オブジェクトにサイズは、std::unique_ptr の 2 倍になるのが通例である。また、コントロールブロックに由来する
+ *   オーバーヘッドが発生し、レファレンスカウントのアトミック演算も必要になる。
+ * - リソース破棄時にデフォルトで実行されるのは delete だが、カスタムデリータも指定可能である。デリータの型は std::shared_ptr の型に影響しない。
+ * - raw ポインタ型の変数から std::shared_ptr を作成するのは避けるべきである。
  * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_4_smart_pointer_shared_ptr.cpp -o ../bin/main
