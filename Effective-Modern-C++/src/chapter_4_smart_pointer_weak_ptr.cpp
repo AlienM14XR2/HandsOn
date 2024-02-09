@@ -18,6 +18,7 @@
 */
 #include <iostream>
 #include <memory>
+#include <unordered_map>
 
 template <class M, class D>
 void (*ptr_lambda_debug)(M,D) = [](const auto message, const auto debug) -> void {
@@ -136,6 +137,36 @@ void sample2() {
  * あまり綺麗ではありませんが、loadWidget に簡単なキャッシュ機能を単純に追加した例を挙げます。
 */
 
+using WidgetID = std::size_t;
+
+std::shared_ptr<const Widget> loadWidget(WidgetID id) {
+    puts("--- loadWidget");
+    // 実際はDB アクセス等があると仮定する。
+    return std::make_shared<const Widget>();
+}
+
+std::shared_ptr<const Widget> fastLoadWidget(WidgetID id) {
+    puts("--- fastLoadWidget");
+    static std::unordered_map<WidgetID, std::weak_ptr<const Widget>> cache;
+
+    auto objPtr = cache[id].lock();
+    if(!objPtr) {
+        objPtr = loadWidget(id);
+        cache[id] = objPtr;
+    }
+    return objPtr;
+}
+
+void sample3() {
+    puts("=== sample3");
+    auto objPtr1 = fastLoadWidget(100U);
+    ptr_lambda_debug<const char*,const Widget*>("objPtr1 Widget addr is ", objPtr1.get());
+
+    auto objPtr2 = fastLoadWidget(100U);
+    ptr_lambda_debug<const char*,const Widget*>("objPtr2 Widget addr is ", objPtr2.get());
+
+}
+
 int main(void) {
     puts("START 不正ポインタになり得る std::shared_ptr ライクなポインタには std::weak_ptr を用いる ===");
     if(0.01) {
@@ -144,6 +175,9 @@ int main(void) {
     if(1.00) {
         sample();
         sample2();
+    }
+    if(1.02) {
+        sample3();
     }
     puts("=== 不正ポインタになり得る std::shared_ptr ライクなポインタには std::weak_ptr を用いる END");
     return 0;
