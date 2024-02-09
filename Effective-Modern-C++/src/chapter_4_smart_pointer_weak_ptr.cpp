@@ -167,6 +167,47 @@ void sample3() {
 
 }
 
+/**
+ * Coffee Break.
+ * 
+ * 個人的興味とその演習。
+ * 関数ポインタも勿論スマートポインタの管理下に置けるはず。
+*/
+
+double add(const double& lhs, const double& rhs) {
+    return (lhs + rhs);
+}
+
+double multi(const double& lhs, const double& rhs) {
+    return (lhs * rhs);
+}
+
+template <class FUNC>
+void f1(FUNC** param) {
+    auto ret = param(3.0, 6.0);
+    ptr_lambda_debug<const char*, const decltype(ret)&>("ret is ", ret);
+}
+
+int test_smart_pointer_and_func() {
+    /**
+     * コンパイルは通るが実行時にエラーだった、私の完敗だ：）
+     * 関数ポインタは扱えないのかな、そんな訳ないとおもうけど。
+     * うん、なんとか問題なく実行させることができたぞ。
+    */
+    puts("=== test_smart_pointer_and_func");
+    try {
+        // using FuncPointer = double (*)(const double&,const double&);
+        std::shared_ptr<double(*)(const double&,const double&)> fpAdd = std::make_shared<double(*)(const double&,const double&)>(add);
+        auto ret1 = (*fpAdd.get())(3.0, 6.0);   // 関数をスマートポインタに設定するとそれは二重ポインタになるのか：）
+        // ptr_lambda_debug<const char*,const char*>("add1 type is ", typeid(add1).name());
+        ptr_lambda_debug<const char*,const decltype(ret1)&>("ret1 is ", ret1);
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START 不正ポインタになり得る std::shared_ptr ライクなポインタには std::weak_ptr を用いる ===");
     if(0.01) {
@@ -178,6 +219,9 @@ int main(void) {
     }
     if(1.02) {
         sample3();
+    }
+    if(1.03) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ...", test_smart_pointer_and_func());
     }
     puts("=== 不正ポインタになり得る std::shared_ptr ライクなポインタには std::weak_ptr を用いる END");
     return 0;
