@@ -150,6 +150,45 @@ int test_shared_ptr_and_custom_deleter() {
  * 『カスタムアロケータ』などがあります。
 */
 
+class WidgetV2;
+std::vector<std::shared_ptr<WidgetV2>> processedWidgets;
+
+class WidgetV2 {
+public:
+    void process() {
+        processedWidgets.emplace_back(this);    // 処理済みの WidgetV2 をリストへ追加。誤り！！
+    }
+};
+
+int test_WidgetV2_Bad_Coding() {
+    puts("=== test_WidgetV2_Bad_Coding");
+    WidgetV2* wv2 = nullptr;
+    try {
+        /**
+         * 上例の、誤りというコメントがすべてです。
+         * emplace_back の使用ではなく、this を与えている点です。上例はコンパイル可能ですが、std::shared_ptr のコンテナに raw ポインタ（this）
+         * を渡しているため、std::shared_ptr をコンストラクトすることにより、WidgetV2 を指すポインタ（*this）用のコントロールブロックが新規に
+         * 作成されてしまいます。無害に見えるコードかもしれませんが、そう思うのも同じ WidgetV2 を指す std::shared_ptr がメンバ関数外にすでに
+         * 存在しているかもしれないと気づくまでです。これで試合終了。勝者は未定義動作です。
+        */
+        wv2 = new WidgetV2();
+        wv2->process();
+        for(auto w: processedWidgets) {
+            ptr_lambda_debug<const char*,WidgetV2*>("w addr is ", w.get());
+        }
+        if(wv2) {
+            delete wv2;
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        if(wv2) {
+            delete wv2;
+        }
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START 項目 19 ：共有するリソースの管理には std::shared_ptr を用いる ===");
     if(0.01) {
@@ -160,6 +199,10 @@ int main(void) {
     }
     if(1.01) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_shared_ptr_and_custom_deleter());
+    }
+    if(0) {
+        // 二重解放によるコアダンプで終了する。
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_WidgetV2_Bad_Coding());
     }
     puts("=== 項目 19 ：共有するリソースの管理には std::shared_ptr を用いる END");
     return 0;
