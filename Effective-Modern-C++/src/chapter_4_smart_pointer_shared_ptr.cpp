@@ -189,6 +189,29 @@ int test_WidgetV2_Bad_Coding() {
     }
 }
 
+/**
+ * std::shared_ptr にはまさにこの種の状況に対応するものがあります。恐らく、標準 C++ ライブラリの中でも最も変わった名前だと思いますが、
+ * std::enable_shared_from_this です。これは、this ポインタから安全に std::shared_ptr を作成可能とし、std::shared_ptr が管理するクラス
+ * が必要な場合に使用する、継承用クラステンプレートです。
+ * 
+ * class WidgetV2 : public std::enable_shared_from_this<WidgetV2> {
+ * public:
+ *      void proceed();
+ * };
+ * 
+ * これが『奇妙に再帰したテンプレートパターン（Curiously Recuring Template Pattern, CRTP）』という標準名も付けられています。
+*/
+
+class WidgetV3;
+std::vector<std::shared_ptr<WidgetV3>> processedWidgetV3s;
+
+class WidgetV3 : public std::enable_shared_from_this<WidgetV3>{
+public:
+    void process() {
+        processedWidgetV3s.emplace_back(shared_from_this());
+    }  
+};
+
 int main(void) {
     puts("START 項目 19 ：共有するリソースの管理には std::shared_ptr を用いる ===");
     if(0.01) {
