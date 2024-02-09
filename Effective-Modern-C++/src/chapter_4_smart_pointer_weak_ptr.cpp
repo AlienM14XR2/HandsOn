@@ -9,6 +9,10 @@
  * ポインタが『不正』になったことを追跡管理し、この問題に対応するでしょう。不正なポインタとは、ポインタが指すオブジェクトが存在し
  * ない状態を言います。この問題こそまさに std::weak_ptr というスマートポインタが対処するものです。
  * 
+ * std::weak_ptr の有用性についてはまだ疑念があるかもしれません。その疑念は std::weak_ptr API を調べると強まるかもしれません。決して
+ * スマートには見えない API です。std::weak_ptr はポインタを辿ることも、ヌルか否かを検査することもできません。std::weak_ptr は単独で
+ * はスマートポインタにはなり得ず、std::shared_ptr に付属するものなのです。
+ * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_4_smart_pointer_weak_ptr.cpp -o ../bin/main
 */
@@ -44,6 +48,12 @@ int test_debug() {
         return EXIT_FAILURE;
     }
 }
+
+/**
+ * std::shared_ptr との関係は std::weak_ptr 作成時から始まります。通常は std::shared_ptr から std::weak_ptr を作成し、
+ * std::shared_ptr が std::weak_ptr を初期化した時点から、両者は同じメモリ上の位置を指します。しかし、std::weak_ptr は
+ * 対象オブジェクトのレファレンスカウントには影響しません。
+*/
 
 int main(void) {
     puts("START 不正ポインタになり得る std::shared_ptr ライクなポインタには std::weak_ptr を用いる ===");
