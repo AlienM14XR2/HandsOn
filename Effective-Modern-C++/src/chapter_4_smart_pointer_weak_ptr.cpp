@@ -13,6 +13,12 @@
  * スマートには見えない API です。std::weak_ptr はポインタを辿ることも、ヌルか否かを検査することもできません。std::weak_ptr は単独で
  * はスマートポインタにはなり得ず、std::shared_ptr に付属するものなのです。
  * 
+ * キャッシュ機能や observer のリストを実装する場合に備え、std::weak_ptr が使用できると覚えておくと良いでしょう。
+ * 
+ * 重要ポイント
+ * - 不正になる可能性がある std::shared_ptr ライクなポインタには std::weak_ptr を使用する
+ * - std::weak_ptr を使用する可能性がある場面としては、キャッシュ、observer リスト、std::shared_ptr の循環防止がある。
+ * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_4_smart_pointer_weak_ptr.cpp -o ../bin/main
 */
@@ -205,6 +211,10 @@ int test_smart_pointer_and_func() {
         return EXIT_FAILURE;
     }
 }
+
+/**
+ * キャッシュ機能や observer のリストを実装する場合に備え、std::weak_ptr が使用できると覚えておくと良いでしょう。
+*/
 
 int main(void) {
     puts("START 不正ポインタになり得る std::shared_ptr ライクなポインタには std::weak_ptr を用いる ===");
