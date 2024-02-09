@@ -97,6 +97,21 @@ void sample() {
  * 1 つ目は std::weak_ptr::lock で std::shared_ptr を返します。この std::shared_ptr は std::weak_ptr が expire されていればヌルになります。
 */
 
+void sample2() {
+    puts("=== sample2");
+    auto spw = std::make_shared<Widget>();
+    std::weak_ptr<Widget> wpw(spw);
+
+    std::shared_ptr<Widget> spw1 = wpw.lock();      // wpw が expire されていれば spw1 はヌル
+    auto spw2 = wpw.lock();                         // 上例と同様だが auto を用いている
+
+    /**
+     * もう 1 つの形式は実引数に std::weak_ptr を与えた std::shared_ptr コンストラクタです。
+     * この場合、std::weak_ptr が expire されていれば、例外がスローされます。
+    */
+    std::shared_ptr<Widget> spw3(wpw);
+}
+
 int main(void) {
     puts("START 不正ポインタになり得る std::shared_ptr ライクなポインタには std::weak_ptr を用いる ===");
     if(0.01) {
@@ -104,6 +119,7 @@ int main(void) {
     }
     if(1.00) {
         sample();
+        sample2();
     }
     puts("=== 不正ポインタになり得る std::shared_ptr ライクなポインタには std::weak_ptr を用いる END");
     return 0;
