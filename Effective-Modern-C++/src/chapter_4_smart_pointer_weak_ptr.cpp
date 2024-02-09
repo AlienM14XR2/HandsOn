@@ -112,6 +112,10 @@ void sample2() {
     std::shared_ptr<Widget> spw3(wpw);
 }
 
+/**
+ * std::weak_ptr は 安全に std::shared_ptr を扱うための補助なのだと思う。
+*/
+
 int main(void) {
     puts("START 不正ポインタになり得る std::shared_ptr ライクなポインタには std::weak_ptr を用いる ===");
     if(0.01) {
