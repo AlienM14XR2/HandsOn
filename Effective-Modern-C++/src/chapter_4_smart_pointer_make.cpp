@@ -212,7 +212,9 @@ public:
     void notify() {
         for(auto iter = begin(observers); iter != end(observers); ) {
             const auto observer = iter++;
-            (*observer)->update(*this);         // Observer（観察者）に通知している。
+            if((*observer)) {
+                (*observer)->update(*this);         // Observer（観察者）に通知している。
+            }
         }
     }
 private:
