@@ -136,6 +136,12 @@ void sample() {
  * std::unique_ptr で make 関数が問題となるのはこの 2 点だけです（カスタムデリータと波括弧による初期化）。
 */
 
+/**
+ * std::shared_ptr および make 関数では、問題点はもう 2つあります。いずれも極端な場合ですが、極端な世界に生きる開発者もいます。
+ * クラスによっては自身で operator new や operator delete を定義するものがあります。これらの関数を定義したということは、そのクラス
+ * オブジェクトに対してはグローバルなメモリ割当／解放関数が不適切であることを意味します。
+*/
+
 
 int main(void) {
     puts("START 項目 21 ：new の直接使用よりも std::make_unique や std::make_shared を優先する ===");
