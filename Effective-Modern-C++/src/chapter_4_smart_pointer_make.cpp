@@ -6,6 +6,14 @@
  * std::make_shared は C++11 の一部となっていますが、std::make_unique は C++14 から標準ライブラリに加えられたものです。
  * もし、C++11 しか使えなくても std::make_unique の基本バージョンは自作が容易ですから。
  * 
+ * 重要ポイント
+ * - new の直接使用と比較すると、make 関数はソースコードの重複を避け、例外安全性を向上できる。また、std::make_shared および
+ *   std::allocate_shared では、高速かつサイズの小さなコードを生成できる。
+ * - make 関数が適切ではない場面には、カスタムデリータを指定する場合、および波括弧による初期化を目的とする場合の 2 つがある。
+ * - std::shared_ptr の場合では、make 関数が適切ではない場面が増える。
+ *   （1）専用のメモリ管理を実装したクラス
+ *   （2）メモリに特別な注意が必要なシステム、巨大オブジェクト、対応する std::shared_ptr とは異なるライフタイムを持つ std::weak_ptr
+ * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_4_smart_pointer_make.cpp -o ../bin/main
 */
