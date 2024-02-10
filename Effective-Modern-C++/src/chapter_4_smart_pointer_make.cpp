@@ -219,7 +219,7 @@ public:
     }
 private:
     std::unique_ptr<DealStrategy<Stock>> dealStrategy;
-    std::set<InvestorObserver*> observers;      // 最終的にはこの形で落ち着いちゃったな。ただし、直接 raw ポインタは扱ってない。
+    std::set<InvestorObserver*> observers;      // 最終的にはこの形で落ち着いちゃったな。ただし、直接 raw ポインタは扱ってない。厳密には set<std::weak_ptr<InvestorObserver>> 型 が理想だと思う。
 };
 
 class Bond final : public Investment {
