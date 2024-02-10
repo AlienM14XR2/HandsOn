@@ -91,7 +91,38 @@ void sample() {
 /**
  * make 関数が望ましい理由の 2 つ目は、例外安全性への対応です。何らかの優先度を考慮しつつ Widget を処理する関数
  * を考えてみましょう。
+ * 
+ * int computePriority();
+ * 
+ * processWidget(std::shared_ptr<Widget>(new Widgete)), computePriority());    // リソース解放漏れの恐れあり！！
+ * 
+ * 上例では new で作成した Widget の解放漏れが発生する恐れがあります。
+ * その答えは、ソースコードをオブジェクトコードへ翻訳するコンパイラにあります。実行時に関数に渡す実引数は、その関数の
+ * 実行開始前に評価する必要があるため、processWidget 呼び出しでは、processWidget が実行を開始できるようになる前に、次
+ * の内容を実行しなければなりません。
+ * 
+ * - 「new Widget」という式を評価しなければならない。すなわち、Widget をヒープ上に作成しなければならない。
+ * - new により生成されたポインタの管理に責任を持つ、std::shared_ptr<Widget> のコンストラクタを実行しなければならない。
+ * - computePriority を実行しなければならない。
+ * 
+ * 上例の順序で実行するようコードを生成することは、コンパイラの要件とはされていません。new の結果がコンストラクタの実
+ * 引数になるため、「new Widget」は std::shared_ptr コンストラクタを呼び出す前に実行しなければなりませんが、computePriority
+ * は new や std::shared_ptr よりも前でも後でも構わないのです。ここで重要なのは『二者の間』、すなわちコンパイラが次の順序で
+ * 実行するコードを生成する場合です。
+ * 
+ * 1. 「new Widget」
+ * 2. computePriority
+ * 3. std::shared_ptr コンストラクタ
+ * 
+ * 上記の順序で実行するコードが生成され、かつ実行時に computePriority が例外を発生させると、ステップ 1 でダイナミックに割り
+ * 当てた Widget が解放漏れとなってしまいます。
+ * std::shared_ptr に保持させ、ライフタイムの管理が開始されるのはステップ 3 であるためです。
+ * std::make_shared を用いればこの問題を回避できます。呼び出し側のコードは次のようなものになります。
+ * 
+ * processWidget(std::make_shared<Widget>(), computePriority());            // リソース解放漏れの恐れがない
 */
+
+
 
 int main(void) {
     puts("START 項目 21 ：new の直接使用よりも std::make_unique や std::make_shared を優先する ===");
