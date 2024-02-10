@@ -19,6 +19,7 @@
 */
 #include <iostream>
 #include <memory>
+#include <set>
 
 template <class M, class D>
 void (*ptr_lambda_debug)(M,D) = [](const auto message, const auto debug) -> void {
@@ -151,6 +152,274 @@ void sample() {
  * 専用の operator new と operator delete を持つ型のオブジェクトの作成に make 関数を用いるのは悪手になります。
 */
 
+/**
+ * Coffee Break
+ * 
+ * 以前実装した Strategy Decorator Observer Factory の内で
+ * Observer を std::shared_ptr と std::weak_ptr でリファクタリングしてみる。
+ * 理由は単純、 前項の重要ポイントに次の記述があったから。
+ * 
+ * - 不正になる可能性がある std::shared_ptr ライクなポインタには std::weak_ptr を使用する
+ * - std::weak_ptr を使用する可能性がある場面としては、キャッシュ、※『observer リスト』、std::shared_ptr の循環防止がある。
+ * 
+ * ※ が該当するとあったからに他ならない。
+*/
+
+class Investment {
+public:
+    virtual ~Investment() = default;
+    virtual void deal() = 0;
+};
+
+template<class T>
+class DealStrategy {
+public:
+    virtual ~DealStrategy() = default;
+    virtual void deal(T&) = 0;
+};
+
+template<class Subject>
+class Observer {
+public:
+    virtual ~Observer() = default;
+    virtual void update(Subject&) = 0;
+};
+
+class Stock final : public Investment {
+public:
+    using InvestorObserver = Observer<Stock>;
+    Stock(std::unique_ptr<DealStrategy<Stock>>& _dealStrategy) : dealStrategy{std::move(_dealStrategy)}
+    {}
+    // ...
+    virtual void deal() override {
+        puts("------ Stock::deal");
+        dealStrategy.get()->deal(*this);
+        notify();
+    }
+    bool attach(std::unique_ptr<InvestorObserver>& investorObserver) {
+        auto [pos,success] = observers.insert(std::move(investorObserver));  // この書き方初めて見る、pair を返却するからか。
+        return success;
+    }
+    bool detach(std::unique_ptr<InvestorObserver>& investorObserver) {
+        return (observers.erase(std::move(investorObserver)) > 0U);
+    }
+    void notify() {
+        for(auto iter = begin(observers); iter != end(observers); ) {
+            const auto observer = iter++;
+            observer->get()->update(*this);         // Observer（観察者）に通知している。
+        }
+    }
+private:
+    std::unique_ptr<DealStrategy<Stock>> dealStrategy;
+    std::set<std::unique_ptr<InvestorObserver>> observers;
+};
+
+class Bond final : public Investment {
+private:
+    std::unique_ptr<DealStrategy<Bond>> dealStrategy;
+public:
+    Bond(std::unique_ptr<DealStrategy<Bond>>& _dealStrategy) : dealStrategy{std::move(_dealStrategy)} 
+    {}
+    virtual void deal() override {
+        puts("------ Bond::deal");
+        dealStrategy.get()->deal(*this);
+    }
+};
+
+class RealEstate final : public Investment {
+private:
+    std::unique_ptr<DealStrategy<RealEstate>> dealStrategy;
+public:
+    RealEstate(std::unique_ptr<DealStrategy<RealEstate>>& _dealStrategy) : dealStrategy{std::move(_dealStrategy)} 
+    {}
+    virtual void deal() override {
+        puts("------ RealEstate::deal");
+        dealStrategy.get()->deal(*this);
+    }
+};
+
+enum struct InvestmentType {
+    STOCK,
+    BOND,
+    REAL_ESTATE,
+    FUTURES_CONTRACT,
+};
+
+class StockDeal final : public DealStrategy<Stock> {
+private:
+    std::unique_ptr<DealStrategy<Stock>> dealStrategy;
+public:
+    StockDeal() {}
+    StockDeal(std::unique_ptr<DealStrategy<Stock>>& _dealStrategy) : dealStrategy{std::move(_dealStrategy)}
+    {}
+    // ...
+    virtual void deal(Stock& stock) override {
+        if(dealStrategy.get()) {
+            dealStrategy.get()->deal(stock);
+        }
+        puts("------ StockDeal::deal");
+        ptr_lambda_debug<const char*,Investment*>("stock addr is \t\t", &stock);
+    }
+};
+
+class StockDealA final : public DealStrategy<Stock> {
+private:
+    std::unique_ptr<DealStrategy<Stock>> dealStrategy;
+public:
+    StockDealA() 
+    {}
+    StockDealA(std::unique_ptr<DealStrategy<Stock>>& _dealStrategy): dealStrategy{std::move(_dealStrategy)}
+    {}
+    // ...
+    virtual void deal(Stock& stock) override {
+        if(dealStrategy.get()) {
+            dealStrategy.get()->deal(stock);
+        }
+        puts("------ StockDealA::deal");
+        ptr_lambda_debug<const char*,Investment*>("stock addr is ", &stock);
+    }
+};
+
+class StockDealB final : public DealStrategy<Stock> {
+private:
+    std::unique_ptr<DealStrategy<Stock>> dealStrategy;
+public:
+    StockDealB() 
+    {}
+    StockDealB(std::unique_ptr<DealStrategy<Stock>>& _dealStrategy): dealStrategy{std::move(_dealStrategy)}
+    {}
+    // ...
+    virtual void deal(Stock& stock) override {
+        if(dealStrategy.get()) {
+            dealStrategy.get()->deal(stock);
+        }
+        puts("------ StockDealB::deal");
+        ptr_lambda_debug<const char*,Investment*>("stock addr is ", &stock);
+    }
+};
+
+class BondDeal final : public DealStrategy<Bond> {
+public:
+    virtual void deal(Bond& bond) override {
+        puts("------ BondDeal::deal");
+        ptr_lambda_debug<const char*,Investment*>("bond addr is \t\t", &bond);       
+    }
+};
+
+class RealEstateDeal final : public DealStrategy<RealEstate> {
+public:
+    virtual void deal(RealEstate& realEstate) override {
+        puts("------ RealEstateDeal::deal");
+        ptr_lambda_debug<const char*,Investment*>("realEstate addr is \t", &realEstate);
+    }
+};
+
+class Investor {
+protected:
+    std::string name;
+    std::string email;
+public:
+    Investor(const std::string& _name, const std::string& _email): name{_name}, email{_email} 
+    {}
+    Investor(const Investor&) = default; 
+    virtual ~Investor() = default;
+
+    // ...
+    std::string getName() const { return name; }
+    std::string getEmail() const { return email; }
+};
+
+class SystemAdmin final : public Investor {
+public:
+    SystemAdmin(const std::string& _name, const std::string& _email): Investor{_name, _email}
+    {}
+    // ...
+};
+
+class InvestorObserver final : public Observer<Stock> {
+private:
+    Investor investor;
+public:
+    InvestorObserver(const Investor& _investor): investor{_investor}
+    {}
+    virtual void update(Stock& stock) override {
+        puts("------ InvestorObserver::update");
+        ptr_lambda_debug<const char*,Investment*>("stock addr is ", &stock);
+        ptr_lambda_debug<const char*,const std::string&>("name is ", investor.getName());
+        ptr_lambda_debug<const char*,const std::string&>("email is ", investor.getEmail());
+    }
+};
+
+class SystemAdminObserver final : public Observer<Stock> {
+    SystemAdmin systemAdmin;
+public:
+    SystemAdminObserver(const SystemAdmin& _systemAdmin): systemAdmin{_systemAdmin}
+    {}
+    virtual void update(Stock& stock) override {
+        puts("------ SystemAdminObserver::update");
+        ptr_lambda_debug<const char*,Investment*>("stock addr is ", &stock);
+        ptr_lambda_debug<const char*,const std::string&>("name is ", systemAdmin.getName());
+        ptr_lambda_debug<const char*,const std::string&>("email is ", systemAdmin.getEmail());
+    }
+};
+
+std::unique_ptr<Investment> stockFactory() {
+    std::unique_ptr<DealStrategy<Stock>> dsB = std::make_unique<StockDealB>(StockDealB{});
+    std::unique_ptr<DealStrategy<Stock>> dsA = std::make_unique<StockDealA>(StockDealA{dsB});
+
+    std::unique_ptr<DealStrategy<Stock>> dealStrategy = std::make_unique<StockDeal>(StockDeal{dsA});
+    std::unique_ptr<Observer<Stock>> investorObserver = std::make_unique<InvestorObserver>(InvestorObserver{Investor{"Jack","jack@loki.org"}});
+    std::unique_ptr<Observer<Stock>> systemAdminObserver = std::make_unique<SystemAdminObserver>(SystemAdminObserver{SystemAdmin{"Admin","admin@loki.org"}});
+
+    Stock stock{dealStrategy};
+    stock.attach(investorObserver);
+    stock.attach(systemAdminObserver);
+
+    return std::make_unique<Stock>(std::move(stock));
+}
+std::unique_ptr<Investment> bondFactory() {
+    std::unique_ptr<DealStrategy<Bond>> dealStrategy = std::make_unique<BondDeal>(BondDeal{});
+    return std::make_unique<Bond>(Bond{dealStrategy});
+}
+std::unique_ptr<Investment> realEstateFactory() {
+    std::unique_ptr<DealStrategy<RealEstate>> dealStrategy = std::make_unique<RealEstateDeal>(RealEstateDeal{});
+    return std::make_unique<RealEstate>(RealEstate{dealStrategy});
+}
+std::unique_ptr<Investment> investmentFactory(InvestmentType type) {
+    switch(type) {
+        case InvestmentType::STOCK: return stockFactory();
+        case InvestmentType::BOND:  return bondFactory();
+        case InvestmentType::REAL_ESTATE: return realEstateFactory();
+        default: throw std::runtime_error("No match InvestmentType. @see investmentFactory()");
+    }
+}
+
+int test_investmentFactory() {
+    puts("=== test_investmentFactory");
+    try {
+        std::unique_ptr<Investment> ic_1 = investmentFactory(InvestmentType::STOCK);
+        ptr_lambda_debug<const char*,Investment*>("Investment* ...(Stock) is ", ic_1.get());
+        ic_1.get()->deal();
+        ic_1.release();
+        ptr_lambda_debug<const char*,Investment*>("After release Investment* ...(Stock) is ", ic_1.get());
+
+        ic_1 = investmentFactory(InvestmentType::BOND);
+        ptr_lambda_debug<const char*,Investment*>("Investment* ...(Bond) is ", ic_1.get());
+        ic_1.get()->deal();
+        ic_1.release();
+
+        ic_1 = investmentFactory(InvestmentType::REAL_ESTATE);
+        ptr_lambda_debug<const char*,Investment*>("Investment* ...(RealEstate) is ", ic_1.get());
+        ic_1.get()->deal();
+        ic_1.release();
+
+        ic_1 = investmentFactory(InvestmentType::FUTURES_CONTRACT);     // これは未実装の取引（取引自体は仕様として定義されている）。
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 int main(void) {
     puts("START 項目 21 ：new の直接使用よりも std::make_unique や std::make_shared を優先する ===");
@@ -160,6 +429,9 @@ int main(void) {
     if(1.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_my_make_unique());
         sample();
+    }
+    if(2.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_investmentFactory());
     }
     puts("=== 項目 21 ：new の直接使用よりも std::make_unique や std::make_shared を優先する END");
     return 0;
