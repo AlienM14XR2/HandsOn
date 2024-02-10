@@ -211,7 +211,7 @@ public:
     }
 private:
     std::unique_ptr<DealStrategy<Stock>> dealStrategy;
-    std::set<std::unique_ptr<InvestorObserver>> observers;
+    std::set<std::unique_ptr<InvestorObserver>> observers;      // TODO ここを std::shared_ptr にする、std::unique_ptr からの変換は簡単とあったので、attach detach のシグネチャは変えないで一度確認してみる。
 };
 
 class Bond final : public Investment {
