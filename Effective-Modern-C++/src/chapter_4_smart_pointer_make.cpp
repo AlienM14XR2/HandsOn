@@ -169,6 +169,9 @@ class Investment {
 public:
     virtual ~Investment() = default;
     virtual void deal() = 0;
+    // virtual void detach() {
+    //     puts("------ Investment::detach");
+    // }
 };
 
 template<class T>
@@ -196,22 +199,25 @@ public:
         dealStrategy.get()->deal(*this);
         notify();
     }
-    bool attach(std::unique_ptr<InvestorObserver>& investorObserver) {
-        auto [pos,success] = observers.insert(std::move(investorObserver));  // この書き方初めて見る、pair を返却するからか。
+    // virtual void detach() override {
+    //     puts("------ Stock::detach");
+    // }
+    bool attach(std::shared_ptr<InvestorObserver>& investorObserver) {
+        auto [pos,success] = observers.insert(investorObserver.get());  // この書き方初めて見る、pair を返却するからか。
         return success;
     }
-    bool detach(std::unique_ptr<InvestorObserver>& investorObserver) {
-        return (observers.erase(std::move(investorObserver)) > 0U);
+    bool detach(std::shared_ptr<InvestorObserver>& investorObserver) {
+        return (observers.erase(investorObserver.get()) > 0U);
     }
     void notify() {
         for(auto iter = begin(observers); iter != end(observers); ) {
             const auto observer = iter++;
-            observer->get()->update(*this);         // Observer（観察者）に通知している。
+            (*observer)->update(*this);         // Observer（観察者）に通知している。
         }
     }
 private:
     std::unique_ptr<DealStrategy<Stock>> dealStrategy;
-    std::set<std::shared_ptr<InvestorObserver>> observers;      // ここを std::shared_ptr にする、std::unique_ptr からの変換は簡単とあったので、attach detach のシグネチャは変えないで一度確認してみる。
+    std::set<InvestorObserver*> observers;      // 最終的にはこの形で落ち着いちゃったな。ただし、直接 raw ポインタは扱ってない。
 };
 
 class Bond final : public Investment {
@@ -368,8 +374,8 @@ std::unique_ptr<Investment> stockFactory() {
     std::unique_ptr<DealStrategy<Stock>> dsA = std::make_unique<StockDealA>(StockDealA{dsB});
 
     std::unique_ptr<DealStrategy<Stock>> dealStrategy = std::make_unique<StockDeal>(StockDeal{dsA});
-    std::unique_ptr<Observer<Stock>> investorObserver = std::make_unique<InvestorObserver>(InvestorObserver{Investor{"Jack","jack@loki.org"}});
-    std::unique_ptr<Observer<Stock>> systemAdminObserver = std::make_unique<SystemAdminObserver>(SystemAdminObserver{SystemAdmin{"Admin","admin@loki.org"}});
+    std::shared_ptr<Observer<Stock>> investorObserver = std::make_shared<InvestorObserver>(InvestorObserver{Investor{"Jack","jack@loki.org"}});
+    std::shared_ptr<Observer<Stock>> systemAdminObserver = std::make_shared<SystemAdminObserver>(SystemAdminObserver{SystemAdmin{"Admin","admin@loki.org"}});
 
     Stock stock{dealStrategy};
     stock.attach(investorObserver);
@@ -377,14 +383,36 @@ std::unique_ptr<Investment> stockFactory() {
 
     return std::make_unique<Stock>(std::move(stock));
 }
+
+std::unique_ptr<Investment> stockFactory(std::shared_ptr<Observer<Stock>>& investorObserver
+                                        ,std::shared_ptr<Observer<Stock>>& systemAdminObserver ) 
+{
+    /**
+     * make 関数と vector などの std::initializer_list と波括弧{} 、この条件下での注意を今は学習した。
+     * 自作のクラスは上記には抵触しないと考えるが、癖付けの意味と注意を込めて、以後、make 関数使用時は丸括弧() で統一する。
+     * うん、上記も make は丸括弧のみで、make していたね。
+    */
+    std::unique_ptr<DealStrategy<Stock>> dsB = std::make_unique<StockDealB>(StockDealB());
+    std::unique_ptr<DealStrategy<Stock>> dsA = std::make_unique<StockDealA>(StockDealA{dsB});
+    std::unique_ptr<DealStrategy<Stock>> dealStrategy = std::make_unique<StockDeal>(StockDeal{dsA});
+
+    Stock stock{dealStrategy};
+    stock.attach(investorObserver);
+    stock.attach(systemAdminObserver);
+
+    return std::make_unique<Stock>(std::move(stock));
+}
+
 std::unique_ptr<Investment> bondFactory() {
     std::unique_ptr<DealStrategy<Bond>> dealStrategy = std::make_unique<BondDeal>(BondDeal{});
     return std::make_unique<Bond>(Bond{dealStrategy});
 }
+
 std::unique_ptr<Investment> realEstateFactory() {
     std::unique_ptr<DealStrategy<RealEstate>> dealStrategy = std::make_unique<RealEstateDeal>(RealEstateDeal{});
     return std::make_unique<RealEstate>(RealEstate{dealStrategy});
 }
+
 std::unique_ptr<Investment> investmentFactory(InvestmentType type) {
     switch(type) {
         case InvestmentType::STOCK: return stockFactory();
@@ -421,6 +449,31 @@ int test_investmentFactory() {
     }
 }
 
+int test_stockFactory_B() {
+    puts("=== test_stockFactory_B");
+    try {
+        std::shared_ptr<Observer<Stock>> investorObserver = std::make_shared<InvestorObserver>(InvestorObserver{Investor{"Derek","derek@loki.org"}});
+        std::shared_ptr<Observer<Stock>> systemAdminObserver = std::make_shared<SystemAdminObserver>(SystemAdminObserver{SystemAdmin{"ADMIN","admin@loki.org"}});
+        std::unique_ptr<Investment> ui = stockFactory(investorObserver,systemAdminObserver);
+
+        // 次のコードが黒魔術にしか見えない：）ここまでしても make 関数にこだわる価値はあるのだろう、演習とは言え。
+        std::unique_ptr<Stock> us = std::make_unique<Stock>( dynamic_cast<Stock&&>(std::move(*ui.get())) );
+        us.get()->deal();
+        bool b1 = us.get()->detach(systemAdminObserver);
+        bool b2 = us.get()->detach(investorObserver);
+        ptr_lambda_debug<const char*,const bool&>("b1 is ", b1);
+        ptr_lambda_debug<const char*,const bool&>("b2 is ", b2);
+        puts("--- after detach");
+        us.get()->deal();
+        // ui.get()->deal();
+        // detach のインタフェースがなかった orz
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START 項目 21 ：new の直接使用よりも std::make_unique や std::make_shared を優先する ===");
     if(0.01) {
@@ -432,6 +485,9 @@ int main(void) {
     }
     if(2.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_investmentFactory());
+    }
+    if(2.01) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_stockFactory_B());
     }
     puts("=== 項目 21 ：new の直接使用よりも std::make_unique や std::make_shared を優先する END");
     return 0;
