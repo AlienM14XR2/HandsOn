@@ -9,6 +9,12 @@
  * 
  * これ別の書籍「C++ ソフトウェア設計」でも語られてたな、忘れた：）
  * 
+ * 重要ポイント
+ * - Pimpl イディオムを用いると、クラス利用と実装間の依存性を削除でき、この結果ビルド時間を短縮できる。
+ * - std::unique_ptr の pImpl ポインタを利用する場合は、クラスヘッダで特殊メンバ関数を宣言し、実装はソースファイルに記述する。
+ *   default の実装で充分な場合でも記述する。
+ * - 上記、特殊メンバ関数の宣言と定義は std::shared_ptr の場合はあてはまらない。
+ * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_4_smart_pointer_pimpl.cpp -o ../bin/main
 */
