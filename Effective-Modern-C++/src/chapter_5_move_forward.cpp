@@ -31,6 +31,11 @@
  * 
  * 項目 23 ：std::move と std::forward を理解する
  * 
+ * std::move と std::forward については、こう動作すると解説するよりも、『こう動作しない』と解説を進めた方が良いでしょう。
+ * std::move は何もムーブしませんし、std::forward は何も転送しません。実行時には、どちらも何もしないのです。
+ * std::move と std::forward はキャストを実行する関数に過ぎません（実際にはカンスウテンプレート）。std::move は実引数を
+ * 無条件に右辺値へキャストし、std::forward は特定の条件が満たされた場合にのみ、同様のキャストを実行します。これだけです。
+ * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_5_move_forward.cpp -o ../bin/main
 */
