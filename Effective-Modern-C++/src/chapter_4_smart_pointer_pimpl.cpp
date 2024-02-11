@@ -263,6 +263,60 @@ int test_WidgetV2() {
     }
 }
 
+/**
+ * 上記サンプルの WidgetV2 は Pimpl イディオムを std::unique_ptr で宣言しているため、本来コンパイラが自動生成する
+ * 特殊メンバ関数を宣言、定義してあげる必要があった。WidgetV2::Impl はメンバ変数なので専有目的の std::unique_ptr 
+ * を用いることは正しい、しかし、次のパターンでは、敢えて、std::shared_ptr で Pimpl イディオムを宣言し、コンパイラ
+ * の自動生成の利用を可能にしている。プログラマのコード量を減らすことができる。
+*/
+
+
+class WidgetV3 {
+private:
+    struct Impl;
+    std::shared_ptr<Impl> pImpl;
+public:
+    WidgetV3();
+    WidgetV3(const std::string& _name);
+    // ...
+    std::string getName() noexcept;
+};
+
+struct WidgetV3::Impl {
+    std::string name;
+    std::vector<double> data;
+    Gadget g1, g2 ,g3;
+};
+
+WidgetV3::WidgetV3(): pImpl{std::make_shared<Impl>()}
+{}
+WidgetV3::WidgetV3(const std::string& _name): pImpl{std::make_shared<Impl>()}
+{
+    pImpl.get()->name = _name;
+}
+std::string WidgetV3::getName() noexcept {
+    return pImpl.get()->name;
+}
+
+int test_WidgetV3() {
+    puts("=== test_WidgetV3");
+    try {
+        WidgetV3 w1("Jack");
+        WidgetV3 w2 = std::move(w1);
+        ptr_lambda_debug<const char*,const std::string&>("(w2) name is ", w2.getName());
+        // ptr_lambda_debug<const char*,const std::string&>("(w1) name is ", w1.getName());     // 未定義の動作でコアダンプになった。
+        /**
+         * std::shared_ptr は 専有しないので、コピー演算もコンパイラが自動生成してくれる。
+        */
+        w1 = w2;
+        ptr_lambda_debug<const char*,const std::string&>("(w1) name is ", w1.getName());
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;        
+    }
+}
+
 int main(void) {
     puts("START 項目 22 ：Pimpl イディオムを用いる際は特殊メンバ関数を定義する ===");
     if(0.01) {
@@ -270,6 +324,9 @@ int main(void) {
     }
     if(1.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_WidgetV2());
+    }
+    if(1.01) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_WidgetV3());
     }
     puts("=== 項目 22 ：Pimpl イディオムを用いる際は特殊メンバ関数を定義する END");
     return 0;
