@@ -70,10 +70,80 @@ int test_debug_and_error() {
     }
 }
 
+/**
+ * 標準規格の隅々にまで完全準拠している訳ではありませんが、以下に C++14 での std::move のサンプルを
+ * 挙げます。
+*/
+
+class Widget {
+private:
+    std::string name;
+public:
+    Widget(const std::string& _name): name{_name}
+    {}
+    // ...
+    std::string getName() noexcept {
+        return name;
+    }
+};
+
+template <class T>
+decltype(auto) move(T&& param) {
+    using ReturnType = std::remove_reference_t<T>&&;
+    return static_cast<ReturnType>(param);
+}
+
+/**
+ * 上例のように、std::move がすることは、キャストであり、ムーブではありません。
+ * もちろん右辺値はムーブ対象の候補となるのですから、オブジェクトに std::move を使用すれば、コンパイラに対し、この
+ * オブジェクトがムーブ元になれることと通知することになります。ムーブ元になれるオブジェクトの指定が容易になり、この
+ * 点が std::move と名付けられた理由です。
+*/
+
+int test_my_move() {
+    puts("=== test_my_move");
+    try {
+        Widget w1{"Derek"};     // w1 私の理解では右辺値
+        Widget w2{""};
+        w2 = move(w1);
+        ptr_lambda_debug<const char*,const std::string&>("(w1) name is ", w1.getName());
+        ptr_lambda_debug<const char*,const std::string&>("(w2) name is ", w2.getName());
+        Widget w3 = move(Widget("Alice"));
+        ptr_lambda_debug<const char*,const std::string&>("(w3) name is ", w3.getName());
+
+        int x = 3;          // x 私の理解では左辺値
+        int y = move(x);
+        ptr_lambda_debug<const char*,const int&>("x is ", x);
+        ptr_lambda_debug<const char*,const int&>("y is ", y);
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+/** 
+ * 実を言えば、『通常は』、右辺値はムーブ対象の候補となるだけにすぎません。注釈（annotation）を表現するクラスを開発
+ * する場合を例に考えてみましょう。このクラスのコンストラクタは注釈文の std::string 仮引数をとり、メンバ変数へコピー
+ * します。項目 41 を踏まえて、値渡しする仮引数を宣言します。
+*/
+
+class Annotation {
+public:
+    // text をメンバ変数へコピーする際のコストを削減するため、項目 41 に従い std::move により右辺値の test を得ます。
+    explicit Annotation(const std::string text): value(std::move(text))
+    {}
+private:
+    std::string value;
+};
+
 int main(void) {
     puts("START 項目 23 ：std::move と std::forward を理解する ===");
     if(0.01) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_debug_and_error());
+    }
+    if(1.00) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_my_move());
     }
     puts("=== 項目 23 ：std::move と std::forward を理解する END");
     return 0;
