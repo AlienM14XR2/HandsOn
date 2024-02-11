@@ -129,6 +129,7 @@ private:
     std::unique_ptr<Impl> pImpl;
 public:
     WidgetV2();
+    WidgetV2(const std::string& _name);
     // 私の環境では次の定義は不要だった。そもそもソースにすべて記述しているため。
     ~WidgetV2();
     // デストラクタを明示した際は、ムーブの特殊メンバ関数の自動生成が抑制される、利用する場合は明示しないといけない。
@@ -173,26 +174,32 @@ WidgetV2::WidgetV2() : pImpl(std::make_unique<Impl>())
     // pImpl.get()->data;
     // (*pImpl).data;
 }
+WidgetV2::WidgetV2(const std::string& _name) : pImpl{std::make_unique<Impl>()}
+{
+    pImpl.get()->name = _name;
+    ptr_lambda_debug<const char*,const char*>("pImpl type is ", typeid(pImpl).name());
+    ptr_lambda_debug<const char*,const char*>("*pImpl type is ", typeid(*pImpl).name());
+    ptr_lambda_debug<const char*,Impl*>("*pImpl addr is ", pImpl.get());
+    ptr_lambda_debug<const char*,Impl*>("*pImpl addr is ", &(*pImpl));
+}
 // 解放は std::uniqu_ptr が行う。
 // WidgetV2::~Widget() {
 //     delete pImpl;
 // }
 
 // 私の環境では次の定義は不要だった。そもそもソースにすべて記述しているため。
-WidgetV2::~WidgetV2() = default;
-WidgetV2::WidgetV2(WidgetV2&& rhs) = default;
-WidgetV2& WidgetV2::operator=(WidgetV2&& rhs) = default;
-WidgetV2::WidgetV2(const WidgetV2& own) //: pImpl(std::make_unique<Impl>(*own.pImpl))
+WidgetV2::~WidgetV2() = default;                            // デストラクタ
+WidgetV2::WidgetV2(WidgetV2&& rhs) = default;               // ムーブコンストラクタ
+WidgetV2& WidgetV2::operator=(WidgetV2&& rhs) = default;    // ムーブ代入演算子
+WidgetV2::WidgetV2(const WidgetV2& own) //: pImpl(std::make_unique<Impl>(*own.pImpl))   // コピーコンストラクタ
 {
     if(own.pImpl.get()) {
         pImpl = std::make_unique<Impl>(*own.pImpl);
     }
 }
-// コピー代入演算の実装が書籍通りでは無理だった、そもそもこれはいらないし止めたい。
-WidgetV2 WidgetV2::operator=(const WidgetV2& own) 
+WidgetV2 WidgetV2::operator=(const WidgetV2& own)           // コピー代入演算子
 {
     if(own.pImpl.get()) {
-        pImpl.release();
         *pImpl = *own.pImpl;
     }
     return *this;
@@ -215,6 +222,40 @@ int test_WidgetV2() {
         auto pImpl = std::move(w.getResource());
         ptr_lambda_debug<const char*,const char*>("pImpl type is ", typeid(pImpl).name());
         ptr_lambda_debug<const char*,const char*>("*pImpl type is ", typeid(*pImpl).name());
+        ptr_lambda_debug<const char*,const decltype(pImpl.get())>("(w) WidgetV2::Impl addr is ", pImpl.get());
+
+        puts("--- Before construct w2");
+        WidgetV2 w2;
+        puts("--- Before move construct w3");
+        WidgetV2 w3 = std::move(w2);
+        auto pImpl3 = std::move(w3.getResource());
+        ptr_lambda_debug<const char*,const decltype(pImpl3.get())>("(w3) WidgetV2::Impl addr is ", pImpl3.get());
+        auto pImpl2 = std::move(w2.getResource());
+        ptr_lambda_debug<const char*,const decltype(pImpl2.get())>("(w2) WidgetV2::Impl addr is ", pImpl2.get());
+        puts("--- Before construct w4");
+        WidgetV2 w4;
+        puts("--- Before move operator=() w2");
+        w2 = std::move(w4);
+        auto pImpl4 = std::move(w2.getResource());
+        ptr_lambda_debug<const char*,const decltype(pImpl4.get())>("(w2) WidgetV2::Impl addr is ", pImpl4.get());
+
+        puts("--- Before construct w5");
+        WidgetV2 w5("Derek");
+        puts("--- Before copy construct w6");
+        WidgetV2 w6 = w5;
+        auto pImpl5 = std::move(w6.getResource());
+        ptr_lambda_debug<const char*,const decltype(pImpl5.get())>("(w6) WidgetV2::Impl addr is ", pImpl5.get());
+        ptr_lambda_debug<const char*,const decltype(pImpl5.get()->name)&>("(w6) WidgetV2::Impl name is ", pImpl5.get()->name);
+        puts("--- Before construct w7");
+        WidgetV2 w7("Alice");
+        puts("--- Before construct w8");
+        WidgetV2 w8;
+        puts("--- Before copy operator=() w8");
+        w8 = w7;
+        auto pImpl6 = std::move(w8.getResource());
+        ptr_lambda_debug<const char*,const decltype(pImpl6.get())>("(w8) WidgetV2::Impl addr is ", pImpl6.get());
+        ptr_lambda_debug<const char*,const decltype(pImpl6.get()->name)&>("(w8) WidgetV2::Impl name is ", pImpl6.get()->name);
+
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
