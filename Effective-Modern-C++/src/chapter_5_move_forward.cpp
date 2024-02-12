@@ -40,6 +40,8 @@
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_5_move_forward.cpp -o ../bin/main
 */
 #include <iostream>
+#include <chrono>
+#include <ctime>
 
 template <class M, class D>
 void (*ptr_lambda_debug)(M, D) = [](const auto message, const auto debug) -> void {
@@ -154,6 +156,43 @@ private:
  * ず、std::string のコピーコンストラクタが実行されるのです！ この動作は const を正しく維持するためには必要不可欠です。
 */
 
+/**
+ * std::forward についても std::move に似たことが言えますが、std::move が実引数を『無条件』に右辺値へキャストするのに対し、std::forward はある
+ * 特定の条件が満たされた場合にのみキャストします。すなわち、std::forward は『条件付きのキャスト』です。std::forward の典型的な使用例を思い出し
+ * てみましょう。最も多く使用される場面は、ユニバーサル参照仮引数をとる関数テンプレートです。この種の関数テンプレートはユニバーサル参照仮引数を
+ * 他の関数へ渡します。
+*/
+
+void process(const Widget& lvalArg) {
+    puts("--- process 左辺値を処理");
+}
+void process(Widget&& rvalArg) {
+    puts("--- process 右辺値を処理");
+}
+
+template <class T>
+void logAndProcess(T&& param) {
+    auto now = std::chrono::system_clock::now();
+    // makeLogEntry("Calling 'process'",now);
+    std::time_t t = std::chrono::system_clock::to_time_t(now);
+    ptr_lambda_debug<const char*,const char*>("now is ", std::ctime(&t));
+
+    process(std::forward<T>(param));
+}
+
+int test_logAndProcess() {
+    puts("=== test_logAndProcess");
+    try {
+        Widget w1("Derek");
+        logAndProcess(w1);              // 左辺値を渡す
+        logAndProcess(std::move(w1));   // 右辺値を渡す
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START 項目 23 ：std::move と std::forward を理解する ===");
     if(0.01) {
@@ -161,6 +200,9 @@ int main(void) {
     }
     if(1.00) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_my_move());
+    }
+    if(1.01) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_logAndProcess());
     }
     puts("=== 項目 23 ：std::move と std::forward を理解する END");
     return 0;
