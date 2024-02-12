@@ -68,21 +68,12 @@ private:
     std::string name;
 };
 
-void foo(Widget&& param) {              // 右辺値参照
-    puts("--- foo");
-}
-
 template<class T>
 void bar(std::vector<T>&& param) {      // 右辺値参照
     puts("--- bar");
 }
 
-template <class T>
-void buzz(T&& param) {                  // 右辺値参照ではない
-    puts("--- buzz");
-}
-
-void sample() {
+void sample(void) {
     puts("=== sample");
     Widget&& w1 = Widget("Chasire");    // 右辺値参照
 
@@ -102,7 +93,46 @@ void sample() {
  * かつ volatile なオブジェクトにもバインド可能です。実質的に『どんなもの』にもバインド可能です。このような前例のない
  * 柔軟性を備えた参照には専用の名前が相応しいでしょう。著者は『ユニバーサル参照』と呼んでいます。
  * ※『転送参照（forwarding reference）』と一般には呼ばれる。
+ * 
+ * 転送参照の一般的な使用は関数テンプレートの仮引数です。
+ * 使用場面のもう 1 つは auto による宣言です。先に挙げた例でも使用しています。
+ * 両者に共通するのは『型推論』です。
+ * 型推論を伴わない「T&&」は右辺値参照を表します。
 */
+
+void process(const Widget& lvalArg) {
+    puts("--- process 左辺値を処理");
+}
+void process(Widget&& rvalArg) {
+    puts("--- process 右辺値を処理");
+}
+
+void foo(Widget&& param) {              // 右辺値参照
+    puts("--- foo");
+}
+
+template <class T>
+void buzz(T&& param) {                  // 右辺値参照ではない、転送参照と呼ばれる、型の推論を伴う。
+    puts("--- buzz");
+    ptr_lambda_debug<const char*,const char*>("TYPE is ", typeid(param).name());
+    process(std::forward<T>(param));
+}
+
+/**
+ * 転送参照は参照なのですから、初期化が必須です。転送参照が右辺値参照を表すのか左辺値参照を表すのかを決定するのは初期化子です。
+ * 初期化子が右辺値ならば、転送参照は右辺値参照、初期化子が左辺値ならば、転送参照は左辺値参照を表します。
+ * 
+ * ※ そもそもなぜこの右辺値参照や転送参照が必要なんだっけ？ ポインタを専有所有する、std::unique_ptr （これらはコピー演算は不可）
+ * などがあるためだと思ってるけど。つまり、ムーブ演算と関係が深いと考えている。
+ * Foo(Foo&& rhs), Foo& operator=(Foo&& rhs), ムーブ演算は、右辺値参照か転送参照になるため。
+*/
+
+void sample2(void) {
+    puts("=== sample2");
+    Widget w1("Alice");
+    buzz(w1);               // buzz には左辺値が渡される。param の型は Widget&  （左辺値参照）
+    buzz(std::move(w1));    // buzz には右辺値が渡される。param の型は Widget&& （右辺値参照）
+}
 
 int main(void) {
     puts("START 項目 24 ：ユニバーサル参照と右辺値参照の違い ===");
@@ -111,6 +141,7 @@ int main(void) {
     }
     if(1.00) {
         sample();
+        sample2();
     }
     puts("=== 項目 24 ：ユニバーサル参照と右辺値参照の違い END");
 }
