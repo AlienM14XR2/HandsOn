@@ -131,11 +131,28 @@ int test_my_move() {
 class Annotation {
 public:
     // text をメンバ変数へコピーする際のコストを削減するため、項目 41 に従い std::move により右辺値の test を得ます。
-    explicit Annotation(const std::string text): value(std::move(text))
+    explicit Annotation(const std::string text): value(std::move(text))     // text を value へ「ムーブ」。見た目通りの処理内容ではない！
     {}
 private:
     std::string value;
 };
+
+/**
+ * 上例のコードはコンパイルできます。リンクも実行もでき、text の内容をメンバ変数 value に代入もします。思い描いた処理内容と異なるのは、
+ * text が value へムーブされるのではなく『コピーされる』点です。text が std::move で右辺値へキャストされる点は間違いなくその通りですが、
+ * const std::string と宣言されているため、キャスト前の text は左辺値の const std::string であり、キャスト後に右辺値の const std::string
+ * になります。キャストしても const 性は変化しません。
+ * コンパイラがどちらの std::string コンストラクタを呼び出すかの判断に与える影響を考えてみましょう。起こり得る場合は 2 つあります。
+ * コピーコンストラクタとムーブコンストラクタです。
+ * 
+ * string(const string& rhs)    // コピーコンストラクタ
+ * string(string&& rhs)         // ムーブコンストラクタ
+ * 
+ * std::move(text) の結果は const std::string 型の右辺値としています。しかし、std::string のムーブコンストラクタは const ではない std::string
+ * の右辺値参照をとるため、const std::string 型の右辺値をムーブコンストラクタへ渡せません。一方、const 左辺値参照の const 右辺値へのバインドは
+ * 認められるため、コピーコンストラクタへは const 右辺値を渡せます。そのため、上例のメンバ初期化では text を右辺値へキャストしているにも関わら
+ * ず、std::string のコピーコンストラクタが実行されるのです！ この動作は const を正しく維持するためには必要不可欠です。
+*/
 
 int main(void) {
     puts("START 項目 23 ：std::move と std::forward を理解する ===");
