@@ -238,6 +238,24 @@ void sample5() {
 
 }
 
+/**
+ * auto で宣言した転送参照は、関数テンプレートの仮引数に用いる転送参照ほど一般的ではありませんが、C++11 でもたびたび
+ * 登場しますし、C++14 ではさらに多く使用されます。C++14 のラムダ式では仮引数を auto&& と宣言できるためです。
+ * 例えば、ある関数の所要実行時間を測定する C++14 のラムダ式は、次のように記述できます。
+*/
+
+auto timeFuncInvocation = [](auto&& func, auto&&... params) {
+    puts("--- timeFuncInvocation");
+    std::clock_t start = clock();
+    std::forward<decltype(func)>(func)(
+        std::forward<decltype(params)>(params)...       // params を与え func を実行
+    );
+    // stop timer and record elapsed time;     // タイマ停止、経過時間を記録
+    std::clock_t end = clock();
+    std::cout << "passed " << ((double)(end-start))/CLOCKS_PER_SEC << " sec." << std::endl;
+    std::cout << "passed " << end-start << std::endl;
+};
+
 int main(void) {
     puts("START 項目 24 ：転送参照と右辺値参照の違い ===");
     if(0.01) {
@@ -249,6 +267,7 @@ int main(void) {
         sample3();
         sample4();
         sample5();
+        timeFuncInvocation(sample5);
     }
     puts("=== 項目 24 ：転送参照と右辺値参照の違い END");
 }
