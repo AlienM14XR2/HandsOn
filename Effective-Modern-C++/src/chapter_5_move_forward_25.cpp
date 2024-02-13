@@ -132,6 +132,56 @@ void sample() {
     ptr_lambda_debug<const char*,const std::string&>("(w2) name is ", w2.getName());
 }
 
+/**
+ * Coffee Break
+ * 
+ * O/R Mapping を考えてみる
+ * まずは最低限必要と思われる情報をクラスにする。
+ * - 型情報
+ * - 名前（カラム名）
+ * - 値
+*/
+
+template <class T>
+class DataField {
+public:
+    DataField(const std::string& _name, const T& _value): name(_name), value(_value)
+    {}
+
+    // ...
+    std::pair<T,std::string> bind() {
+        return {value, name};
+    }
+
+private:
+    std::string name;
+    T value;
+};
+
+/**
+ * 上例のクラスを std::vector なりのコンテナに詰めたものが、レコードの 1 行を表現するのではないのか？
+*/
+
+int test_DataField() {
+    puts("=== test_DataField");
+    try {
+        DataField<int> d1("id",1);
+        auto[value, name] = d1.bind();
+        ptr_lambda_debug<const char*,const decltype(value)&>("value is ", value);
+        ptr_lambda_debug<const char*,const std::string&>("value type is ", typeid(value).name());   // Boost のライブラリの方が正確との情報があった。
+        ptr_lambda_debug<const char*,const decltype(name)&>("name is ", name);
+        /**
+         * TODO Jack
+         * 時間を見て、MySQL にある型と一致する C++ の型を網羅させる。
+        */
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+
 int main(void) {
     puts("START  項目 25 ：右辺値参照には std::move を、転送参照には std::forward を用いる ===");
     if(0.01) {
@@ -142,6 +192,9 @@ int main(void) {
     }
     if(1.00) {
         sample();
+    }
+    if(1.01) {
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ", test_DataField());
     }
     puts("===  項目 25 ：右辺値参照には std::move を、転送参照には std::forward を用いる END");
     return 0;
