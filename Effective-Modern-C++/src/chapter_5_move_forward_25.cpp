@@ -181,6 +181,44 @@ int test_DataField() {
     }
 }
 
+/**
+ * 書籍に戻る。
+ * 値戻しを行う関数の場合は関数から戻される右辺値参照に std::move() を実行しても、何も失うものはありません
+ * （得るものがある可能性は大いにある）。
+ * e.g.
+ * 
+ * Matrix operator+(Matrix&& lhs, const Matrix& rhs)
+ * {
+ *   lhs += rhs;
+ *   return std::move(lhs);
+ * }
+ * 
+ * 転送参照と std::forward の場合も似ています。約分していない可能性がある分数を表現するオブジェクト Fraction を
+ * とる関数テンプレート reduceAndCopy を例に考えてみましょう。reduceAndCopy は約分し、その結果の値のコピーを返し
+ * ます。元オブジェクトが右辺値ならば結果の値を戻り値へムーブするべきですが（コスト高なコピー演算を避けられる）
+ * 元オブジェクトが左辺値の場合はコピーを作成する必要があります。
+ * e.g.
+ * 
+ * template <class T>
+ * Fraction reduceAndCopy(T&& frac) {
+ *  frac.reduce();
+ *  return std::forward<T>(frac);
+ * }
+ * 
+*/
+
+Widget makeWidget(const std::string& name) {
+    Widget w(name);
+    return w;
+}
+
+/**
+ * 関数の戻り値用に割り当てたメモリ内でローカル変数 w をコンストラクトすれば w のコピーを不要とできる
+ * 点については、とうの昔に指摘されています。この問題を 戻り値の最適化（Return Value Optimization, RVO）
+ * と言い、C++ 標準では誕生以来ずっと明記しています。
+ * 
+ * 私はコピーされてるとばかり思っていた、戻り値の最適化されてたのか。
+*/
 
 int main(void) {
     puts("START  項目 25 ：右辺値参照には std::move を、転送参照には std::forward を用いる ===");
