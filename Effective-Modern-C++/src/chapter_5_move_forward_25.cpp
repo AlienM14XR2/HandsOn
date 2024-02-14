@@ -26,6 +26,7 @@ concept EReasonable = requires(Error& e) {
     e.what();
 };
 template <class Error>
+requires Reasonable<Error>
 void (*ptr_print_error)(Error) = [](const auto e) -> void {
     std::cout << "ERROR: " << e.what() << std::endl;
 };
