@@ -3,6 +3,11 @@
  * 
  * 項目 25 ：右辺値参照には std::move を、転送参照には std::forward を用いる
  * 
+ * 重要ポイント
+ * - std::move は右辺値参照に対し、また std::forward は最後に使用する転送参照に対し、それぞれ実行する。
+ * - 値戻しする関数から返す右辺値参照、転送参照についても同様のことが言える。
+ * - 戻り値の最適化にそぐわないローカルオブジェクトに対し、std::move や std::forward を実行してはいけない。
+ * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_5_move_forward_25.cpp -o ../bin/main
 */
@@ -207,9 +212,9 @@ int test_DataField() {
  * 
 */
 
-Widget makeWidget(const std::string& name) {
-    Widget w(name);
-    return w;
+Widget makeWidget(const std::string& name) {    // Widget の値が戻り値
+    Widget w(name);     // ローカル変数
+    return w;           // ローカル変数を返す
 }
 
 /**
