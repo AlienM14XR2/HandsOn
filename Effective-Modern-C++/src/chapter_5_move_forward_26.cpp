@@ -98,12 +98,68 @@ int test_logAndAdd() {
         for(auto n: names) {
             ptr_lambda_debug<const char*,const decltype(n)&>("n is ", n);
         }
+
+        std::string petName("Derla");
+        logAndAdd(petName);
+
+        logAndAdd(std::string("Persephone"));
+
+        logAndAdd("Patty Dog");
+
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
         return EXIT_FAILURE;
     }
 }
+
+template <class T>
+void logAndAdd_V2(T&& name) {
+    puts("--- logAndAdd_V2");
+    auto now = std::chrono::system_clock::now();
+    std::time_t t = std::chrono::system_clock::to_time_t(now);
+    ptr_lambda_debug<const char*,const char*>("time is ", std::ctime(&t));
+    names.emplace(std::forward<T>(name));    
+}
+
+int test_logAndAdd_V2() {
+    puts("=== test_logAndAdd_V2");
+    try {
+        std::string petName("Derla");
+        logAndAdd_V2(petName);                      // 先の例と同様に multiset へ左辺値をコピー
+
+        logAndAdd_V2(std::string("Persephone"));    // コピーではなく 右辺値をムーブ
+
+        logAndAdd_V2("Patty Dog");                  // 一時オブジェクトの std::string をコピーではなく
+                                                    // multiset 内で std::string を作成
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+// std::string nameFromIdx(int idx)       // idx に対応する名前を返す
+// {
+//     // ... TODO data access
+//     std::string result;
+//     result = "Derek";
+//     return result;
+// }
+// void logAndAdd_V2(int idx) {
+//     puts("--- logAndAdd_V2");
+//     auto now = std::chrono::system_clock::now();
+//     std::time_t t = std::chrono::system_clock::to_time_t(now);
+//     ptr_lambda_debug<const char*,const char*>("time is ", std::ctime(&t));
+//     names.emplace(nameFromIdx);
+// }
+
+/**
+ * 私の環境では、上記のサンプルはコンパイルエラーになった。
+ * 書籍が言いたいことは、転送参照をとる関数のオーバーロードは避けるという説明のためサンプルだった。
+ * 転送参照とオーバーロードを組み合わせて使用するのは、ほぼ常に悪手ということだった。
+ * 理由は、転送参照を用いた関数はプログラマが通常期待する以上にずっと多くの実引数を吸収してしまうため。
+*/
 
 int main(void) {
     puts("START 項目 26 ：転送参照をとるオーバーロードは避ける ===");
@@ -112,6 +168,7 @@ int main(void) {
     }
     if(1.00) {
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_logAndAdd());
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_logAndAdd_V2());
     }
     puts("=== 項目 26 ：転送参照をとるオーバーロードは避ける END");
     return 0;
