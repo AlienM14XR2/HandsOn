@@ -7,6 +7,9 @@
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_5_move_forward_27.cpp -o ../bin/main
 */
 #include <iostream>
+#include <cassert>
+#include <vector>
+#include <memory>
 
 template <class M, class D>
 void (*ptr_lambda_debug)(M, D) = [](const auto message, const auto debug) -> void {
@@ -109,32 +112,74 @@ int test_DataField() {
  * テーブルを表現するクラスを考えてみる。
 */
 
-class PersonData final {
+class RdbData {
 public:
-    PersonData(const DataField<std::string>& _name, const DataField<std::string>& _email): TABLE_NAME{"PERSON"},
-    id{std::move(DataField<std::size_t>("id",0))}, name{_name}, email{_email}
+    virtual ~RdbData() = default;
+    virtual std::vector<std::string> getColumns() const = 0;
+};
+
+template<class T>
+class RdbStrategy {
+public:
+    virtual ~RdbStrategy() = default;
+    virtual std::vector<std::string> getColumns(const T&) const = 0;
+};
+
+class PersonData final : public RdbData {
+public:
+    PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
+    , const DataField<std::string>& _name
+    , const DataField<std::string>& _email 
+    , const DataField<int>& _age) : TABLE_NAME{"PERSON"}
+    , strategy{std::move(_strategy)}, id{std::move(DataField<std::size_t>("id",0))}, name{_name}, email{_email}, age{_age}
     {
         // 必要ならここで Validation を行う、妥当性検証のオブジェクトをコンポジションして利用するのもあり。
     }
 
     // ..
-    const std::string getTableName() noexcept { return TABLE_NAME; }
-    DataField<std::size_t> getId() noexcept { return id; }
-    DataField<std::string> getName() noexcept { return name; }
-    DataField<std::string> getEmail() noexcept { return email; }
+    virtual std::vector<std::string> getColumns() const override {
+        puts("------ PersonData::getColums");
+        return strategy.get()->getColumns(*this);
+    }
+
+    const std::string getTableName() const { return TABLE_NAME; }
+    DataField<std::size_t> getId() const { return id; }
+    DataField<std::string> getName() const { return name; }
+    DataField<std::string> getEmail() const { return email; }
+    DataField<int>         getAge() const { return age; }
 private:
     const std::string TABLE_NAME;
+    std::unique_ptr<RdbStrategy<PersonData>> strategy = nullptr;
     DataField<std::size_t> id;
     DataField<std::string> name;
     DataField<std::string> email;
+    DataField<int>         age;
+};
+
+class PersonStrategy final : public RdbStrategy<PersonData> {
+public:
+    virtual std::vector<std::string> getColumns(const PersonData& data) const override {
+        puts("TODO implementation ------ PersonStrategy::getColumns");
+        std::vector<std::string> cols;
+        // auto[id_name, id_value] = data.getId().bind();   // TODO プライマリキの Auto Increment あり／なし の判断が必要
+        auto[name_name, name_value] = data.getName().bind();
+        auto[email_name, email_value] = data.getEmail().bind();
+        auto[age_name, age_value] = data.getAge().bind();
+        cols.emplace_back(name_name);
+        cols.emplace_back(email_name);
+        cols.emplace_back(age_name);
+        return cols;
+    }
 };
 
 int test_PersonData() {
     puts("=== test_PersonData");
     try {
+        std::unique_ptr<RdbStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
         DataField<std::string> name("name", "Derek");
         DataField<std::string> email("email", "derek@loki.org");
-        PersonData derek(name,email);
+        DataField<int> age("age", 21);
+        PersonData derek(std::move(strategy),name,email,age);
 
         ptr_lambda_debug<const char*,const std::string&>("table is ", derek.getTableName());
         auto[nam, val] = derek.getName().bind();
@@ -143,6 +188,9 @@ int test_PersonData() {
         auto[nam2, val2] = derek.getEmail().bind();
         ptr_lambda_debug<const char*, const decltype(nam2)&>("name is ", nam2);        
         ptr_lambda_debug<const char*, const decltype(val2)&>("value is ", val2);
+        auto[nam3, val3] = derek.getAge().bind();
+        ptr_lambda_debug<const char*, const decltype(nam3)&>("name is ", nam3);        
+        ptr_lambda_debug<const char*, const decltype(val3)&>("value is ", val3);
 
         /**
          * 次はこのテーブル情報を持ったクラスから、動的に SQL 生成ができればよい、具体的には以下。
@@ -153,6 +201,11 @@ int test_PersonData() {
          * これらは定型文なので自動で SQL を生成する仕組みがあった方が絶対にいい。
          * 
         */
+        auto cols = derek.getColumns();
+        for(auto name: cols) {
+            ptr_lambda_debug<const char*, const decltype(name)&>("name is ", name);
+        }
+        assert(cols.size() == 3U);
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
@@ -185,6 +238,12 @@ class Repository {
  * カラム名とその数分の ? の出力ということ。
  * 
 */
+
+std::string makeInsertSql(const std::string tableName, std::vector<std::string> colNames) {
+    std::string sql("");
+    return sql;
+}
+
 
 // ... End Coffee Break.
 
