@@ -141,7 +141,7 @@ void sample() {
 /**
  * Coffee Break
  * 
- * O/R Mapping を考えてみる
+ * O/R Mapping (ORM) を考えてみる
  * まずは最低限必要と思われる情報をクラスにする。
  * - 型情報
  * - 名前（カラム名）
