@@ -354,10 +354,16 @@ void logAndAdd(T&& name) {
 
 template <class T>
 void logAndAdd_V2Impl(T&& name, std::false_type) {          // 非汎整数実引数
+    puts("------ logAndAdd_V2Impl （非汎整数型）");
     auto now = std::chrono::system_clock::now();
     std::time_t t = std::chrono::system_clock::to_time_t(now);
     ptr_lambda_debug<const char*,const char*>("time is ", std::ctime(&t));
     g_names.emplace(std::forward<T>(name));
+}
+
+void logAndAdd_V2Impl(int idx, std::true_type) {
+    puts("------ logAndAdd_V2Impl （汎整数型）");
+    ptr_lambda_debug<const char*,const int&>("idx is ", idx);
 }
 
 template <class T>
@@ -382,6 +388,8 @@ int test_logAndAdd_V2() {
         logAndAdd_V2(foo);
         puts("--- (foo) after logAndAdd_V2");
         ptr_lambda_debug<const char*,std::string&>("foo is ", foo);     // std::forward<T>() は積極的に利用しても問題はないのかな？
+
+        logAndAdd_V2(3);
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
@@ -389,6 +397,20 @@ int test_logAndAdd_V2() {
     }
 }
 
+/**
+ * 適切なタグオブジェクトを作成すれば、適切なオーバーロードへ「振分け（dispatch）」られます。そのためこの設計を『タグディスパッチ』と
+ * 言います。テンプレートメタプログラミングでは標準的ブルディングブロックですし、現代の C++ ライブラリ内部を覗けば、多数目にすることで
+ * しょう。ここで重要なのは、タグディスパッチを利用すれば、転送参照とオーバーロードを共存させられるという点です。
+ * タグの値この場合は、std::is_integral<typename std::remove_reference<T>::type>() による std::true_type、std::false_type という振分け
+ * るタグ仮引数も考慮させ、タグの値がオーバーロードを一意に決定するよう設計するものです。最終的に、どのオーバーロードが呼び出されるかの
+ * 鍵を握るのは、このタグです。転送参照仮引数がどんな実引数にも一致してしまう点は、もはや問題ではありません。
+*/
+
+/**
+ * 『転送参照をとるテンプレートを制限する』
+ * 
+ * 
+*/
 
 int main(void) {
     puts("START 項目 27 ：転送参照をとるオーバーロードの代替策を把握する ===");
