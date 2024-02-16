@@ -309,6 +309,30 @@ int test_makeInsertSql() {
     }
 }
 
+/**
+ * UPDATE (表名) SET (カラム名1) = (値1) WHERE id = ?
+ * 
+ * 更新すべき対象は 1行 としたい、Pkey を条件にする。
+*/
+
+std::string makeUpdateSql() {
+    std::string sql;
+    return sql;    
+}
+
+/**
+ * DELETE FROM table_name WHERE id = ?
+ * 
+ * 削除すべき対象は 1行 としたい、Pkey を条件にする。
+*/
+
+std::string makeDeleteSql() {
+    std::string sql;
+    return sql;
+}
+
+
+
 // ... End Coffee Break.
 
 /**
