@@ -10,6 +10,7 @@
 #include <cassert>
 #include <vector>
 #include <memory>
+#include <optional>
 
 template <class M, class D>
 void (*ptr_lambda_debug)(M, D) = [](const auto message, const auto debug) -> void {
@@ -130,7 +131,18 @@ public:
     PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
     , const DataField<std::string>& _name
     , const DataField<std::string>& _email 
-    , const DataField<int>& _age) : TABLE_NAME{"PERSON"}
+    , const DataField<int>& _age) 
+    : TABLE_NAME{std::move(std::string("person"))}
+    , strategy{std::move(_strategy)}, id{std::move(DataField<std::size_t>("id",0))}, name{_name}, email{_email}, age{_age}
+    {
+        // 必要ならここで Validation を行う、妥当性検証のオブジェクトをコンポジションして利用するのもあり。
+    }
+
+    PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
+    , const DataField<std::string>& _name
+    , const std::optional<DataField<std::string>>& _email 
+    , const std::optional<DataField<int>>& _age) 
+    : TABLE_NAME{std::move(std::string("person"))}
     , strategy{std::move(_strategy)}, id{std::move(DataField<std::size_t>("id",0))}, name{_name}, email{_email}, age{_age}
     {
         // 必要ならここで Validation を行う、妥当性検証のオブジェクトをコンポジションして利用するのもあり。
@@ -145,15 +157,16 @@ public:
     const std::string getTableName() const { return TABLE_NAME; }
     DataField<std::size_t> getId() const { return id; }
     DataField<std::string> getName() const { return name; }
-    DataField<std::string> getEmail() const { return email; }
-    DataField<int>         getAge() const { return age; }
+    std::optional<DataField<std::string>> getEmail() const { return email; }
+    std::optional<DataField<int>>         getAge() const { return age; }
 private:
     const std::string TABLE_NAME;
     std::unique_ptr<RdbStrategy<PersonData>> strategy = nullptr;
     DataField<std::size_t> id;
     DataField<std::string> name;
-    DataField<std::string> email;
-    DataField<int>         age;
+    // 必須ではないデータは optional を利用するといいかもしれない。
+    std::optional<DataField<std::string>> email;
+    std::optional<DataField<int>>         age;
 };
 
 class PersonStrategy final : public RdbStrategy<PersonData> {
@@ -163,11 +176,15 @@ public:
         std::vector<std::string> cols;
         // auto[id_name, id_value] = data.getId().bind();   // TODO プライマリキの Auto Increment あり／なし の判断が必要
         auto[name_name, name_value] = data.getName().bind();
-        auto[email_name, email_value] = data.getEmail().bind();
-        auto[age_name, age_value] = data.getAge().bind();
+        if(data.getEmail().has_value()) {
+            auto[email_name, email_value] = data.getEmail().value().bind();
+            cols.emplace_back(email_name);
+        }
+        if(data.getAge().has_value()) {
+            auto[age_name, age_value] = data.getAge().value().bind();
+            cols.emplace_back(age_name);
+        }
         cols.emplace_back(name_name);
-        cols.emplace_back(email_name);
-        cols.emplace_back(age_name);
         return cols;
     }
 };
@@ -185,10 +202,10 @@ int test_PersonData() {
         auto[nam, val] = derek.getName().bind();
         ptr_lambda_debug<const char*, const decltype(nam)&>("name is ", nam);        
         ptr_lambda_debug<const char*, const decltype(val)&>("value is ", val);        
-        auto[nam2, val2] = derek.getEmail().bind();
+        auto[nam2, val2] = derek.getEmail().value().bind();
         ptr_lambda_debug<const char*, const decltype(nam2)&>("name is ", nam2);        
         ptr_lambda_debug<const char*, const decltype(val2)&>("value is ", val2);
-        auto[nam3, val3] = derek.getAge().bind();
+        auto[nam3, val3] = derek.getAge().value().bind();
         ptr_lambda_debug<const char*, const decltype(nam3)&>("name is ", nam3);        
         ptr_lambda_debug<const char*, const decltype(val3)&>("value is ", val3);
 
@@ -239,11 +256,54 @@ class Repository {
  * 
 */
 
-std::string makeInsertSql(const std::string tableName, std::vector<std::string> colNames) {
-    std::string sql("");
+std::string makeInsertSql(const std::string& tableName, const std::vector<std::string>& colNames) {
+    std::string sql("INSERT INTO ");
+    sql.append(tableName);
+    // カラム
+    std::string cols("(");
+    // 値
+    std::string vals("VALUES (");
+    for(std::size_t i=0 ; i<colNames.size(); i++) {
+        cols.append(colNames.at(i));
+        vals.append("?");
+        if( i < colNames.size()-1 ) {
+            cols.append(", ");
+            vals.append(", ");
+        } 
+    }
+    cols.append(") ");
+    vals.append(")");
+    sql.append(std::move(cols));
+    sql.append(std::move(vals));
     return sql;
 }
 
+int test_makeInsertSql() {
+    puts("=== test_makeInsertSql");
+    try {
+        std::unique_ptr<RdbStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
+        DataField<std::string> name("name", "Derek");
+        DataField<std::string> email("email", "derek@loki.org");
+        DataField<int> age("age", 21);
+        PersonData derek(std::move(strategy),name,email,age);
+
+        auto sql = makeInsertSql(derek.getTableName(), derek.getColumns());
+        ptr_lambda_debug<const char*,const decltype(sql)&>("sql: ", sql);
+
+        std::unique_ptr<RdbStrategy<PersonData>> strategy2 = std::make_unique<PersonStrategy>(PersonStrategy());
+        DataField<std::string> name2("name", "Cheshire");
+        std::optional<DataField<std::string>> empty_email;
+        std::optional<DataField<int>> empty_age;
+        PersonData cheshire(std::move(strategy2),name2,empty_email,empty_age);
+
+        auto sql2 = makeInsertSql(cheshire.getTableName(), cheshire.getColumns());
+        ptr_lambda_debug<const char*,const decltype(sql2)&>("sql2: ", sql2);
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 // ... End Coffee Break.
 
@@ -269,6 +329,7 @@ int main(void) {
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_debug_and_error());
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_DataField());
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_PersonData());
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_makeInsertSql());
     }
     puts("=== 項目 27 ：転送参照をとるオーバーロードの代替策を把握する END");
     return 0;
