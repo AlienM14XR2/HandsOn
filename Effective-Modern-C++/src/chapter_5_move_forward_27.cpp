@@ -364,11 +364,30 @@ int test_makeUpdateSql() {
  * 削除すべき対象は 1行 としたい、Pkey を条件にする。
 */
 
-std::string makeDeleteSql() {
-    std::string sql;
+std::string makeDeleteSql(const std::string& tableName, const std::string& pkName) {
+    std::string sql("DELETE FROM ");
+    sql.append(tableName).append(" WHERE ").append(pkName).append(" = ?");
     return sql;
 }
 
+int test_makeDeleteSql() {
+    puts("=== test_makeDeleteSql");
+    try {
+        std::unique_ptr<RdbStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
+        DataField<std::string> name("name", "Derek");
+        DataField<std::string> email("email", "derek@loki.org");
+        DataField<int> age("age", 21);
+        PersonData derek(std::move(strategy),name,email,age);
+        auto[pk_nam, pk_val] = derek.getId().bind();
+        auto sql = makeDeleteSql(derek.getTableName(),pk_nam);
+        ptr_lambda_debug<const char*,const decltype(sql)&>("sql: ", sql);
+
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 
 // ... End Coffee Break.
@@ -492,6 +511,7 @@ int main(void) {
     }
     if(0.02) {
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_makeUpdateSql());
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_makeDeleteSql());
     }
     if(1.00) {
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_logAndAdd_V2());
