@@ -499,7 +499,19 @@ int test_logAndAdd_V2() {
  * 条件を加え、完全転送コンストラクタを無効にしたいのです（コンパイラに無視させたい）。
  * 
  * なんだが、ますます利用シーンがよく判らなくなってきたな。
+ * Person は Coffee Break で使ってしまったので、User にする。
+ * 
+ * class Person {
+ * public:
+ *      template<typename T, typename = std::enable<[CONDITION]>::type>
+ * };
 */
+
+class User {
+    // もぉ完全に黒魔術だな（@see SFINAE C++において、テンプレート引数の展開に不正があったとしても、それはエラーにはならないという状況のことである。 ：）
+    template <typename T, typename = typename std::enable_if<!std::is_same<User,typename std::decay<T>::type>::value>::type>
+    explicit User(T&& n);
+};
 
 int main(void) {
     puts("START 項目 27 ：転送参照をとるオーバーロードの代替策を把握する ===");
