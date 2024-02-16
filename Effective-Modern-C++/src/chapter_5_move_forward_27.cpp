@@ -175,6 +175,7 @@ public:
         puts("TODO implementation ------ PersonStrategy::getColumns");
         std::vector<std::string> cols;
         // auto[id_name, id_value] = data.getId().bind();   // TODO プライマリキの Auto Increment あり／なし の判断が必要
+        // Nullable の概念は必要かもしれない。
         auto[name_name, name_value] = data.getName().bind();
         if(data.getEmail().has_value()) {
             auto[email_name, email_value] = data.getEmail().value().bind();
