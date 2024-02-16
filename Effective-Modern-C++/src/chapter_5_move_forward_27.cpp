@@ -11,6 +11,9 @@
 #include <vector>
 #include <memory>
 #include <optional>
+#include <set>
+#include <chrono>
+// #include <type_traits>
 
 template <class M, class D>
 void (*ptr_lambda_debug)(M, D) = [](const auto message, const auto debug) -> void {
@@ -321,8 +324,71 @@ int test_makeInsertSql() {
  * 値渡しも、const オブジェクトの左辺値参照渡しも、完全転送には対応していません。転送参照を用いた目的が完全転送にあるならば、
  * 転送参照を使用せざるを得ません。他には選択はありません。しかし、それでもオーバーロードは諦めたくありません。さて、オーバー
  * ロードも転送参照も諦めずに転送参照をとるオーバーロードにまつわる問題を回避する方法はあるでしょうか？
+ *  実はそれほど大変ではありません。オーバーロードされた関数の呼び出しは、呼び出し側の実引数すべてと全オーバーロードの仮引数
+ * すべてを照合し、すべての仮引数／実引数の組み合わせから一致度が最も高い関数を選択することにより解決されます。転送参照は一般
+ * にどんな仮引数に対しても最も高い一致度になりますが、『転送参照ではない』仮引数が他にもあれば、非転送参照仮引数が一致度を下
+ * げるため、そのオーバーロードへの解決を避けられます。この考え方を基にしたタグディスパッチ（タグ振分け）という方法があります。
+ * 説明するよりも例を見た方がわかりやすいでしょう。
+ * 
+ * logAndAdd のサンプルの再掲します。
  * 
 */
+
+std::multiset<std::string> g_names;
+
+template <class T>
+void logAndAdd(T&& name) {
+    auto now = std::chrono::system_clock::now();
+    std::time_t t = std::chrono::system_clock::to_time_t(now);
+    ptr_lambda_debug<const char*,const char*>("time is ", std::ctime(&t));
+    g_names.emplace(std::forward<T>(name));  
+}
+
+/**
+ *  上例は関数単体としては期待通り動作しますが、int をとりインデックスからオブジェクトを検索するオーバーロードを追加すると、前項
+ * で述べたトラブル王国へ逆戻りです。本項の目的は、トラブルを回避することです。オーバーロードを追加する代わりに、logAndAdd を変更
+ * し、他の 2 つの関数に処理を振分けます。1 つは汎整数型を処理し、もう 1 つはその他すべてを処理します。
+ * logAndAdd はどんな実引数でも、汎整数型でも非汎整数型でも受付けます。
+ * 
+*/
+
+template <class T>
+void logAndAdd_V2Impl(T&& name, std::false_type) {          // 非汎整数実引数
+    auto now = std::chrono::system_clock::now();
+    std::time_t t = std::chrono::system_clock::to_time_t(now);
+    ptr_lambda_debug<const char*,const char*>("time is ", std::ctime(&t));
+    g_names.emplace(std::forward<T>(name));
+}
+
+template <class T>
+void logAndAdd_V2(T&& name) {
+    logAndAdd_V2Impl(
+        std::forward<T>(name)
+        , std::is_integral<typename std::remove_reference<T>::type>()       // ここのは typename じゃないと コンパイルエラー
+    );
+}
+
+int test_logAndAdd_V2() {
+    puts("=== test_logAndAdd_V2");
+    try {
+        std::string petName("Derla");
+        logAndAdd_V2(petName);                      // multiset へ左辺値をコピー
+
+        logAndAdd_V2(std::string("Persephone"));    // コピーではなく 右辺値をムーブ
+
+        logAndAdd_V2("Patty Dog");                  // 一時オブジェクトの std::string をコピーではなく
+                                                    // multiset 内で std::string を作成
+        std::string&& foo = std::string("Foo");
+        logAndAdd_V2(foo);
+        puts("--- (foo) after logAndAdd_V2");
+        ptr_lambda_debug<const char*,std::string&>("foo is ", foo);     // std::forward<T>() は積極的に利用しても問題はないのかな？
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 
 int main(void) {
     puts("START 項目 27 ：転送参照をとるオーバーロードの代替策を把握する ===");
@@ -331,6 +397,9 @@ int main(void) {
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_DataField());
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_PersonData());
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_makeInsertSql());
+    }
+    if(1.00) {
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_logAndAdd_V2());
     }
     puts("=== 項目 27 ：転送参照をとるオーバーロードの代替策を把握する END");
     return 0;
