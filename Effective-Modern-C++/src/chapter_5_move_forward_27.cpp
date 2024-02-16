@@ -177,7 +177,8 @@ public:
     virtual std::vector<std::string> getColumns(const PersonData& data) const override {
         puts("TODO implementation ------ PersonStrategy::getColumns");
         std::vector<std::string> cols;
-        // auto[id_name, id_value] = data.getId().bind();   // TODO プライマリキの Auto Increment あり／なし の判断が必要
+        // auto[id_name, id_value] = data.getId().bind();   // TODO プライマリキの Auto Increment あり／なし の判断が必要。 
+                                                            // そればバリエーションポイントなので 別 Strategy になるかな。
         // Nullable の概念は必要かもしれない。
         auto[name_name, name_value] = data.getName().bind();
         if(data.getEmail().has_value()) {
@@ -264,7 +265,7 @@ std::string makeInsertSql(const std::string& tableName, const std::vector<std::s
     std::string sql("INSERT INTO ");
     sql.append(tableName);
     // カラム
-    std::string cols("(");
+    std::string cols(" (");
     // 値
     std::string vals("VALUES (");
     for(std::size_t i=0 ; i<colNames.size(); i++) {
@@ -312,12 +313,49 @@ int test_makeInsertSql() {
 /**
  * UPDATE (表名) SET (カラム名1) = (値1) WHERE id = ?
  * 
+ * UPDATE table_reference
+    SET col_name1 = value1 [, col_name2 = value2, ...]
+    [WHERE where_condition]
+ * 
+ * UPDATE test SET name = ?, label = ? WHERE id = ?
+ * 
  * 更新すべき対象は 1行 としたい、Pkey を条件にする。
 */
 
-std::string makeUpdateSql() {
-    std::string sql;
+std::string makeUpdateSql(const std::string& tableName, const std::string& pkName, const std::vector<std::string>& colNames ) {
+    std::string sql("UPDATE ");
+    sql.append(tableName);
+    std::string set(" SET ");
+    std::string condition(" WHERE ");
+    condition.append(pkName).append(" = ?");
+    for(std::size_t i=0; i<colNames.size(); i++) {
+        set.append(colNames.at(i)).append(" = ?");
+        if( i < colNames.size()-1 ) {
+            set.append(", ");
+        } 
+
+    }
+    sql.append(set).append(condition);
     return sql;    
+}
+
+int test_makeUpdateSql() {
+    puts("=== test_makeUpdateSql");
+    try {
+        std::unique_ptr<RdbStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
+        DataField<std::string> name("name", "Derek");
+        DataField<std::string> email("email", "derek@loki.org");
+        DataField<int> age("age", 21);
+        PersonData derek(std::move(strategy),name,email,age);
+        auto[pk_nam, pk_val] = derek.getId().bind();
+        auto sql = makeUpdateSql(derek.getTableName(),pk_nam, derek.getColumns());
+        ptr_lambda_debug<const char*,const decltype(sql)&>("sql: ", sql);
+
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
 }
 
 /**
@@ -451,6 +489,9 @@ int main(void) {
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_DataField());
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_PersonData());
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_makeInsertSql());
+    }
+    if(0.02) {
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_makeUpdateSql());
     }
     if(1.00) {
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_logAndAdd_V2());
