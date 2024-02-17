@@ -3,6 +3,16 @@
  * 
  * 項目 27 ：転送参照をとるオーバーロードの代替策を把握する
  * 
+ * 重要ポイント
+ * - 転送参照とオーバーロードの併用の代替には、(1) 関数名を区別する、(2) 仮引数を 「const オブジェクトの左辺値参照渡し」にする
+ *   (3) 仮引数を値渡しする (4) タグディスパッチを使用する、がある。
+ * - std::enable_if によりテンプレートを有効／無効にする条件を加えると、転送参照とオーバーロードも併用可能だが、転送参照をとる
+ *   オーバーロードをコンパイラが使用して良いか否かを制御する必要がある。
+ * - 転送参照は多くの場合効率に優れるが、使用面では劣る場合も多い。
+ * 
+ * ※ 転送回数が増えれば増えるほど、何か悪いことが起こった場合のエラーメッセージが難解になります。
+ *    性能面を最優先する場面のインタフェースでしか転送参照仮引数を採用しない開発者が多いのは、この問題が起因となっています。
+ * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_5_move_forward_27.cpp -o ../bin/main
 */
@@ -511,6 +521,27 @@ class User {
     // もぉ完全に黒魔術だな（@see SFINAE C++において、テンプレート引数の展開に不正があったとしても、それはエラーにはならないという状況のことである。 ：）
     template <typename T, typename = typename std::enable_if<!std::is_same<User,typename std::decay<T>::type>::value>::type>
     explicit User(T&& n);
+};
+
+/**
+ * 次が最終形態になる
+ * ここまでして、コンストラクタに転送参照を使おうとは私は思わない。
+*/
+
+class Admin {
+public:
+    template<typename T, typename = std::enable_if<!std::is_base_of<Admin,std::decay_t<T>>::value
+                                            &&
+                                          !std::is_integral<std::remove_reference_t<T>>::value
+                                          >
+    >
+    explicit Admin(T&& n): name(std::forward<T>(n))
+    {
+        static_assert(std::is_constructible<std::string, T>::value, "Admin n cant't be used to construct a std::string");
+    }
+
+private:
+    std::string name;
 };
 
 int main(void) {
