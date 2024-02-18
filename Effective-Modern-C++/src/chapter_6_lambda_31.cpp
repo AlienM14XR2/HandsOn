@@ -11,6 +11,10 @@
  * ラムダが作成する実行時オブジェクトである。キャプチャモードに従い、キャプチャデータの参照もしくはコピーを保持する。
  * 上例の 第 3 実引数に渡しているオブジェクトがクロージャである。
  * 
+ * 『クロージャクラス』
+ * クロージャのインスタンス化に使用したクラスである。コンパイラはすべてのラムダに対し、一意なクロージャクラスをそれぞれ生成する。
+ * ラムダ内の文はクロージャクラスのメンバ関数内の実行可能命令となる。
+ * 
  * 項目 31 ：デフォルトのキャプチャモードは避ける
  * 
  * e.g. compile.
@@ -18,6 +22,8 @@
  * 
 */
 #include <iostream>
+#include <vector>
+#include <functional>
 
 template <class M, class D>
 void (*ptr_lambda_debug)(M,D) = [](const auto message, const auto debug) -> void {
@@ -71,6 +77,68 @@ void sample() {
  * の把握が重要になる場面が多くあります。
  * 
  * 項目 31 ：デフォルトのキャプチャモードは避ける
+ * 
+ * C++11 にはデフォルトのキャプチャモードが 2 つあります。参照キャプチャと値キャプチャです。デフォルトの参照キャプチャでは
+ * 不正参照が発生する恐れがあります。ディフォルトの値キャプチャを用いればそんな問題とは無縁になれると魅惑されてしまいそうで
+ * すが、実は無縁ではありません。また、クロージャはそれ自身で完結しているとも思わされてしまいそうですが、必ずしもそうではあ
+ * りません。本項目を管理職向けにまとめれば、これがすべてです。
+ * 
+ * 参照キャプチャでは、クロージャはローカル変数の参照、またはラムダを定義したスコープ内で使用可能な仮引数の参照を持つように
+ * なります。もし、ラムダから作成したクロージャのライフタイムがローカル変数や仮引数よりも長くなければ、クロージャが持つ参照
+ * は不正となります。例えば、フィルタ関数のコンテナがあるとしましょう。それぞれのフィルタ関数は int をとり、渡された値がフィ
+ * ルタに一致するか否かを表す bool を返すとします。
+*/
+
+
+void sample2() {
+    puts("=== sample2");
+    using FilterContainer = std::vector<std::function<bool(int)>>;
+    FilterContainer filters;
+
+    // 5 の倍数のフィルタを追加してみます。
+    filters.emplace_back(
+        [](int value) { return value % 5 == 0; }
+    );
+
+    for(auto f: filters) {
+        ptr_lambda_debug<const char*,const bool&>("f(3) ... ", f(3));
+        ptr_lambda_debug<const char*,const bool&>("f(30) ... ", f(30));
+    }
+}
+
+/**
+ * 序数を実行時に算出する場合もあるとすれば、ラムダに 5 とハードコーディングできません。
+ * フィルタは次のようになるかもしれません。
+*/
+
+void sample3() {
+    puts("=== sample3");
+    using FilterContainer = std::vector<std::function<bool(int)>>;
+    FilterContainer filters;
+
+    auto calc1 = 8;                     // computeSomeValue1();
+    auto calc2 = 2;                     // computeSomeValue2();
+    auto divisor = calc1 / calc2;       // computeDivisor(calc1, calc2);
+
+    filters.emplace_back(
+        [&](int value) { return value % divisor == 0; }
+    );
+
+    for(auto f: filters) {
+        ptr_lambda_debug<const char*,const bool&>("f(2) ... ", f(2));
+        ptr_lambda_debug<const char*,const bool&>("f(44) ... ", f(44));
+    }
+}
+
+/**
+ * 上例のコードは問題が発生するのを待っているようなものです。ラムダはローカル変数 divisor を参照していますが、ローカル変数は
+ * sample3 が終了した時点で存在しなくなります。sample3 は filters.emplace_back の実行直後に終了するのですから、filters へ追加
+ * した関数は実質的に初めから使用できない状態です。この関数を使用しても、作成時点からしてそもそも未定義動作となってしまいます。
+ * 仮に divisor を明示的に参照キャプチャにしても問題は変わりません。
+ * [](&divisor) { ... }
+ * 
+ * ※ 補足すると、filters をグローバル変数にして、sample3 を実行後、フィルタを利用する場合に問題になると著者は言っている。
+ *   当然のような気がする。
 */
 
 int main(void) {
@@ -80,6 +148,8 @@ int main(void) {
     }
     if(1.00) {
         sample();
+        sample2();
+        sample3();
     }
     puts("=== 項目 31 ：デフォルトのキャプチャモードは避ける END");
     return 0;
