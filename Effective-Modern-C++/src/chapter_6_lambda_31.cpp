@@ -145,6 +145,84 @@ void sample3() {
  *   当然のような気がする。
 */
 
+/**
+ * C++17 以降のラムダを少し書いてみたくなった（復習）。
+*/
+
+class Point {
+public:
+    Point(): x(0), y(0)
+    {}
+    explicit Point(const double& _x, const double _y): x(_x), y(_y)
+    {}
+    // ... 
+    double getx() const { return x; }
+    double gety() const { return y; }
+private:
+    double x, y;
+};
+
+class Widget {
+public:
+    Widget(const Point& _top, const Point& _bottom): top(_top), bottom(_bottom)
+    {}
+    // ... 
+    void toDebug() const {
+        // printf("top(%.2lf,%.2lf)\tbottom(%.2lf,%.2lf)\n", top.getx(), top.gety(), bottom.getx(), bottom.gety());
+        auto lambda = [this] {
+            printf("top(%.2lf,%.2lf)\tbottom(%.2lf,%.2lf)\n", top.getx(), top.gety(), bottom.getx(), bottom.gety());
+        };
+        lambda();
+    }
+    Point getTop()    const { return top; }
+    Point getBottom() const { return bottom; }
+    Widget toDouble() {
+        puts("------ Widget::toDouble");
+        return Widget(top,Point(bottom.getx()*2, bottom.gety()*2));
+    }
+    Widget toLarge(const double& n) {
+        puts("------ Widget::toLarge");
+        auto lambda = [this](const auto n) {
+            return std::move(Widget(top, Point(bottom.getx()*n, bottom.gety()*n)));
+        };
+        return lambda(n);
+    }
+private:
+    Point top, bottom;
+};
+
+int test_Widget() {
+    puts("=== test_Widget");
+    try {
+        Point top(0.0, 0.0);
+        Point bottom(30.0, 60.0);
+        Widget w(top,bottom);
+
+        Widget w2 = w.toDouble();
+        ptr_lambda_debug<const char*, const double&>("(w2) top x is ", w2.getTop().getx());
+        ptr_lambda_debug<const char*, const double&>("(w2) top y is ", w2.getTop().gety());
+        ptr_lambda_debug<const char*, const double&>("(w2) bottom x is ", w2.getBottom().getx());
+        ptr_lambda_debug<const char*, const double&>("(w2) bottom y is ", w2.getBottom().gety());
+        puts("---");
+        w2.toDebug();
+
+        Widget w3 = w.toLarge(3.0);
+        ptr_lambda_debug<const char*, const double&>("(w3) top x is ", w3.getTop().getx());
+        ptr_lambda_debug<const char*, const double&>("(w3) top y is ", w3.getTop().gety());
+        ptr_lambda_debug<const char*, const double&>("(w3) bottom x is ", w3.getBottom().getx());
+        ptr_lambda_debug<const char*, const double&>("(w3) bottom y is ", w3.getBottom().gety());
+        puts("---");
+        w3.toDebug();
+        puts("---");
+        w.toDebug();
+
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START 項目 31 ：デフォルトのキャプチャモードは避ける ===");
     if(0.01) {
@@ -154,6 +232,9 @@ int main(void) {
         sample();
         sample2();
         sample3();
+    }
+    if(2.00) {
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_Widget());
     }
     puts("=== 項目 31 ：デフォルトのキャプチャモードは避ける END");
     return 0;
