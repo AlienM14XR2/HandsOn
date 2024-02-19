@@ -176,12 +176,15 @@ private:
 
 class Widget {
 public:
+    Widget(): top{Point(0.0, 0.0)}, bottom{Point(10.0, 10.0)}
+    {}
     Widget(const Point& _top, const Point& _bottom): top(std::move(_top)), bottom(std::move(_bottom))
     {}
+    virtual ~Widget() = default;
     // ... 
     Point getTop()    const { return top; }
     Point getBottom() const { return bottom; }
-private:
+protected:
     Point top, bottom;
 };
 
@@ -210,6 +213,42 @@ int sample_2() {
         return EXIT_FAILURE;
     }
 }
+
+class Enemy {
+public:
+    virtual ~Enemy() = default;
+    virtual Widget move() const = 0;
+};
+
+template <class T>
+class EnemyAction {
+public:
+    virtual ~EnemyAction() = default;
+    virtual Widget moveTypeA(const T&) const = 0;
+    // virtual Widget moveTypeB(const T&) const = 0;
+};
+
+class EnemyDog final : public Widget, public Enemy {
+public:
+    using ActionStrategy = std::unique_ptr<EnemyAction<EnemyDog>>;
+    EnemyDog(const Point& _top, const Point& _bottom, ActionStrategy _act): Widget(_top, _bottom), action(std::move(_act))
+    {}
+    // ...
+    virtual Widget move() const {
+        return action->moveTypeA(*this);
+    }
+
+private:
+    ActionStrategy action;
+};
+
+class EnemyDogStrategy final : public EnemyAction<EnemyDog> {
+public:
+    virtual Widget moveTypeA(const EnemyDog& enemy) const override {
+        Widget w(Point(enemy.getTop().getx(), enemy.getTop().gety() + 10.0), Point(enemy.getBottom().getx(), enemy.getBottom().gety() + 10.0));
+        return w;
+    }
+};
 
 int main(void) {
     puts("START 項目 35 ：スレッドベースよりもタスクベースプログラミングを優先する ===");
