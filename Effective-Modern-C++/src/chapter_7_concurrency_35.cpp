@@ -149,6 +149,11 @@ int sample_1() {
     } 
 }
 
+/**
+ * std::thread、std::promise、std::future を個別に利用するよりも簡単で見通しがいい。
+ * クラスとそのオブジェクトのメンバ関数を利用した、worker を次は作ってみたい。
+*/
+
 int main(void) {
     puts("START 項目 35 ：スレッドベースよりもタスクベースプログラミングを優先する ===");
     if(0.01) {
