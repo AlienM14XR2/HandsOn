@@ -6,6 +6,9 @@
  * C++14 で最も興奮する機能の 1 つに汎用ラムダ（Generic Lambda）ー 仮引数指定に auto を記述できるラムダ ー があります。この機能の実装は
  * 直感的に分かりやすいものです。
  * 
+ * 重要ポイント
+ * - auto&& 仮引数を std::forward する場合は decltype を用いる
+ * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_6_lambda_33.cpp -o ../bin/main
 */
