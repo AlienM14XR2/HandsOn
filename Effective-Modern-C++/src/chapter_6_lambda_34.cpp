@@ -66,12 +66,18 @@ int test_debug_and_error() {
 template <class T>
 class DataField {
 public:
-    DataField(const std::string& _name, const T& _value): name(_name), value(_value)
+    explicit DataField(const std::string& _name, const T& _value): name(_name), value(_value), type{std::move(std::string(""))}
+    {}
+    explicit DataField(const std::string& _name, const T& _value, const std::string& _type): 
+                        name(_name), value(_value), type(_type)
     {}
 
     // ...
     std::pair<std::string,T> bind() {
         return {name, value};
+    }
+    std::tuple<std::string, T, std::string> bindTuple() {
+        return {name, value, type};
     }
     // void setValue(T&& _value) {
     //     value = std::forward<T>(_value);
@@ -80,6 +86,7 @@ public:
 private:
     std::string name;
     T value;
+    std::string type;
 };
 
 /**
@@ -104,6 +111,22 @@ int test_DataField() {
          * TODO Jack
          * 時間を見て、MySQL にある型と一致する C++ の型を網羅させる。
         */
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+int test_DataField_2() {
+    puts("=== test_DataField_2");
+    try {
+        // タプルの動作確認
+        DataField<int> d1("id", 3, "integer");
+        auto[name, value, type] = d1.bindTuple();
+        ptr_lambda_debug<const char*, const decltype(name)&>("name is ", name);
+        ptr_lambda_debug<const char*, const decltype(value)&>("value is ", value);
+        ptr_lambda_debug<const char*, const decltype(name)&>("type is ", type);
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
@@ -408,6 +431,7 @@ int main(void) {
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_makeInsertSql());
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_makeUpdateSql());
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_makeDeleteSql());
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_DataField_2());
 
     }    
     puts("=== 項目 34 ：std::bind よりラムダを優先する END");
