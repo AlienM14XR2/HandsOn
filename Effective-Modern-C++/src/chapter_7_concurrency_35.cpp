@@ -41,6 +41,7 @@
 #include <thread>
 #include <future>
 #include <chrono>
+#include <string>
 
 template <class M, class D>
 void (*ptr_lambda_debug)(M, D) = [](const auto message, const auto debug) -> void {
@@ -152,7 +153,63 @@ int sample_1() {
 /**
  * std::thread、std::promise、std::future を個別に利用するよりも簡単で見通しがいい。
  * クラスとそのオブジェクトのメンバ関数を利用した、worker を次は作ってみたい。
+ * 今、私が理解している点は、クラスオブジェクトをスレッドセーフで利用したければ、そのメンバ関数は const 修飾すべしということぐらい。
 */
+
+class Point {
+public:
+    Point(): x{0.0}, y{0.0}
+    {}
+    explicit Point(const double& _x, const double& _y): x(_x), y(_y)
+    {}
+    // ...
+    std::string toString() const {
+        std::string s;
+        s.append("(x, y) = ").append("(").append(std::to_string(x)).append(",").append(std::to_string(y)).append(")");
+        return s;
+    }
+    double getx() const { return x; }
+    double gety() const { return y; }
+private:
+    double x, y;
+};
+
+class Widget {
+public:
+    Widget(const Point& _top, const Point& _bottom): top(std::move(_top)), bottom(std::move(_bottom))
+    {}
+    // ... 
+    Point getTop()    const { return top; }
+    Point getBottom() const { return bottom; }
+private:
+    Point top, bottom;
+};
+
+void workerWidget(const Widget& w) {
+    puts("--- workerWidget");
+    Point top    = w.getTop();
+    Point bottom = w.getBottom();
+    ptr_lambda_debug<const char*, const std::string&>("top is "   , top.toString());
+    ptr_lambda_debug<const char*, const std::string&>("bottom is ", bottom.toString());
+}
+
+int sample_2() {
+    puts("=== sample_2");
+    try {
+        Widget w1(Point(30.0, 15.0),Point(45.0, 30.0));
+        auto f1 = std::async(std::launch::async, workerWidget, std::ref(w1));
+
+        Widget w2(Point(0.0, 60.0),Point(15.0, 75.0));
+        auto f2 = std::async(std::launch::async, workerWidget, std::ref(w2));
+        
+        f1.get();
+        f2.get();
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 int main(void) {
     puts("START 項目 35 ：スレッドベースよりもタスクベースプログラミングを優先する ===");
@@ -161,6 +218,7 @@ int main(void) {
     }
     if(1.00) {
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", sample_1());
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", sample_2());
     }
     puts("=== 項目 35 ：スレッドベースよりもタスクベースプログラミングを優先する END");
     return 0;
