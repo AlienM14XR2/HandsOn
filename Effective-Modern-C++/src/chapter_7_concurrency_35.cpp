@@ -37,6 +37,10 @@
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_7_concurrency_35.cpp -o ../bin/main
 */
 #include <iostream>
+#include <vector>
+#include <thread>
+#include <future>
+#include <chrono>
 
 template <class M, class D>
 void (*ptr_lambda_debug)(M, D) = [](const auto message, const auto debug) -> void {
@@ -115,10 +119,42 @@ int test_debug_and_error() {
  * ・C++ 並行 API を越えたスレッド技術を実装する必要がある
 */
 
+int worker(const std::vector<int>& data) {
+    int sum = 0;
+    for(int i : data) {
+        // 時間がかかる処理
+        // std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        sum += i;
+    }
+    return sum;
+}
+
+int sample_1() {
+    puts("=== sample_1");
+    try {
+        std::vector<int> data = {1, 2, 3, 4, 5};
+
+        // worker 関数を非同期に実行する
+        std::future<int> f = std::async(std::launch::async, worker, std::ref(data));
+        try {
+            std::cout << f.get() << std::endl;
+        } catch(std::exception& e) {
+            throw e;
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    } 
+}
+
 int main(void) {
     puts("START 項目 35 ：スレッドベースよりもタスクベースプログラミングを優先する ===");
     if(0.01) {
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_debug_and_error());
+    }
+    if(1.00) {
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", sample_1());
     }
     puts("=== 項目 35 ：スレッドベースよりもタスクベースプログラミングを優先する END");
     return 0;
