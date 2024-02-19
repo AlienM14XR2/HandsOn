@@ -401,6 +401,14 @@ int main(void) {
         int ret = 0;
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", ret = test_debug_and_error());
         assert(ret == 1);   // エラーが発生したことを期待している。
+    }
+    if(0.02) {
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_DataField());
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_PersonData());
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_makeInsertSql());
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_makeUpdateSql());
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_makeDeleteSql());
+
     }    
     puts("=== 項目 34 ：std::bind よりラムダを優先する END");
 }
