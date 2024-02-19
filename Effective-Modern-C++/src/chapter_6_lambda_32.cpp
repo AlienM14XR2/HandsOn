@@ -3,9 +3,17 @@
  * 
  * 項目 32 ：クロージャ内にオブジェクトをムーブする場面では初期化キャプチャを用いる
  * 
+ * デフォルトでは、ラムダから生成したクロージャクラス内のメンバ関数 operator() は const です。これにより、ラムダ本体内では、クロージャ内の
+ * 全メンバ変数が const になるという効果が生まれます。
+ * 
+ * 重要ポイント
+ * - クロージャ内へオブジェクトをムーブするには C++14 の初期化キャプチャを使用する。
+ * - C++11 では手書きクラスや std::bind により初期化キャプチャをエミュレートする。
+ * 
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_6_lambda_32.cpp -o ../bin/main
 */
 #include <iostream>
+#include <memory>
 #include "stdio.h"
 #include "stdlib.h"
 #include "memory.h"
@@ -136,11 +144,68 @@ int test_block_a() {
     }
 }
 
+/**
+ * ここから本項に戻る。
+ * 値キャプチャでも参照キャプチャでも目的に適わない場合があります。クロージャにムーブ専用オブジェクトを持ち込みたい場合
+ * （std::unique_ptr や std::future など）、C++11 ではどうすることもできません。コピーはコスト高だけれどムーブはコスト安なオブジェクトをクロージャ
+ * に持ち込む場合は（標準コンテナの大半がそう）、コピーするよりムーブしたい気持ちがずっと強いでしょう。しかし、この場合でも、C++ では実現する方法
+ * がありません。
+ * しかし、C++14 では違います。C++14 ではオブジェクトをクロージャ内へムーブする直接的な記述が可能です。C++14 標準のコンパイラを使用しているならば、
+ * 喜びも新たに読み進めてください。C++11 でも擬似的にムーブキャプチャする方法はあります。
+ * 
+ * 標準化委員会が導入したのは新方式です。ムーブキャプチャは新方式がなせる技の 1 つに過ぎません。この新方式を『初期化キャプチャ』と言います。
+ * 
+ * 初期化キャプチャでは次のものを記述できます。
+ * 1. ラムダから生成するクロージャクラスの『メンバ変数の名前』
+ * 2. メンバ変数を初期化する式
+ * 
+ * 初期化キャプチャにより、std::unique_ptr をクロージャ内へムーブする方法を示します。
+*/
+
+class Widget {
+public:
+    // ... 
+    bool isValidated() const {
+        return true;
+    }
+    bool isProcessed() const {
+        return false;
+    }
+    bool isArchived() const {
+        return true;
+    }
+};
+
+int test_lambda_and_move() {
+    puts("=== test_lambda_and_move");
+    try {
+        auto pw = std::make_unique<Widget>();
+
+        auto func = [pw = std::move(pw)]() -> auto {
+            return pw->isValidated() && pw->isArchived();
+        };
+        /**
+         * 面白いことに「=」の左辺と右辺ではスコープが異なります。左辺のスコープはクロージャクラスのスコープですが、右辺のスコープはラムダを定義
+         * した時点のスコープ。上例では、「=」の左辺にある pw という名前はクロージャクラスのメンバ変数を表し、右辺にある pw はラムダ直前で宣言し
+         * たオブジェクト、すなわち std::make_unique 呼び出しで初期化した変数を表します。
+        */
+
+        ptr_lambda_debug<const char*, const bool&>("func result is ", func());
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START 項目 32 ：クロージャ内にオブジェクトをムーブする場面では初期化キャプチャを用いる ===");
     if(0.01) {
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_debug_and_error());
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_block_a());
+    }
+    if(1.00) {
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_lambda_and_move());
     }
     puts("=== 項目 32 ：クロージャ内にオブジェクトをムーブする場面では初期化キャプチャを用いる END");
 }
