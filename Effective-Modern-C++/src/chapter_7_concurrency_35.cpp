@@ -123,9 +123,10 @@ int worker(const std::vector<int>& data) {
     int sum = 0;
     for(int i : data) {
         // 時間がかかる処理
-        // std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         sum += i;
     }
+    throw std::runtime_error("It's test error. In worker function.");
     return sum;
 }
 
@@ -139,7 +140,7 @@ int sample_1() {
         try {
             std::cout << f.get() << std::endl;
         } catch(std::exception& e) {
-            throw e;
+            throw std::runtime_error(e.what());
         }
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
