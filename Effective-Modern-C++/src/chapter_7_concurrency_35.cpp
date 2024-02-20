@@ -192,7 +192,7 @@ void workerWidget(const Widget& w) {
     puts("--- workerWidget");
     Point top    = w.getTop();
     Point bottom = w.getBottom();
-    ptr_lambda_debug<const char*, const std::string&>("top is "   , top.toString());
+    ptr_lambda_debug<const char*, const std::string&>("top    is "   , top.toString());
     ptr_lambda_debug<const char*, const std::string&>("bottom is ", bottom.toString());
 }
 
@@ -235,6 +235,7 @@ public:
     {}
     // ...
     virtual Widget move() const {
+        puts("------ EnemyDog::move");
         return action->moveTypeA(*this);
     }
 
@@ -245,10 +246,57 @@ private:
 class EnemyDogStrategy final : public EnemyAction<EnemyDog> {
 public:
     virtual Widget moveTypeA(const EnemyDog& enemy) const override {
+        puts("------ EnemyDogStrategy::moveTypeA");
         Widget w(Point(enemy.getTop().getx(), enemy.getTop().gety() + 10.0), Point(enemy.getBottom().getx(), enemy.getBottom().gety() + 10.0));
         return w;
     }
 };
+
+int test_EnemyDog() {
+    puts("=== test_EnemyDog");
+    try {
+        std::unique_ptr<EnemyAction<EnemyDog>> act = std::make_unique<EnemyDogStrategy>();
+        EnemyDog dog(Point(100.0, 0.0), Point(115.0, 15.0), std::move(act));
+        ptr_lambda_debug<const char*, const std::string&>("base top    is ", dog.getTop().toString());
+        ptr_lambda_debug<const char*, const std::string&>("base bottom is ", dog.getBottom().toString());        
+        auto w1 = dog.move();
+        ptr_lambda_debug<const char*, const std::string&>("w1 top    is ", w1.getTop().toString());
+        ptr_lambda_debug<const char*, const std::string&>("w1 bottom is ", w1.getBottom().toString());
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+Widget workerEnemyDog(EnemyDog& dog) {
+    puts("--- workerEnemyDog");
+    return dog.move();
+}
+
+int test_EnemyDog_Async() {
+    puts("=== test_EnemyDog_Async");
+    try {
+        std::unique_ptr<EnemyAction<EnemyDog>> act1 = std::make_unique<EnemyDogStrategy>();
+        EnemyDog dog1(Point(100.0, 0.0), Point(115.0, 15.0), std::move(act1));
+
+        auto f = std::async(std::launch::async, workerEnemyDog, std::ref(dog1));
+        auto w = f.get();
+        ptr_lambda_debug<const char*, const std::string&>("w top    is ", w.getTop().toString());
+        ptr_lambda_debug<const char*, const std::string&>("w bottom is ", w.getBottom().toString());
+        // auto w2 = f.get();   実行時エラー、複数回コールできない。
+
+        /**
+         * スレッドの生存期間とメインスレッドとの同期方法
+         * この辺を掘り下げる必要がある。
+        */
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 
 int main(void) {
     puts("START 項目 35 ：スレッドベースよりもタスクベースプログラミングを優先する ===");
@@ -258,6 +306,10 @@ int main(void) {
     if(1.00) {
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", sample_1());
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", sample_2());
+    }
+    if(1.01) {
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_EnemyDog());
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_EnemyDog_Async());
     }
     puts("=== 項目 35 ：スレッドベースよりもタスクベースプログラミングを優先する END");
     return 0;
