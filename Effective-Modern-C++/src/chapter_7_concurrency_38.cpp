@@ -114,13 +114,22 @@ void react() {              // 反応タスクの関数
     puts("--- react");
 }
 
-void detect() {             // 検知タスクの関数
+void detect(std::promise<void>&& p) {             // 検知タスクの関数
     puts("--- detect");
+    std::thread t(
+        [&p]{
+            p.get_future().wait();
+            react();
+        });
+    p.set_value();          // t の実行再開（react を呼び出す）
+    // ...                  // 何らかの処理
+    t.join();                // 項目 37 に違反しているようだ（join 不可にする）
 }
 
 int sample_1() {
     puts("=== sample_1");
     try {
+        detect(std::move(std::promise<void>()));
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
