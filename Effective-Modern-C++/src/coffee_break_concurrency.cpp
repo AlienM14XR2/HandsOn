@@ -145,10 +145,39 @@ int sample_2() {
     }
 }
 
+class Foo {
+public:
+    void pub();
+protected:
+    void pro();
+private:
+    void pri();
+};
+void Foo::pub() {
+    puts("------ Foo::pub");
+    pro();
+    pri();
+}
+void Foo::pro() {
+    puts("------ Foo::pro");
+    pri();
+}
+void Foo::pri() {
+    puts("------ Foo::pri");
+}
+
+int test_Foo() {
+    puts("=== test_Foo");
+    Foo foo;
+    foo.pub();
+    return EXIT_SUCCESS;
+}
+
 int main(void) {
     puts("START Lost Chapter Concurrency ===");
     if(0.01) {
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_debug_and_error());
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_Foo());
     }
     if(0.00) {
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", sample_1());
