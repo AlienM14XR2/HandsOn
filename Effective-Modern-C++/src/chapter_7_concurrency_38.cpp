@@ -123,7 +123,7 @@ void detect(std::promise<void>&& p) {             // 検知タスクの関数
         });
     p.set_value();          // t の実行再開（react を呼び出す）
     // ...                  // 何らかの処理
-    t.join();                // 項目 37 に違反しているようだ（join 不可にする）
+    t.join();               // 項目 37 参照（join 不可にする）この言い方がよくない、他の処理で join させないということだな。
 }
 
 int sample_1() {
