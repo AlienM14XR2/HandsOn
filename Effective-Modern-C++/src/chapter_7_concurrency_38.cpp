@@ -47,19 +47,23 @@
  * 
  * std::unique_lock<std::mutex> lk(m);      // mutex をロック
  * 
- * cv.wait(lk, []{ return whether the event has occurred; });   // イベントが発生したか否か                    
+ * cv.wait(lk, []{ return flag; });   // イベントが発生したか否か                    
  * }
  * 
  * std:atomic<bool> flag(false);    // 共有フラグ
  * 
  * // ... イベントを検知
+ * {
+ * std::lock_guard<std::mutex> g(m) // g のコンストラクタから m をロック
  * 
  * flag = true;
- * 
+ * }
  * // ... 反応処理の準備
+ * {
+ * std::lock_guard<std::mutex> g(m) // g のコンストラクタから m をロック 
  * 
  * while(!flag);                    // イベントをウェイト
- * 
+ * }
  * // ... イベント反応処理
  * 
  * ※ 本項もコーディングはしないだろうな。
@@ -67,6 +71,8 @@
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_7_concurrency_38.cpp -o ../bin/main
 */
 #include <iostream>
+#include <thread>
+#include <future>
 
 template <class M, class D>
 void (*ptr_lambda_debug)(M,D) = [](const auto message, const auto debug) -> void {
@@ -99,8 +105,37 @@ int test_debug_and_error() {
     }
 }
 
+/**
+ * 本項の始めにコメントで書いたものは『条件変数』を用いたものだが、より簡潔に表現する仕組みが
+ * std::promise を用いたものである。
+*/
+
+void react() {              // 反応タスクの関数
+    puts("--- react");
+}
+
+void detect() {             // 検知タスクの関数
+    puts("--- detect");
+}
+
+int sample_1() {
+    puts("=== sample_1");
+    try {
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START 項目 38 ：スレッドハンドルのデストラクト動作の差異には注意する ===");
+    if(0.01) {
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_debug_and_error());
+    }
+    if(1.00) {
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", sample_1());
+    }
     puts("===  項目 38 ：スレッドハンドルのデストラクト動作の差異には注意する  END");
     return 0;
 }

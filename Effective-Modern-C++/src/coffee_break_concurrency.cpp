@@ -63,7 +63,7 @@ public:
     }                                           // unlock mutex
 private:
     mutable std::mutex m;
-    mutable std::atomic<bool> alive;            // ここまでやる必要があるのか、正直分からない。
+    mutable std::atomic<bool> alive;            // ここまでやる必要があるのか、正直分からない。ただし、一般的にはここまで行っている。
 };
 
 void liveWidget(std::shared_ptr<Widget>& pw) {
