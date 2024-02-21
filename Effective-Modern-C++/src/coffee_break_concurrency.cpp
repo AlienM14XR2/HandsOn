@@ -11,6 +11,7 @@
 #include <memory>
 #include <thread>
 #include <chrono>
+#include <mutex>
 
 template <class M, class D>
 void (*ptr_lambda_debug)(M, D) = [](const auto message, const auto debug) -> void {
@@ -55,9 +56,13 @@ public:
     Widget():alive(true)
     {}
     bool getAlive() const        { return alive; }
-    void setAlive(const bool& b) { alive = b; }
+    void setAlive(const bool& b) const {
+        std::lock_guard<std::mutex> guard(m);   // lock mutex
+        alive = b; 
+    }                                           // unlock mutex
 private:
-    bool alive;
+    mutable std::mutex m;
+    mutable bool alive;
 };
 
 void liveWidget(std::shared_ptr<Widget>& pw) {
