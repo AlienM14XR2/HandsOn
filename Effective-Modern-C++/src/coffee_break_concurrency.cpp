@@ -12,6 +12,7 @@
 #include <thread>
 #include <chrono>
 #include <mutex>
+#include <vector>
 
 template <class M, class D>
 void (*ptr_lambda_debug)(M, D) = [](const auto message, const auto debug) -> void {
@@ -112,13 +113,48 @@ int sample_1() {
     }
 }
 
+void dieWidgets(std::vector<std::shared_ptr<Widget>>& vec) {
+    puts("--- START dieWidgets");
+    for(auto pw: vec) {
+        pw->setAlive(false);
+    }
+    printf("... DIE\n");
+    puts("END --- dieWidgets");
+}
+
+int sample_2() {
+    puts("=== sample_2");
+    try {
+        std::shared_ptr<Widget> pw1 = std::make_shared<Widget>();
+        ptr_lambda_debug<const char*, const Widget*>("pw1 addr is ", pw1.get());
+        auto f_live_1 = std::async(std::launch::async, liveWidget, std::ref( pw1 ));
+
+        std::shared_ptr<Widget> pw2 = std::make_shared<Widget>();
+        ptr_lambda_debug<const char*, const Widget*>("pw2 addr is ", pw2.get());
+        auto f_live_2 = std::async(std::launch::async, liveWidget, std::ref( pw2 ));
+
+        std::vector<std::shared_ptr<Widget>> vec{pw1, pw2};    
+        auto f_dies  = std::async(std::launch::async,  dieWidgets, std::ref( vec ));
+        f_live_1.get();
+        f_live_2.get();
+        f_dies.get();
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START Lost Chapter Concurrency ===");
     if(0.01) {
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_debug_and_error());
     }
-    if(1.00) {
+    if(0.00) {
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", sample_1());
+    }
+    if(1.01) {
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", sample_2());
     }
     puts("=== Lost Chapter Concurrency END");
     return 0;
