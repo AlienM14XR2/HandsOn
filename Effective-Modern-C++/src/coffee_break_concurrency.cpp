@@ -63,7 +63,7 @@ public:
     }                                           // unlock mutex
 private:
     mutable std::mutex m;
-    mutable bool alive;
+    mutable std::atomic<bool> alive;            // ここまでやる必要があるのか、正直分からない。
 };
 
 void liveWidget(std::shared_ptr<Widget>& pw) {
@@ -73,7 +73,7 @@ void liveWidget(std::shared_ptr<Widget>& pw) {
     while(pw->getAlive()) {
         // 生存中に何らかの処理が可能
         // printf("live ...\n");
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
     }
     puts("END --- liveWideget");
 }
