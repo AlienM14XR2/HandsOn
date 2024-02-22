@@ -63,6 +63,15 @@ int test_debug_and_error() {
  * 
  * 以前作成したものは pair を利用したものだった、動的に DBMS 側の型の決定が可能だと考えるためであり、またできると思ったからだが。
  * タプルを利用すれば、確実にDBMS 側の型を明示的に持つことができると思った。
+ * 
+ * プロジェクト化の第一歩として、ヘッダとソースの分離を行う必要がある。併せて、ディレクト階層も考えること。
+ * 例えば。 
+ * ORM-Cheshire
+ *             |
+ *            src (data, model, repository)
+ *             |
+ *            inc
+ * 
 */
 
 template <class T>
@@ -81,10 +90,6 @@ public:
     std::tuple<std::string, T, std::string> bindTuple() {
         return {name, value, type};
     }
-    // void setValue(T&& _value) {
-    //     value = std::forward<T>(_value);
-    // }
-
 private:
     std::string name;
     T value;
@@ -415,6 +420,15 @@ int test_makeDeleteSql() {
         ptr_print_error<const decltype(e)&>(e);
         return EXIT_FAILURE;
     }
+}
+
+/**
+ * SELECT col1, col2, col3 FROM table WHERE primary-key = ?
+*/
+
+std::string makeFindOneSql(const std::string& tableName, const std::string& pkey, const std::vector<std::string>& colNames) {
+    std::string sql;
+    return sql;
 }
 
 // ... End Coffee Break.
