@@ -146,7 +146,7 @@ int computeSomething(const double& x) {
     return x * x;
 }
 
-void worker(std::promise<int> p, const double& x) {
+void workerA(std::promise<int> p, const double& x) {     // 以前はあまり不自然には思わなかったが、std::promise<int> は値渡しでいいんだね。
     try {
         p.set_value(computeSomething(x));
     } catch(...) {
@@ -154,13 +154,21 @@ void worker(std::promise<int> p, const double& x) {
     }
 }
 
-int sample_2() {
-    puts("=== sample_2");
+void workerB(std::promise<int>&& p, const double& x) {     // std::promise<int> 型の転送参照にしてみた。
+    try {
+        p.set_value(computeSomething(x));
+    } catch(...) {
+        p.set_exception(std::current_exception());
+    }
+}
+
+int sample_A() {
+    puts("=== sample_A");
     int ret = 0;
     std::promise<int> p;
     std::future<int> f = p.get_future();
     double x = 3.0;
-    std::thread th(worker, std::move(p), std::ref(x));
+    std::thread th(workerA, std::move(p), std::ref(x));
     try {
         std::cout << "value is " << f.get() << std::endl;
         ret = EXIT_SUCCESS;
@@ -172,6 +180,25 @@ int sample_2() {
     return ret;
 }
 
+int sample_B() {
+    puts("=== sample_B");
+    int ret = 0;
+    std::promise<int> p;
+    std::future<int> f = p.get_future();
+    double x = 3.0;
+    std::thread th(workerB, std::move(p), std::ref(x));
+    try {
+        std::cout << "value is " << f.get() << std::endl;
+        ret = EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        ret = EXIT_FAILURE;
+    }
+    th.join();
+    return ret;
+}
+
+
 int main(void) {
     puts("START 項目 38 ：スレッドハンドルのデストラクト動作の差異には注意する ===");
     if(0.01) {
@@ -179,7 +206,8 @@ int main(void) {
     }
     if(1.00) {
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", sample_1());
-        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", sample_2());
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", sample_A());
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", sample_B());
     }
     puts("===  項目 38 ：スレッドハンドルのデストラクト動作の差異には注意する  END");
     return 0;
