@@ -8,6 +8,10 @@
  * プログラマが volatile ー 紛れもなく本項で解説する機能 ー とたびたび混同する C++ 機能が std::atomic テンプレートです。std::atomic 
  * テンプレートをインスタンス化すると、他のスレッドから見てアトミックな動作を保証できます。
  * 
+ * 重要ポイント
+ * - std::atomic は、mutex を用いず複数スレッドからアクセスできるデータを表現する。並行ソフトウェアを開発するための道具である。
+ * - volatile は、読み取り／書き込みを最適化するべきではないメモリを表現する。特殊なメモリを操作するための道具である。
+ * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror chapter_7_concurrency_40.cpp -o ../bin/main
 */
