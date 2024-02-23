@@ -74,27 +74,45 @@ int test_debug_and_error() {
  * 
 */
 
+/**
+ * DataField ヘッダ
+*/
+
 template <class T>
 class DataField {
 public:
-    explicit DataField(const std::string& _name, const T& _value): name(_name), value(_value), type{std::move(std::string(""))}
-    {}
-    explicit DataField(const std::string& _name, const T& _value, const std::string& _type): 
-                        name(_name), value(_value), type(_type)
-    {}
+    explicit DataField(const std::string& _name, const T& _value);
+    explicit DataField(const std::string& _name, const T& _value, const std::string& _type);
 
     // ...
-    std::pair<std::string,T> bind() {
-        return {name, value};
-    }
-    std::tuple<std::string, T, std::string> bindTuple() {
-        return {name, value, type};
-    }
+    std::pair<std::string,T> bind() const;
+    std::tuple<std::string, T, std::string> bindTuple() const;
 private:
     std::string name;
     T value;
     std::string type;
 };
+
+/**
+ * DataField 定義
+*/
+
+template <class T>
+DataField<T>::DataField(const std::string& _name, const T& _value): name(_name), value(_value), type{std::move(std::string(""))}
+{}
+template <class T>
+DataField<T>::DataField(const std::string& _name, const T& _value, const std::string& _type): 
+                        name(_name), value(_value), type(_type)
+{}
+template <class T>
+std::pair<std::string,T> DataField<T>::bind() const {
+    return {name, value};
+}
+template <class T>
+std::tuple<std::string, T, std::string> DataField<T>::bindTuple() const {
+    return {name, value, type};
+}
+
 
 /**
  * 上例のクラスを std::vector なりのコンテナに詰めたものが、レコードの 1 行を表現するのではないのか？
@@ -149,11 +167,19 @@ int test_DataField_2() {
  * テーブルを表現するクラスを考えてみる。
 */
 
+/**
+ * RdbData ヘッダ
+*/
+
 class RdbData {
 public:
     virtual ~RdbData() = default;
     virtual std::vector<std::string> getColumns() const = 0;
 };
+
+/**
+ * RdbStrategy ヘッダ
+*/
 
 template<class T>
 class RdbStrategy {
@@ -162,39 +188,30 @@ public:
     virtual std::vector<std::string> getColumns(const T&) const = 0;
 };
 
+/**
+ * PersonData ヘッダ
+*/
+
 class PersonData final : public RdbData {
 public:
     PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
     , const DataField<std::string>& _name
     , const DataField<std::string>& _email 
-    , const DataField<int>& _age) 
-    : TABLE_NAME{std::move(std::string("person"))}
-    , strategy{std::move(_strategy)}, id{std::move(DataField<std::size_t>("id",0))}, name{_name}, email{_email}, age{_age}
-    {
-        // 必要ならここで Validation を行う、妥当性検証のオブジェクトをコンポジションして利用するのもあり。
-    }
+    , const DataField<int>& _age);
 
     PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
     , const DataField<std::string>& _name
     , const std::optional<DataField<std::string>>& _email 
-    , const std::optional<DataField<int>>& _age) 
-    : TABLE_NAME{std::move(std::string("person"))}
-    , strategy{std::move(_strategy)}, id{std::move(DataField<std::size_t>("id",0))}, name{_name}, email{_email}, age{_age}
-    {
-        // 必要ならここで Validation を行う、妥当性検証のオブジェクトをコンポジションして利用するのもあり。
-    }
+    , const std::optional<DataField<int>>& _age);
 
     // ..
-    virtual std::vector<std::string> getColumns() const override {
-        puts("------ PersonData::getColums");
-        return strategy.get()->getColumns(*this);
-    }
+    virtual std::vector<std::string> getColumns() const override;
 
-    const std::string getTableName() const { return TABLE_NAME; }
-    DataField<std::size_t> getId() const { return id; }
-    DataField<std::string> getName() const { return name; }
-    std::optional<DataField<std::string>> getEmail() const { return email; }
-    std::optional<DataField<int>>         getAge() const { return age; }
+    const std::string                     getTableName() const;
+    DataField<std::size_t>                getId() const;
+    DataField<std::string>                getName() const;
+    std::optional<DataField<std::string>> getEmail() const;
+    std::optional<DataField<int>>         getAge() const;
 private:
     const std::string TABLE_NAME;
     std::unique_ptr<RdbStrategy<PersonData>> strategy = nullptr;
@@ -205,27 +222,72 @@ private:
     std::optional<DataField<int>>         age;
 };
 
+/**
+ * PersonData 定義
+*/
+
+PersonData::PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
+    , const DataField<std::string>& _name
+    , const DataField<std::string>& _email 
+    , const DataField<int>& _age) 
+    : TABLE_NAME{std::move(std::string("person"))}
+    , strategy{std::move(_strategy)}, id{std::move(DataField<std::size_t>("id",0))}, name{_name}, email{_email}, age{_age}
+{
+    // 必要ならここで Validation を行う、妥当性検証のオブジェクトをコンポジションして利用するのもあり。
+}
+PersonData::PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
+    , const DataField<std::string>& _name
+    , const std::optional<DataField<std::string>>& _email 
+    , const std::optional<DataField<int>>& _age) 
+    : TABLE_NAME{std::move(std::string("person"))}
+    , strategy{std::move(_strategy)}, id{std::move(DataField<std::size_t>("id",0))}, name{_name}, email{_email}, age{_age}
+{
+    // 必要ならここで Validation を行う、妥当性検証のオブジェクトをコンポジションして利用するのもあり。
+}
+
+// ... 
+std::vector<std::string> PersonData::getColumns() const {   // override
+    puts("------ PersonData::getColums");
+    return strategy.get()->getColumns(*this);
+}
+
+const std::string                     PersonData::getTableName()  const { return TABLE_NAME; }
+DataField<std::size_t>                PersonData::getId()         const { return id; }
+DataField<std::string>                PersonData::getName()       const { return name; }
+std::optional<DataField<std::string>> PersonData::getEmail()      const { return email; }
+std::optional<DataField<int>>         PersonData::getAge()        const { return age; }
+
+/**
+ * PersonStrategy ヘッダ
+*/
+
 class PersonStrategy final : public RdbStrategy<PersonData> {
 public:
-    virtual std::vector<std::string> getColumns(const PersonData& data) const override {
-        puts("TODO implementation ------ PersonStrategy::getColumns");
-        std::vector<std::string> cols;
-        // auto[id_name, id_value] = data.getId().bind();   // TODO プライマリキの Auto Increment あり／なし の判断が必要。 
-                                                            // そればバリエーションポイントなので 別 Strategy になるかな。
-        // Nullable の概念は必要かもしれない。
-        auto[name_name, name_value] = data.getName().bind();
-        cols.emplace_back(name_name);
-        if(data.getEmail().has_value()) {
-            auto[email_name, email_value] = data.getEmail().value().bind();
-            cols.emplace_back(email_name);
-        }
-        if(data.getAge().has_value()) {
-            auto[age_name, age_value] = data.getAge().value().bind();
-            cols.emplace_back(age_name);
-        }
-        return cols;
-    }
+    virtual std::vector<std::string> getColumns(const PersonData& data) const override;
 };
+
+/**
+ * PersonStrategy 定義
+*/
+
+std::vector<std::string> PersonStrategy::getColumns(const PersonData& data) const {         // override
+    puts("TODO implementation ------ PersonStrategy::getColumns");
+    std::vector<std::string> cols;
+    // auto[id_name, id_value] = data.getId().bind();   // TODO プライマリキの Auto Increment あり／なし の判断が必要。 
+                                                        // そればバリエーションポイントなので 別 Strategy になるかな。
+    // Nullable の概念は必要かもしれない。
+    auto[name_name, name_value] = data.getName().bind();
+    cols.emplace_back(name_name);
+    if(data.getEmail().has_value()) {
+        auto[email_name, email_value] = data.getEmail().value().bind();
+        cols.emplace_back(email_name);
+    }
+    if(data.getAge().has_value()) {
+        auto[age_name, age_value] = data.getAge().value().bind();
+        cols.emplace_back(age_name);
+    }
+    return cols;
+}
 
 int test_PersonData() {
     puts("=== test_PersonData");
