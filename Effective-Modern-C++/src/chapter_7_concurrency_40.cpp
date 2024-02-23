@@ -13,6 +13,7 @@
 */
 #include <iostream>
 #include <cassert>
+#include <atomic>
 
 template <class M, class D>
 void (*ptr_lambda_debug)(M, D) = [](const auto message, const auto debug) -> void {
@@ -46,12 +47,35 @@ int test_debug_and_error() {
     }
 }
 
+void sample_1() {
+    puts("=== sample_1");
+    std::atomic<int> ai(0);
+
+    ai = 10;
+
+    std::cout << ai << '\n';
+
+    ++ai;
+
+    --ai;
+
+    std::cout << ai << std::endl;
+}
+
+/**
+ * 上例の文を実行中は、他のスレッドが ai を読み取っても、値は 0, 10, 11 のいずれかにしかならず、他の値が見えることはありません
+ * （もちろん、ai を変更するスレッドは上例のみとする）。
+*/
+
 int main(void) {
     puts("START 項目 40 ：並行処理には std::atomic を、特殊メモリには volatile を用いる ===");
     if(0.01) {
         auto ret = 0;
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", ret = test_debug_and_error());
         assert(ret == 1);
+    }
+    if(1.00) {
+        sample_1();
     }
     puts("===   項目 40 ：並行処理には std::atomic を、特殊メモリには volatile を用いる END");
     return 0;
