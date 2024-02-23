@@ -214,6 +214,7 @@ public:
                                                             // そればバリエーションポイントなので 別 Strategy になるかな。
         // Nullable の概念は必要かもしれない。
         auto[name_name, name_value] = data.getName().bind();
+        cols.emplace_back(name_name);
         if(data.getEmail().has_value()) {
             auto[email_name, email_value] = data.getEmail().value().bind();
             cols.emplace_back(email_name);
@@ -222,7 +223,6 @@ public:
             auto[age_name, age_value] = data.getAge().value().bind();
             cols.emplace_back(age_name);
         }
-        cols.emplace_back(name_name);
         return cols;
     }
 };
@@ -424,11 +424,47 @@ int test_makeDeleteSql() {
 
 /**
  * SELECT col1, col2, col3 FROM table WHERE primary-key = ?
+ * SELECT primary-key, col1, col2, col3 FROM table WHERE primary-key = ?
+ * 
+ * 仕様の問題、現状は pkey は RDBMS の Auto Increment を利用することを想定している、これは、次の実装に影響が及ぶ。
+ * - PersonStrategy::getColumns メンバ関数に pkey を含めるか否かということ。含めた場合は、別途シーケンステーブルと pkey の取得処理が必要になる。
+ * - makeFindOne の SELECT 句 の pkey の取り扱い方法について、上記に依存するため、この関数も本質的には 2 つ必要と思われる。
+ * 
+ * colNames に pkey は存在しないものとして次の関数は実装する。
+ * 
 */
 
-std::string makeFindOneSql(const std::string& tableName, const std::string& pkey, const std::vector<std::string>& colNames) {
-    std::string sql;
+std::string makeFindOneSql(const std::string& tableName, const std::string& pkeyName, const std::vector<std::string>& colNames) {
+    std::string sql("SELECT ");
+    std::string cols(pkeyName);
+    cols.append(", ");
+    for(std::size_t i = 0; i < colNames.size(); i++) {
+        cols.append(colNames.at(i));
+        if( i < colNames.size()-1 ) {
+            cols.append(", ");
+        } 
+    }
+    sql.append(cols).append(" FROM ").append(tableName).append(" WHERE ").append(pkeyName).append(" = ?");
     return sql;
+}
+
+int test_makeFindOneSql() {
+    puts("=== test_makeFindOneSql");
+    try {
+        std::unique_ptr<RdbStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
+        DataField<std::string> name("name", "Derek");
+        DataField<std::string> email("email", "derek@loki.org");
+        DataField<int> age("age", 21);
+        PersonData derek(std::move(strategy),name,email,age);
+        auto[pk_nam, pk_val] = derek.getId().bind();
+        auto sql = makeFindOneSql(derek.getTableName(), pk_nam, derek.getColumns());
+        ptr_lambda_debug<const char*, const decltype(sql)&>("sql: ", sql);
+
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
 }
 
 // ... End Coffee Break.
@@ -448,7 +484,7 @@ int main(void) {
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_makeUpdateSql());
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_makeDeleteSql());
         ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_DataField_2());
-
+        ptr_lambda_debug<const char*, const int&>("Play and Result ... ", test_makeFindOneSql());
     }    
     puts("=== Lost Chapter OR Mapping END");
 }
