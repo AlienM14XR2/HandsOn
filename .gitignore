@@ -2,7 +2,7 @@ tmp/
 bin/
 build/
 logs/
-../.o
+../../*.o
 *.log
 .vscode
-.o
+*.o
