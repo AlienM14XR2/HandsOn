@@ -1,10 +1,19 @@
 /**
  * Lost Chapter O/R Mapping
  * 
- * MakeFile が必要だな。
+ * Makefile が必要だな。
+ * 
+ * 私は、C++ のビルドに関しては素人以下だ、テンプレートを利用したクラスの分割（ヘッダとソース）に
+ * 関して、注意喚起している書籍を持っていないし（見落としている可能性は否めない）、Google に尋ねな
+ * ければいけないとは。次のことは、今日費やした時間のためにも肝に銘じる。
+ * 『テンプレートの実装はヘッダに書かなければならない』これは少し乱暴な手段であり、別な方法もある。
+ * しかし、現状はこれでよしとする、あぁ、安らかに眠れるし、次こそは Makefile に専念できるだろう。
+ * 
+ * 
  * e.g. compile.
- * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror main.cpp -o ../bin/main
+ * g++ -O3 -DDEBUG -std=c++20 -I../inc -pedantic-errors -Wall -Werror main.cpp -o ../bin/main
 */
+
 #include <iostream>
 #include <cassert>
 #include <vector>
@@ -12,8 +21,10 @@
 #include <optional>
 #include <set>
 #include <chrono>
-#include "../inc/Debug.hpp"
-#include "../inc/DataField.hpp"
+#include <../inc/Debug.hpp>
+#include <../inc/DataField.hpp>
+
+
 
 int test_debug_and_error() {
     puts("=== test_debug_and_error");
