@@ -25,6 +25,14 @@ std::vector<std::string> PersonData::getColumns() const {   // override
     return strategy.get()->getColumns(*this);
 }
 
+std::vector<std::pair<std::string, std::string>> PersonData::getTableInfo() const { // override
+    puts("TODO 実装 ------ PersonData::getTableInfo");
+    std::vector<std::pair<std::string, std::string>> vec;
+    // TODO 実装詳細は Strategy パターンの具象クラスで行うこと。
+    return vec;
+}
+
+
 const std::string                     PersonData::getTableName()  const { return TABLE_NAME; }
 DataField<std::size_t>                PersonData::getId()         const { return id; }
 DataField<std::string>                PersonData::getName()       const { return name; }

@@ -18,3 +18,9 @@ std::vector<std::string> PersonStrategy::getColumns(const PersonData& data) cons
     }
     return cols;
 }
+
+std::vector<std::pair<std::string, std::string>> PersonStrategy::getTableInfo(const PersonData& data) const {   // override
+    puts("TODO 実装 ------ PersonStrategy::getTableInfo");
+    std::vector<std::pair<std::string, std::string>> vec;
+    return vec;
+}

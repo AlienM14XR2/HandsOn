@@ -12,7 +12,16 @@
 class RdbData {
 public:
     virtual ~RdbData() = default;
+    /**
+     * かラム名を返す。
+    */
     virtual std::vector<std::string> getColumns() const = 0;
+
+    /**
+     * テーブル情報を返す。
+     * ペアの組み合わせは、カラム名とその RDBMS 側でのデータ型。
+    */
+    virtual std::vector<std::pair<std::string, std::string>> getTableInfo() const = 0;
 };
 
 

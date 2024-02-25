@@ -23,6 +23,7 @@ public:
 
     // ..
     virtual std::vector<std::string> getColumns() const override;
+    virtual std::vector<std::pair<std::string, std::string>> getTableInfo() const override;
 
     const std::string                     getTableName() const;
     DataField<std::size_t>                getId() const;
