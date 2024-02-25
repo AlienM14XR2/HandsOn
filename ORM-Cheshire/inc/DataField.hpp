@@ -35,5 +35,4 @@ std::tuple<std::string, T, std::string> DataField<T>::bindTuple() const {
     return {name, value, type};
 }
 
-
 #endif
