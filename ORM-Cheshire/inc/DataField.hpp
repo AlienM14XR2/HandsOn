@@ -6,13 +6,16 @@ class DataField {
 public:
     explicit DataField(const std::string& _name, const T& _value);
     explicit DataField(const std::string& _name, const T& _value, const std::string& _type);
+    explicit DataField(const std::string& _name, const T& _value, const std::string& _type, const std::string& _constraint);
     // ...
     std::pair<std::string,T> bind() const;
     std::tuple<std::string, T, std::string> bindTuple() const;
+    std::tuple<std::string, std::string, std::string> bindTupleTblInfo() const;
 private:
     std::string name;
     T value;
     std::string type;
+    std::string constraint;
 };
 
 /**
@@ -27,12 +30,21 @@ DataField<T>::DataField(const std::string& _name, const T& _value, const std::st
                         name(_name), value(_value), type(_type)
 {}
 template <class T>
+DataField<T>::DataField(const std::string& _name, const T& _value, const std::string& _type, const std::string& _constraint): 
+                        name(_name), value(_value), type(_type), constraint(_constraint)
+{}
+// ... 
+template <class T>
 std::pair<std::string,T> DataField<T>::bind() const {
     return {name, value};
 }
 template <class T>
 std::tuple<std::string, T, std::string> DataField<T>::bindTuple() const {
     return {name, value, type};
+}
+template <class T>
+std::tuple<std::string, std::string, std::string> DataField<T>::bindTupleTblInfo() const {
+    return {name, type, constraint};
 }
 
 #endif

@@ -77,7 +77,26 @@ int test_DataField_2() {
         auto[name, value, type] = d1.bindTuple();
         ptr_lambda_debug<const char*, const decltype(name)&>("name is ", name);
         ptr_lambda_debug<const char*, const decltype(value)&>("value is ", value);
-        ptr_lambda_debug<const char*, const decltype(name)&>("type is ", type);
+        ptr_lambda_debug<const char*, const decltype(type)&>("sql type is ", type);
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+int test_DataField_3() {
+    puts("=== test_DataField_3");
+    try {
+        DataField<int> d1("id", 3, "integer", "PRIMARY KEY");
+        auto[name, type, constraint] = d1.bindTupleTblInfo();
+        ptr_lambda_debug<const char*, const decltype(name)&>("name is ", name);
+        ptr_lambda_debug<const char*, const decltype(type)&>("sql type is ", type);
+        ptr_lambda_debug<const char*, const decltype(constraint)&>("constraint is ", constraint);
+        // テスト内で次をやらないと厳密なテストとは言えない。
+        assert( name == "id" );
+        assert( type == "integer" );
+        assert( constraint == "PRIMARY KEY" );
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
@@ -378,6 +397,8 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_DataField());
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_DataField_2());
+        assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_DataField_3());
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_PersonData());
         assert(ret == 0);
