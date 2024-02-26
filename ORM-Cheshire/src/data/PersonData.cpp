@@ -21,7 +21,7 @@ PersonData::PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
 }
 PersonData::PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
     , const DataField<std::string>& _name
-    , const std::optional<DataField<std::string>>& _email 
+    , const DataField<std::string>& _email 
     , const std::optional<DataField<int>>& _age) 
     : TABLE_NAME{std::move(std::string("person"))}
     , strategy{std::move(_strategy)}, id{std::move(DataField<std::size_t>("id",0))}, name{_name}, email{_email}, age{_age}
@@ -44,5 +44,5 @@ std::vector<std::tuple<std::string, std::string, std::string>> PersonData::getTa
 const std::string                     PersonData::getTableName()  const { return TABLE_NAME; }
 DataField<std::size_t>                PersonData::getId()         const { return id; }
 DataField<std::string>                PersonData::getName()       const { return name; }
-std::optional<DataField<std::string>> PersonData::getEmail()      const { return email; }
+DataField<std::string>                PersonData::getEmail()      const { return email; }
 std::optional<DataField<int>>         PersonData::getAge()        const { return age; }

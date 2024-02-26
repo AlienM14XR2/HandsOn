@@ -24,7 +24,7 @@ public:
 
     PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
     , const DataField<std::string>& _name
-    , const std::optional<DataField<std::string>>& _email 
+    , const DataField<std::string>& _email 
     , const std::optional<DataField<int>>& _age);
 
     // ..
@@ -34,15 +34,15 @@ public:
     const std::string                     getTableName() const;
     DataField<std::size_t>                getId() const;
     DataField<std::string>                getName() const;
-    std::optional<DataField<std::string>> getEmail() const;
+    DataField<std::string>                getEmail() const;
     std::optional<DataField<int>>         getAge() const;
 private:
     const std::string TABLE_NAME;
     std::unique_ptr<RdbStrategy<PersonData>> strategy = nullptr;
     DataField<std::size_t> id;          // 必須
     DataField<std::string> name;        // 必須
+    DataField<std::string> email;       // 必須
     // 必須ではないデータは optional を利用するといいかもしれない。
-    std::optional<DataField<std::string>> email;
     std::optional<DataField<int>>         age;
 };
 

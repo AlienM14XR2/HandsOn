@@ -8,10 +8,8 @@ std::vector<std::string> PersonStrategy::getColumns(const PersonData& data) cons
     // Nullable の概念は必要かもしれない。
     auto[name_name, name_value] = data.getName().bind();
     cols.emplace_back(name_name);
-    if(data.getEmail().has_value()) {
-        auto[email_name, email_value] = data.getEmail().value().bind();
-        cols.emplace_back(email_name);
-    }
+    auto[email_name, email_value] = data.getEmail().bind();
+    cols.emplace_back(email_name);
     if(data.getAge().has_value()) {
         auto[age_name, age_value] = data.getAge().value().bind();
         cols.emplace_back(age_name);
@@ -25,7 +23,7 @@ std::vector<std::tuple<std::string, std::string, std::string>> PersonStrategy::g
         std::vector<std::tuple<std::string, std::string, std::string>> vec;
         vec.emplace_back(data.getId().bindTupleTblInfo());
         vec.emplace_back(data.getName().bindTupleTblInfo());
-        vec.emplace_back(data.getEmail().value().bindTupleTblInfo());
+        vec.emplace_back(data.getEmail().bindTupleTblInfo());
         vec.emplace_back(data.getAge().value().bindTupleTblInfo());
         return vec;
     } catch(std::exception& e) {

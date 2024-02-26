@@ -117,7 +117,7 @@ int test_PersonData() {
         auto[nam, val] = derek.getName().bind();
         ptr_lambda_debug<const char*, const decltype(nam)&>("name is ", nam);        
         ptr_lambda_debug<const char*, const decltype(val)&>("value is ", val);        
-        auto[nam2, val2] = derek.getEmail().value().bind();
+        auto[nam2, val2] = derek.getEmail().bind();
         ptr_lambda_debug<const char*, const decltype(nam2)&>("name is ", nam2);        
         ptr_lambda_debug<const char*, const decltype(val2)&>("value is ", val2);
         auto[nam3, val3] = derek.getAge().value().bind();
@@ -211,9 +211,9 @@ int test_makeInsertSql() {
 
         std::unique_ptr<RdbStrategy<PersonData>> strategy2 = std::make_unique<PersonStrategy>(PersonStrategy());
         DataField<std::string> name2("name", "Cheshire");
-        std::optional<DataField<std::string>> empty_email;
+        DataField<std::string> email2("email", "cheshire@loki.org");
         std::optional<DataField<int>> empty_age;
-        PersonData cheshire(std::move(strategy2),name2,empty_email,empty_age);
+        PersonData cheshire(std::move(strategy2),name2,email2,empty_age);
 
         auto sql2 = makeInsertSql(cheshire.getTableName(), cheshire.getColumns());
         ptr_lambda_debug<const char*,const decltype(sql2)&>("sql2: ", sql2);
@@ -375,9 +375,9 @@ int test_makeCreateTableSql() {
     puts("=== test_makeCreateTableSql");
     try {
         std::unique_ptr<RdbStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
-        DataField<std::size_t> id("id", 0, "Long", "PRIMARY KEY");
-        DataField<std::string> name("name", "Derek", "varchar", "");
-        DataField<std::string> email("email", "derek@loki.org", "varchar", "UNIQUE");
+        DataField<std::size_t> id("id", 0, "Long", "NOT NULL AUTO_INCREMENT PRIMARY KEY");  // MySQL でこの構文で問題がないか要検証。
+        DataField<std::string> name("name", "Derek", "varchar", "NOT NULL");
+        DataField<std::string> email("email", "derek@loki.org", "varchar", "NOT NULL UNIQUE");
         DataField<int> age("age", 21, "Integer", "");
         PersonData derek(std::move(strategy),id,name,email,age);
         auto tblInfos = derek.getTableInfo();
