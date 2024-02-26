@@ -363,6 +363,14 @@ int test_makeFindOneSql() {
  * many-to-one などのリレーションなどを考え始めるとややこしくなるだろう。その点を割り
  * 切った実装としたい。つまり、あくまでも補助機能だ、であれば、RdbData の純粋仮想関数
  * という位置づけでは問題がある。
+ *
+ * e.g. CREATE TABLE 文（MySQL） 
+CREATE TABLE person (
+id    BIGINT AUTO_INCREMENT PRIMARY KEY,
+name  VARCHAR(128) NOT NULL,
+email VARCHAR(256) NOT NULL UNIQUE,
+age   INT
+);
  * 
 */
 
@@ -375,10 +383,10 @@ int test_makeCreateTableSql() {
     puts("=== test_makeCreateTableSql");
     try {
         std::unique_ptr<RdbStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
-        DataField<std::size_t> id("id", 0, "Long", "NOT NULL AUTO_INCREMENT PRIMARY KEY");  // MySQL でこの構文で問題がないか要検証。
-        DataField<std::string> name("name", "Derek", "varchar", "NOT NULL");
-        DataField<std::string> email("email", "derek@loki.org", "varchar", "NOT NULL UNIQUE");
-        DataField<int> age("age", 21, "Integer", "");
+        DataField<std::size_t> id("id", 0, "BIGINT", "AUTO_INCREMENT PRIMARY KEY");  // MySQL でこの構文で問題がないか要検証。
+        DataField<std::string> name("name", "Derek", "VARCHAR(128)", "NOT NULL");
+        DataField<std::string> email("email", "derek@loki.org", "VARCHAR(256)", "NOT NULL UNIQUE");
+        DataField<int> age("age", 21, "INT", "");
         PersonData derek(std::move(strategy),id,name,email,age);
         auto tblInfos = derek.getTableInfo();
         for(auto info: tblInfos) {
