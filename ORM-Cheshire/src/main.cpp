@@ -376,6 +376,16 @@ age   INT
 
 std::string makeCreateTableSql(const std::string& tableName, const std::vector<std::tuple<std::string,std::string,std::string>>& tblInfos) {
     std::string sql("CREATE TABLE ");
+    sql.append(tableName).append(" (");
+    std::string colsDef("");
+    for(std::size_t i = 0; i < tblInfos.size(); i++) {
+        auto col = tblInfos.at(i);
+        colsDef.append(get<0>(col));colsDef.append(" ");colsDef.append(get<1>(col));colsDef.append(" ");colsDef.append(get<2>(col));
+        if( i < tblInfos.size()-1 ) {
+            colsDef.append(", ");
+        }
+    }
+    sql.append(colsDef).append(")");
     return sql;
 }
 
@@ -394,6 +404,8 @@ int test_makeCreateTableSql() {
             ptr_lambda_debug<const char*, const decltype(get<1>(info))&>("type is ", get<1>(info));
             ptr_lambda_debug<const char*, const decltype(get<2>(info))&>("const is ", get<2>(info));
         }
+        auto sql = makeCreateTableSql(derek.getTableName(),derek.getTableInfo());
+        ptr_lambda_debug<const char*, const decltype(sql)&>("sql is ", sql);
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
