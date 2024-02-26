@@ -1,7 +1,7 @@
 #include "../../inc/PersonStrategy.hpp"
 
 std::vector<std::string> PersonStrategy::getColumns(const PersonData& data) const {         // override
-    puts("TODO implementation ------ PersonStrategy::getColumns");
+    puts("------ PersonStrategy::getColumns");
     std::vector<std::string> cols;
     // auto[id_name, id_value] = data.getId().bind();   // TODO プライマリキの Auto Increment あり／なし の判断が必要。 
                                                         // そればバリエーションポイントなので 別 Strategy になるかな。
@@ -19,8 +19,16 @@ std::vector<std::string> PersonStrategy::getColumns(const PersonData& data) cons
     return cols;
 }
 
-std::vector<std::pair<std::string, std::string>> PersonStrategy::getTableInfo(const PersonData& data) const {   // override
-    puts("TODO 実装 ------ PersonStrategy::getTableInfo");
-    std::vector<std::pair<std::string, std::string>> vec;
-    return vec;
+std::vector<std::tuple<std::string, std::string, std::string>> PersonStrategy::getTableInfo(const PersonData& data) const {   // override
+    puts("------ PersonStrategy::getTableInfo");
+    try {
+        std::vector<std::tuple<std::string, std::string, std::string>> vec;
+        vec.emplace_back(data.getId().bindTupleTblInfo());
+        vec.emplace_back(data.getName().bindTupleTblInfo());
+        vec.emplace_back(data.getEmail().value().bindTupleTblInfo());
+        vec.emplace_back(data.getAge().value().bindTupleTblInfo());
+        return vec;
+    } catch(std::exception& e) {
+        throw std::runtime_error(e.what());
+    }
 }

@@ -366,6 +366,32 @@ int test_makeFindOneSql() {
  * 
 */
 
+std::string makeCreateTableSql(const std::string& tableName, const std::vector<std::tuple<std::string,std::string,std::string>>& tblInfos) {
+    std::string sql("CREATE TABLE ");
+    return sql;
+}
+
+int test_makeCreateTableSql() {
+    puts("=== test_makeCreateTableSql");
+    try {
+        std::unique_ptr<RdbStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
+        DataField<std::size_t> id("id", 0, "Long", "PRIMARY KEY");
+        DataField<std::string> name("name", "Derek", "varchar", "");
+        DataField<std::string> email("email", "derek@loki.org", "varchar", "UNIQUE");
+        DataField<int> age("age", 21, "Integer", "");
+        PersonData derek(std::move(strategy),id,name,email,age);
+        auto tblInfos = derek.getTableInfo();
+        for(auto info: tblInfos) {
+            ptr_lambda_debug<const char*, const decltype(get<0>(info))&>("name is ", get<0>(info));
+            ptr_lambda_debug<const char*, const decltype(get<1>(info))&>("type is ", get<1>(info));
+            ptr_lambda_debug<const char*, const decltype(get<2>(info))&>("const is ", get<2>(info));
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 /**
  * 全くの別件だが、今回いろいろ C++ のビルド周りを調べた際に次のような情報を見つけた。
@@ -413,6 +439,10 @@ int main(void) {
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_makeFindOneSql());
         assert(ret == 0);
+    }
+    if(1.02) {
+        auto ret = 0;
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_makeCreateTableSql());
     }
     puts("===   Lost Chapter O/R Mapping END");
     return 0;

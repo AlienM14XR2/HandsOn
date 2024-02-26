@@ -17,13 +17,19 @@ public:
     , const DataField<int>& _age);
 
     PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
+    , const DataField<std::size_t>& _id
+    , const DataField<std::string>& _name
+    , const DataField<std::string>& _email 
+    , const DataField<int>& _age);
+
+    PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
     , const DataField<std::string>& _name
     , const std::optional<DataField<std::string>>& _email 
     , const std::optional<DataField<int>>& _age);
 
     // ..
     virtual std::vector<std::string> getColumns() const override;
-    virtual std::vector<std::pair<std::string, std::string>> getTableInfo() const override;
+    virtual std::vector<std::tuple<std::string, std::string, std::string>> getTableInfo() const override;
 
     const std::string                     getTableName() const;
     DataField<std::size_t>                getId() const;
@@ -33,8 +39,8 @@ public:
 private:
     const std::string TABLE_NAME;
     std::unique_ptr<RdbStrategy<PersonData>> strategy = nullptr;
-    DataField<std::size_t> id;
-    DataField<std::string> name;
+    DataField<std::size_t> id;          // 必須
+    DataField<std::string> name;        // 必須
     // 必須ではないデータは optional を利用するといいかもしれない。
     std::optional<DataField<std::string>> email;
     std::optional<DataField<int>>         age;

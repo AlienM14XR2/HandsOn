@@ -19,9 +19,9 @@ public:
 
     /**
      * テーブル情報を返す。
-     * ペアの組み合わせは、カラム名とその RDBMS 側でのデータ型。
+     * タプルの組み合わせは、カラム名とその RDBMS 側でのデータ型、Key 制約。
     */
-    virtual std::vector<std::pair<std::string, std::string>> getTableInfo() const = 0;
+    virtual std::vector<std::tuple<std::string, std::string, std::string>> getTableInfo() const = 0;
 };
 
 

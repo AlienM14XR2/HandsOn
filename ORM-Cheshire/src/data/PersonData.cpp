@@ -10,6 +10,16 @@ PersonData::PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
     // 必要ならここで Validation を行う、妥当性検証のオブジェクトをコンポジションして利用するのもあり。
 }
 PersonData::PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
+    , const DataField<std::size_t>& _id
+    , const DataField<std::string>& _name
+    , const DataField<std::string>& _email 
+    , const DataField<int>& _age)
+    : TABLE_NAME{std::move(std::string("person"))}
+    , strategy{std::move(_strategy)}, id{_id}, name{_name}, email{_email}, age{_age}
+{
+
+}
+PersonData::PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
     , const DataField<std::string>& _name
     , const std::optional<DataField<std::string>>& _email 
     , const std::optional<DataField<int>>& _age) 
@@ -25,11 +35,9 @@ std::vector<std::string> PersonData::getColumns() const {   // override
     return strategy.get()->getColumns(*this);
 }
 
-std::vector<std::pair<std::string, std::string>> PersonData::getTableInfo() const { // override
-    puts("TODO 実装 ------ PersonData::getTableInfo");
-    std::vector<std::pair<std::string, std::string>> vec;
-    // TODO 実装詳細は Strategy パターンの具象クラスで行うこと。
-    return vec;
+std::vector<std::tuple<std::string, std::string, std::string>> PersonData::getTableInfo() const { // override
+    puts("------ PersonData::getTableInfo");
+    return strategy->getTableInfo(*this);
 }
 
 
