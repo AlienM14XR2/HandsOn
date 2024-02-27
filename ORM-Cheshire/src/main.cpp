@@ -61,9 +61,11 @@
 #include "../inc/RdbStrategy.hpp"
 #include "../inc/PersonStrategy.hpp"
 #include "../inc/PersonData.hpp"
-#include "/usr/include/mysql_driver.h"
+// #include "/usr/include/mysql_driver.h"
 #include "/usr/include/mysql_connection.h"
+#include "/usr/include/cppconn/driver.h"
 #include "/usr/include/cppconn/statement.h"
+#include "/usr/include/cppconn/prepared_statement.h"
 
 int test_debug_and_error() {
     puts("=== test_debug_and_error");
@@ -452,11 +454,11 @@ int test_makeCreateTableSql() {
 
 int test_mysql_connect() {
     puts("=== test_mysql_connect");
-    sql::mysql::MySQL_Driver* driver = nullptr;
+    sql::Driver* driver = nullptr;
     sql::Connection*          con    = nullptr;
     sql::Statement *          stmt   = nullptr;
     try {
-        driver = sql::mysql::get_mysql_driver_instance();
+        driver = get_driver_instance();
         con = driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234");
         if(con->isValid()) {
             puts("connected ... ");
@@ -493,6 +495,57 @@ int test_mysql_connect() {
         return EXIT_FAILURE;
     }
 
+}
+
+int test_insert_person() {
+    puts("=== test_insert_person");
+    sql::Driver* driver = nullptr;
+    sql::Connection*          con = nullptr;
+    sql::PreparedStatement*   prep_stmt = nullptr;
+    try {
+        std::unique_ptr<RdbStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
+        DataField<std::string> name("name", "Derek");
+        DataField<std::string> email("email", "derek@loki.org");
+        DataField<int> age("age", 21);
+        PersonData derek(std::move(strategy),name,email,age);
+        auto sql = makeInsertSql(derek.getTableName(), derek.getColumns());
+        ptr_lambda_debug<const char*,const decltype(sql)&>("sql: ", sql);
+
+        driver = get_driver_instance();
+        con = driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234");
+        if(con->isValid()) {
+            puts("connected ... ");
+            con->setSchema("cheshire");
+            prep_stmt = con->prepareStatement(sql);
+            auto[name_nam, name_val] = derek.getName().bind();
+            prep_stmt->setString(1, name_val);
+            auto[email_nam, email_val] = derek.getEmail().bind();
+            prep_stmt->setString(2, email_val);
+            auto[age_nam, age_val] = derek.getAge().value().bind();
+            prep_stmt->setInt(3, age_val);
+            if(prep_stmt->executeUpdate()) {              // 要調査、これは登録の判定には使えない。
+                puts("... success, insert.");
+                // TODO ResultSet の調査
+                // auto sql = makeFindOneSql(derek.getTableName(), derek.getColumns());
+                // prep_stmt->setBigInt()
+            } else {
+                // ユニークキ制約等で登録できなかった場合の処理
+                puts("... fail, insert.");
+            }
+            delete prep_stmt;
+            delete con;
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        if(prep_stmt) {
+            delete prep_stmt;
+        }
+        if(con) {
+            delete con;
+        }
+        return EXIT_FAILURE;
+    }
 }
 
 /**
@@ -550,6 +603,8 @@ int main(void) {
     if(1.03) {
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysql_connect());
+        assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_insert_person());
         assert(ret == 0);
     }
     puts("===   Lost Chapter O/R Mapping END");
