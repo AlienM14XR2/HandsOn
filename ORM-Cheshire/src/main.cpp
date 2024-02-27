@@ -44,8 +44,17 @@
  * sudo apt-get install  libmysqlcppconn-dev
  * ```
  * 
- * e.g. compile.
+ * e.g. compile A.
  * g++ -O3 -DDEBUG -std=c++20 -I../inc/ -I/usr/include/cppconn/ -L/usr/lib/ -pedantic-errors -Wall -Werror main.cpp -lmysqlcppconn ./model/PersonStrategy.cpp ./data/PersonData.cpp -o ../bin/main
+ * 
+ * e.g. compile B. 
+ * 分割した方が少しだけコンパイル時間が短縮できるかな、体感値で申し訳ないが。
+ * 以下の 3 行を毎回実行する必要はなく、必要に応じて適宜、上 2 行は実行すれば良い、main.cpp と比較した場合、アーキテクチャ上の
+ * 上位と見ることができる。 main.cpp ほど修正が入らないため。どこかのタイミングで、Makefile にはしたい。
+ * 
+ * g++ -O3 -DDEBUG -std=c++20 -I../inc/ -pedantic-errors -Wall -Werror -c ./data/PersonData.cpp -o ../bin/PersonData.o
+ * g++ -O3 -DDEBUG -std=c++20 -I../inc/ -pedantic-errors -Wall -Werror -c ./model/PersonStrategy.cpp -o ../bin/PersonStrategy.o
+ * g++ -O3 -DDEBUG -std=c++20 -I../inc/ -I/usr/include/cppconn/ -L/usr/lib/ -pedantic-errors -Wall -Werror main.cpp -lmysqlcppconn ../bin/PersonStrategy.o ../bin/PersonData.o -o ../bin/main
 */
 
 #include <iostream>
