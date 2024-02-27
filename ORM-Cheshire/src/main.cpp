@@ -456,7 +456,7 @@ int test_mysql_connect() {
     try {
         driver = sql::mysql::get_mysql_driver_instance();
         con = driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234");
-        if(con) {
+        if(con->isValid()) {
             puts("connected ... ");
         }
         delete con;
