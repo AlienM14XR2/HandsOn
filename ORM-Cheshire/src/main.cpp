@@ -9,9 +9,43 @@
  * 『テンプレートの実装はヘッダに書かなければならない』これは少し乱暴な手段であり、別な方法もある。
  * しかし、現状はこれでよしとする、あぁ、安らかに眠れるし、次こそは Makefile に専念できるだろう。
  * 
+ * 以前もどこかで記述したが、改めて自分の開発環境を再掲しておく。
+ * ```
+ * No LSB modules are available.
+ * Distributor ID:	Ubuntu
+ * Description:	Ubuntu 22.04.4 LTS
+ * Release:	22.04
+ * Codename:	jammy
+ * ```
+ * 
+ * MySQL サーバのインストール
+ * ```
+ * sudo apt install mysql-server
+ * ```
+ * MySQL サーバの Version 確認
+ * ```
+ * $ sudo mysqladmin -p -u [your_mysql_user] version
+ * ```
+ * mysqladmin  Ver 8.0.36-0ubuntu0.22.04.1 for Linux on x86_64 ((Ubuntu))
+ * Copyright (c) 2000, 2024, Oracle and/or its affiliates.
+ * 
+ * Oracle is a registered trademark of Oracle Corporation and/or its
+ * affiliates. Other names may be trademarks of their respective
+ * owners.
+ * 
+ * Server version		8.0.36-0ubuntu0.22.04.1
+ * Protocol version	10
+ * Connection		Localhost via UNIX socket
+ * UNIX socket		/var/run/mysqld/mysqld.sock
+ * Uptime:			1 hour 1 min 10 sec
+ * 
+ * コンパイル例を実行する前に次を実行して、MySQL を利用するにあたり、必要なヘッダファイルとライブラリを用意した。
+ * ```
+ * sudo apt-get install  libmysqlcppconn-dev
+ * ```
  * 
  * e.g. compile.
- * g++ -O3 -DDEBUG -std=c++20 -I../inc -pedantic-errors -Wall -Werror main.cpp ./model/PersonStrategy.cpp ./data/PersonData.cpp -o ../bin/main
+ * g++ -O3 -DDEBUG -std=c++20 -I../inc/ -I/usr/include/cppconn/ -L/usr/lib/ -pedantic-errors -Wall -Werror main.cpp -lmysqlcppconn ./model/PersonStrategy.cpp ./data/PersonData.cpp -o ../bin/main
 */
 
 #include <iostream>
@@ -27,6 +61,8 @@
 #include "../inc/RdbStrategy.hpp"
 #include "../inc/PersonStrategy.hpp"
 #include "../inc/PersonData.hpp"
+#include "/usr/include/mysql_connection.h"
+#include "/usr/include/mysql_driver.h"
 
 int test_debug_and_error() {
     puts("=== test_debug_and_error");
@@ -413,6 +449,28 @@ int test_makeCreateTableSql() {
     }
 }
 
+int test_mysql_connect() {
+    puts("=== test_mysql_connect");
+    sql::mysql::MySQL_Driver* driver = nullptr;
+    sql::Connection* con = nullptr;
+    try {
+        driver = sql::mysql::get_mysql_driver_instance();
+        con = driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234");
+        if(con) {
+            puts("connected ... ");
+        }
+        delete con;
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        if(con) {
+            delete con;
+        }
+        return EXIT_FAILURE;
+    }
+
+}
+
 /**
  * 全くの別件だが、今回いろいろ C++ のビルド周りを調べた際に次のような情報を見つけた。
  * C++ と C のコードを混在させてコンパイル、ビルドする際は、以下のような記述が必要との
@@ -463,6 +521,12 @@ int main(void) {
     if(1.02) {
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_makeCreateTableSql());
+        assert(ret == 0);
+    }
+    if(1.03) {
+        auto ret = 0;
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysql_connect());
+        assert(ret == 0);
     }
     puts("===   Lost Chapter O/R Mapping END");
     return 0;
