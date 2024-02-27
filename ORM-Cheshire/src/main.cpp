@@ -71,10 +71,16 @@
 #include "../inc/PersonStrategy.hpp"
 #include "../inc/PersonData.hpp"
 // #include "/usr/include/mysql_driver.h"
-#include "/usr/include/mysql_connection.h"
+// #include "/usr/include/mysql_connection.h"
+#include "/usr/include/mysql_error.h"
 #include "/usr/include/cppconn/driver.h"
+#include "/usr/include/cppconn/connection.h"
 #include "/usr/include/cppconn/statement.h"
 #include "/usr/include/cppconn/prepared_statement.h"
+#include "/usr/include/cppconn/resultset.h"
+#include "/usr/include/cppconn/exception.h"
+#include "/usr/include/cppconn/sqlstring.h"
+#include "/usr/include/cppconn/warning.h"
 
 int test_debug_and_error() {
     puts("=== test_debug_and_error");
@@ -509,8 +515,6 @@ int test_mysql_connect() {
 int test_insert_person() {
     puts("=== test_insert_person");
     sql::Driver* driver = nullptr;
-    sql::Connection*          con = nullptr;
-    sql::PreparedStatement*   prep_stmt = nullptr;
     try {
         std::unique_ptr<RdbStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
         DataField<std::string> name("name", "Derek");
@@ -521,18 +525,29 @@ int test_insert_person() {
         ptr_lambda_debug<const char*,const decltype(sql)&>("sql: ", sql);
 
         driver = get_driver_instance();
-        con = driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234");
+        std::unique_ptr<sql::Connection> con(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234"));
         if(con->isValid()) {
             puts("connected ... ");
             con->setSchema("cheshire");
-            prep_stmt = con->prepareStatement(sql);
+            ptr_lambda_debug<const char*, const bool&>("auto commit is ",  con->getAutoCommit());
+            std::unique_ptr<sql::PreparedStatement> prep_stmt(con->prepareStatement(sql));
             auto[name_nam, name_val] = derek.getName().bind();
             prep_stmt->setString(1, name_val);
             auto[email_nam, email_val] = derek.getEmail().bind();
             prep_stmt->setString(2, email_val);
             auto[age_nam, age_val] = derek.getAge().value().bind();
             prep_stmt->setInt(3, age_val);
-            if(prep_stmt->executeUpdate()) {              // 要調査、これは登録の判定には使えない。
+            /**
+             * ヒント
+             * 
+                begin;
+                INSERT INTO person (name, email, age) VALUES ('a', 'a@loki.org', 30);
+                SELECT LAST_INSERT_ID();
+                commit;
+            */
+            int ret = prep_stmt->executeUpdate();
+            ptr_lambda_debug<const char*, const int&>("ret is ", ret);
+            if(ret) {
                 puts("... success, insert.");
                 // TODO ResultSet の調査
                 // auto sql = makeFindOneSql(derek.getTableName(), derek.getColumns());
@@ -541,18 +556,10 @@ int test_insert_person() {
                 // ユニークキ制約等で登録できなかった場合の処理
                 puts("... fail, insert.");
             }
-            delete prep_stmt;
-            delete con;
         }
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
-        if(prep_stmt) {
-            delete prep_stmt;
-        }
-        if(con) {
-            delete con;
-        }
         return EXIT_FAILURE;
     }
 }
