@@ -61,8 +61,9 @@
 #include "../inc/RdbStrategy.hpp"
 #include "../inc/PersonStrategy.hpp"
 #include "../inc/PersonData.hpp"
-#include "/usr/include/mysql_connection.h"
 #include "/usr/include/mysql_driver.h"
+#include "/usr/include/mysql_connection.h"
+#include "/usr/include/cppconn/statement.h"
 
 int test_debug_and_error() {
     puts("=== test_debug_and_error");
@@ -452,20 +453,43 @@ int test_makeCreateTableSql() {
 int test_mysql_connect() {
     puts("=== test_mysql_connect");
     sql::mysql::MySQL_Driver* driver = nullptr;
-    sql::Connection* con = nullptr;
+    sql::Connection*          con    = nullptr;
+    sql::Statement *          stmt   = nullptr;
     try {
         driver = sql::mysql::get_mysql_driver_instance();
         con = driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234");
         if(con->isValid()) {
             puts("connected ... ");
         }
+        stmt = con->createStatement();
+        stmt->execute("USE cheshire");
+        stmt->execute("DROP TABLE IF EXISTS person");
+
+        std::unique_ptr<RdbStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
+        DataField<std::size_t> id("id", 0, "BIGINT", "AUTO_INCREMENT PRIMARY KEY");  // MySQL でこの構文で問題がないか要検証。
+        DataField<std::string> name("name", "Derek", "VARCHAR(128)", "NOT NULL");
+        DataField<std::string> email("email", "derek@loki.org", "VARCHAR(256)", "NOT NULL UNIQUE");
+        DataField<int> age("age", 21, "INT", "");
+        PersonData derek(std::move(strategy),id,name,email,age);
+        auto sql = makeCreateTableSql(derek.getTableName(),derek.getTableInfo());
+        ptr_lambda_debug<const char*, const decltype(sql)&>("sql is ", sql);
+        stmt->execute(sql);
+
+        delete stmt;
         delete con;
+        // delete driver;           // これは蛇足らしい、これがあるとコアダンプになる。
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
+        if(stmt) {
+            delete stmt;
+        }
         if(con) {
             delete con;
         }
+        // if(driver) {
+        //     delete driver;
+        // }
         return EXIT_FAILURE;
     }
 
