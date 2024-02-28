@@ -514,6 +514,7 @@ int test_mysql_connect() {
 
 int test_insert_person() {
     puts("=== test_insert_person");
+    std::clock_t start = clock();
     sql::Driver* driver = nullptr;
     std::unique_ptr<sql::Connection> con = nullptr;
     try {
@@ -566,10 +567,24 @@ int test_insert_person() {
                 std::unique_ptr<sql::ResultSet> res_2( prep_stmt_2->executeQuery() );
                 while(res_2->next()) {
                     puts("------ B");
+                    auto res_id = res_2->getUInt64(1);
+                    auto res_name = res_2->getString(2);
+                    auto res_email = res_2->getString(3);
+                    auto res_age = res_2->getInt(4);
+                    ptr_lambda_debug<const char*,const decltype(res_id)&>("res_id: ", res_id);
+                    ptr_lambda_debug<const char*,const decltype(res_name)&>("res_name: ", res_name);
+                    ptr_lambda_debug<const char*,const decltype(res_email)&>("res_email: ", res_email);
+                    ptr_lambda_debug<const char*,const decltype(res_age)&>("res_age: ", res_age);
+                    /**
+                     * 最終的には ResultSet の各値を Person オブジェクトに詰めて返却するところまでを Insert のタスク
+                     * としたい。
+                    */
                 }
             }
             con->commit();
         }
+        std::clock_t end = clock();
+        std::cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << std::endl;
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         con->rollback();
