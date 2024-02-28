@@ -45,7 +45,7 @@
  * ```
  * 
  * e.g. compile A.
- * g++ -O3 -DDEBUG -std=c++20 -I../inc/ -I/usr/include/cppconn/ -L/usr/lib/ -pedantic-errors -Wall -Werror main.cpp -lmysqlcppconn ./model/PersonStrategy.cpp ./data/PersonData.cpp -o ../bin/main
+ * g++ -O3 -DDEBUG -std=c++20 -I../inc/ -I/usr/include/mysql-cppconn-8/ -L/usr/lib/ -pedantic-errors -Wall -Werror main.cpp -lmysqlcppconn ./model/PersonStrategy.cpp ./data/PersonData.cpp -o ../bin/main
  * 
  * e.g. compile B. 
  * 分割した方が少しだけコンパイル時間が短縮できるかな、体感値で申し訳ないが。
@@ -54,7 +54,7 @@
  * 
  * g++ -O3 -DDEBUG -std=c++20 -I../inc/ -pedantic-errors -Wall -Werror -c ./data/PersonData.cpp -o ../bin/PersonData.o
  * g++ -O3 -DDEBUG -std=c++20 -I../inc/ -pedantic-errors -Wall -Werror -c ./model/PersonStrategy.cpp -o ../bin/PersonStrategy.o
- * g++ -O3 -DDEBUG -std=c++20 -I../inc/ -I/usr/include/cppconn/ -L/usr/lib/ -pedantic-errors -Wall -Werror main.cpp -lmysqlcppconn ../bin/PersonStrategy.o ../bin/PersonData.o -o ../bin/main
+ * g++ -O3 -DDEBUG -std=c++20 -I../inc/ -I/usr/include/mysql-cppconn-8/ -L/usr/lib/ -pedantic-errors -Wall -Werror main.cpp -lmysqlcppconn ../bin/PersonStrategy.o ../bin/PersonData.o -o ../bin/main
 */
 
 #include <iostream>
@@ -72,15 +72,15 @@
 #include "../inc/PersonData.hpp"
 // #include "/usr/include/mysql_driver.h"
 // #include "/usr/include/mysql_connection.h"
-#include "/usr/include/mysql_error.h"
-#include "/usr/include/cppconn/driver.h"
-#include "/usr/include/cppconn/connection.h"
-#include "/usr/include/cppconn/statement.h"
-#include "/usr/include/cppconn/prepared_statement.h"
-#include "/usr/include/cppconn/resultset.h"
-#include "/usr/include/cppconn/exception.h"
-#include "/usr/include/cppconn/sqlstring.h"
-#include "/usr/include/cppconn/warning.h"
+// #include "/usr/include/cppconn/driver.h"
+// #include "/usr/include/cppconn/connection.h"
+// #include "/usr/include/cppconn/statement.h"
+// #include "/usr/include/cppconn/prepared_statement.h"
+// #include "/usr/include/cppconn/resultset.h"
+// #include "/usr/include/cppconn/exception.h"
+// #include "/usr/include/cppconn/sqlstring.h"
+// #include "/usr/include/cppconn/warning.h"
+#include "/usr/include/mysql-cppconn-8/mysql/jdbc.h"
 
 int test_debug_and_error() {
     puts("=== test_debug_and_error");
@@ -577,7 +577,9 @@ int test_insert_person() {
                     ptr_lambda_debug<const char*,const decltype(res_age)&>("res_age: ", res_age);
                     /**
                      * 最終的には ResultSet の各値を Person オブジェクトに詰めて返却するところまでを Insert のタスク
-                     * としたい。
+                     * としたい。RDBMS のドライバとコネクションまたトランザクションをどのように設計するかが今後のポイ
+                     * ントだと考える。上記をまとめて実装するとこのような出来になってしまう。
+                     * Driver Connection Transaction Repository の設計いかんでこのアプリの出来は決まってしまう。
                     */
                 }
             }
