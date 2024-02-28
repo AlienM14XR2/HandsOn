@@ -515,6 +515,7 @@ int test_mysql_connect() {
 int test_insert_person() {
     puts("=== test_insert_person");
     sql::Driver* driver = nullptr;
+    std::unique_ptr<sql::Connection> con = nullptr;
     try {
         std::unique_ptr<RdbStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
         DataField<std::string> name("name", "Derek");
@@ -525,12 +526,14 @@ int test_insert_person() {
         ptr_lambda_debug<const char*,const decltype(sql)&>("sql: ", sql);
 
         driver = get_driver_instance();
-        std::unique_ptr<sql::Connection> con(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234"));
+        con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
         if(con->isValid()) {
             puts("connected ... ");
             con->setSchema("cheshire");
+            con->setAutoCommit(false);
             ptr_lambda_debug<const char*, const bool&>("auto commit is ",  con->getAutoCommit());
             std::unique_ptr<sql::PreparedStatement> prep_stmt(con->prepareStatement(sql));
+            auto[id_nam, id_val] = derek.getId().bind();
             auto[name_nam, name_val] = derek.getName().bind();
             prep_stmt->setString(1, name_val);
             auto[email_nam, email_val] = derek.getEmail().bind();
@@ -547,18 +550,29 @@ int test_insert_person() {
             */
             int ret = prep_stmt->executeUpdate();
             ptr_lambda_debug<const char*, const int&>("ret is ", ret);
-            if(ret) {
-                puts("... success, insert.");
-                // TODO ResultSet の調査
-                // auto sql = makeFindOneSql(derek.getTableName(), derek.getColumns());
-                // prep_stmt->setBigInt()
-            } else {
-                // ユニークキ制約等で登録できなかった場合の処理
-                puts("... fail, insert.");
+            // throw std::runtime_error("It's test error.");
+            std::unique_ptr<sql::Statement> stmt(con->createStatement());
+            std::unique_ptr<sql::ResultSet> res( stmt->executeQuery("SELECT LAST_INSERT_ID()") );
+            while(res->next()) {
+                puts("------ A");
+                // ptr_lambda_debug<const char*, const sql::ResultSet::enum_type&>("enum_type is ", res->getType());
+                auto id = res->getInt64(1);
+                ptr_lambda_debug<const char*, const decltype(id)&>("id is ", id);
+                ptr_lambda_debug<const char*, const std::string&>("id type is ", typeid(id).name());
+                auto sql_2 = makeFindOneSql(derek.getTableName(), id_nam, derek.getColumns());
+                ptr_lambda_debug<const char*,const decltype(sql)&>("sql_2: ", sql_2);
+                std::unique_ptr<sql::PreparedStatement> prep_stmt_2(con->prepareStatement(sql_2));
+                prep_stmt_2->setBigInt(1, std::to_string(id));
+                std::unique_ptr<sql::ResultSet> res_2( prep_stmt_2->executeQuery() );
+                while(res_2->next()) {
+                    puts("------ B");
+                }
             }
+            con->commit();
         }
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
+        con->rollback();
         ptr_print_error<const decltype(e)&>(e);
         return EXIT_FAILURE;
     }
