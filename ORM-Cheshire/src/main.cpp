@@ -465,7 +465,8 @@ int test_mysql_connect() {
     sql::Statement *          stmt   = nullptr;
     try {
         driver = get_driver_instance();
-        con = driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234");
+        // con = driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234");
+        con = driver->connect("tcp://172.22.1.64:3306", "derek", "derek1234");
         if(con->isValid()) {
             puts("connected ... ");
         }
@@ -518,7 +519,8 @@ int test_insert_person() {
         ptr_lambda_debug<const char*,const decltype(sql)&>("sql: ", sql);
 
         driver = get_driver_instance();
-        con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
+        // con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
+        con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://172.22.1.64:3306", "derek", "derek1234")));
         if(con->isValid()) {
             puts("connected ... ");
             con->setSchema("cheshire");
@@ -599,7 +601,8 @@ int test_mysqlx_connect() {
     puts("=== test_mysqlx_connect");
     std::clock_t start = clock();
     try {
-        mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+        // mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+        mysqlx::Session sess("172.22.1.64", 33060, "derek", "derek1234");
         mysqlx::Schema db = sess.getSchema("cheshire");
         std::cout << "your schema is " << db.getName() << std::endl;
         mysqlx::Table person = db.getTable("person");
@@ -679,7 +682,7 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_insert_person());
         assert(ret == 0);
     }
-    if(1.04) {
+    if(1.04) {      // 1.04
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_connect());
         assert(ret == 0);
