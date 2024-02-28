@@ -591,7 +591,33 @@ int test_insert_person() {
  * 以前利用した mysqlx を再度検証してみる。
  * 
  * /usr/include/mysql-cppconn-8/mysqlx/xdevapi.h
+ * 
+ * 次のテスト関数は以前確認した事の移植、mysqlx::Session の作り方以外は同じもの。
 */
+
+int test_mysqlx_connect() {
+    puts("=== test_mysqlx_connect");
+    std::clock_t start = clock();
+    try {
+        mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+        mysqlx::Schema db = sess.getSchema("cheshire");
+        std::cout << "your schema is " << db.getName() << std::endl;
+        mysqlx::Table person = db.getTable("person");
+        std::cout << "person count is " << person.count() << std::endl;
+        mysqlx::TableSelect selectOpe = person.select("email").where("id=1");
+        mysqlx::Row row = selectOpe.execute().fetchOne();
+        std::cout << "row is null ? " << row.isNull() << std::endl;
+        mysqlx::Value val = row.get(0);
+        std::cout << val << std::endl;    
+        sess.close();
+        std::clock_t end = clock();
+        std::cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << std::endl;
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 
 /**
@@ -651,6 +677,11 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysql_connect());
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_insert_person());
+        assert(ret == 0);
+    }
+    if(1.04) {
+        auto ret = 0;
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_connect());
         assert(ret == 0);
     }
     puts("===   Lost Chapter O/R Mapping END");
