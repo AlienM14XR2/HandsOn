@@ -467,8 +467,8 @@ int test_mysql_connect() {
     sql::Statement *          stmt   = nullptr;
     try {
         driver = get_driver_instance();
-        // con = driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234");
-        con = driver->connect("tcp://172.22.1.64:3306", "derek", "derek1234");
+        con = driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234");
+        // con = driver->connect("tcp://172.22.1.64:3306", "derek", "derek1234");
         if(con->isValid()) {
             puts("connected ... ");
         }
@@ -521,8 +521,8 @@ int test_insert_person() {
         ptr_lambda_debug<const char*,const decltype(sql)&>("sql: ", sql);
 
         driver = get_driver_instance();
-        // con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
-        con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://172.22.1.64:3306", "derek", "derek1234")));
+        con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
+        // con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://172.22.1.64:3306", "derek", "derek1234")));
         if(con->isValid()) {
             puts("connected ... ");
             con->setSchema("cheshire");
@@ -605,12 +605,25 @@ int test_MySQLDriver() {
         ptr_lambda_debug<const char*, sql::Driver*>("d2 addr is ", d2);
         assert(d1 == d2);
 
+        RdbDriver<sql::Driver>* rd = &(MySQLDriver::getInstance());
+        ptr_lambda_debug<const char*, RdbDriver<sql::Driver>*>("rd addr is ", rd);
+        assert(rd == &md1);
+        sql::Driver* d3 = rd->getDriver();
+        ptr_lambda_debug<const char*, sql::Driver*>("d3 addr is ", d3);
+        assert(d3 == d1);
+
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
         return EXIT_FAILURE;
     }
 }
+
+/**
+ * 次は Connection 管理の仕組みを考えてみる。
+ * 
+ * 既にどこかにあると思うが、Pool する仕組みをイメージしている。
+*/
 
 /**
  * MySQL Shell
@@ -625,8 +638,8 @@ int test_mysqlx_connect() {
     puts("=== test_mysqlx_connect");
     std::clock_t start = clock();
     try {
-        // mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
-        mysqlx::Session sess("172.22.1.64", 33060, "derek", "derek1234");
+        mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+        // mysqlx::Session sess("172.22.1.64", 33060, "derek", "derek1234");
         mysqlx::Schema db = sess.getSchema("cheshire");
         std::cout << "your schema is " << db.getName() << std::endl;
         mysqlx::Table person = db.getTable("person");
