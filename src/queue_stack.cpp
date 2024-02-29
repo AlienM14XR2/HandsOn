@@ -9,6 +9,8 @@
 #include <queue>
 #include <stack>
 #include <memory>
+#include <mutex>
+#include <atomic>
 
 template <class M, class D>
 void (*ptr_lambda_debug)(M, D) = [](const auto message, const auto debug) -> void {
@@ -79,9 +81,33 @@ int test_queue() {
     }
 }
 
+int test_stack() {
+    puts("=== test_stack");
+    try {
+        std::unique_ptr<Widget> wp1 = std::make_unique<Widget>(Widget(12));
+        std::unique_ptr<Widget> wp2 = std::make_unique<Widget>(Widget(15));
+        std::unique_ptr<Widget> wp3 = std::make_unique<Widget>(Widget(18));
+
+        std::stack<Widget*> s;
+        s.push(wp1.get());
+        s.push(wp2.get());
+        s.push(wp3.get());
+
+        while(!s.empty()) {
+            Widget* wp = s.top();
+            s.pop();
+            ptr_lambda_debug<const char*, const int&>("value is ", wp->getValue());
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 /**
  * 何らかのオブジェクトを Pool する仕組みは、標準の std::queue や std::stack でよさそう。 
+ * 念のため、同期処理は行うこと。
 */
 
 int main(void) {
@@ -94,6 +120,8 @@ int main(void) {
     if(1.00) {
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_queue());
+        assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_stack());
         assert(ret == 0);
     }
     puts("=== std::queue と std::stack   END");
