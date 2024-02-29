@@ -110,8 +110,15 @@ int test_stack() {
  * 念のため、同期処理は行うこと。
 */
 
+class NoPoolException final : std::exception {
+public:
+    const char* what() const noexcept override {
+        return "No Pool Objects.";
+    }
+};
+
 template <class T>
-class ConnectionPool {
+class ConnectionPool final {
 public:
     ~ConnectionPool() {     // その役割が任意のポインタの Pool なので、解放は本クラスで行う必要がある。
         while(!q.empty()) {
@@ -134,6 +141,9 @@ public:
         if(!q.empty()) {
             ret = q.front();
             q.pop();
+        }
+        if(!ret) {
+            throw std::runtime_error(NoPoolException().what()) ;
         }
         return ret;     // TODO nullptr の場合は、何らかの exception としたいが、やりすぎかな。
     }
@@ -162,6 +172,7 @@ int test_ConnectionPool() {
         ptr_lambda_debug<const char*, const int&>("value is ", wp->getValue()); 
         ptr_lambda_debug<const char*, const bool&>("cp is empty ? ", cp.empty()); 
 
+        wp = cp.pop();          // これは nullptr
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
@@ -183,7 +194,7 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_stack());
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_ConnectionPool());
-        assert(ret == 0);
+        assert(ret == 1);   // テスト関数内で明示的にエラーにしている。
     }
     puts("=== std::queue と std::stack   END");
     return 0;
