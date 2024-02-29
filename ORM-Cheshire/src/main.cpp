@@ -72,6 +72,7 @@
 #include "../inc/PersonStrategy.hpp"
 #include "../inc/PersonData.hpp"
 #include "../inc/MySQLDriver.hpp"
+#include "../inc/ConnectionPool.hpp"
 #include "/usr/include/mysql-cppconn-8/mysql/jdbc.h"
 #include "/usr/include/mysql-cppconn-8/mysqlx/xdevapi.h"
 
@@ -115,6 +116,15 @@ int test_DataField() {
         return EXIT_FAILURE;
     }
 }
+
+class Widget {
+public:
+    Widget(const int& _value): value(_value) 
+    {}
+    int getValue() const { return value; }
+private:
+    int value;
+};
 
 int test_DataField_2() {
     puts("=== test_DataField_2");
@@ -625,6 +635,35 @@ int test_MySQLDriver() {
  * 既にどこかにあると思うが、Pool する仕組みをイメージしている。
 */
 
+int test_ConnectionPool() {
+    puts("=== test_ConnectionPool");
+    try {
+        Widget* wp1 = new Widget(21);
+        Widget* wp2 = new Widget(24);
+        Widget* wp3 = new Widget(27);
+
+        ConnectionPool<Widget> cp;
+        cp.push(wp1);
+        cp.push(wp2);
+        cp.push(wp3);
+
+        const Widget* wp = cp.pop();
+        ptr_lambda_debug<const char*, const int&>("value is ", wp->getValue()); 
+        wp = cp.pop();
+        ptr_lambda_debug<const char*, const int&>("value is ", wp->getValue()); 
+        wp = cp.pop();
+        ptr_lambda_debug<const char*, const int&>("value is ", wp->getValue()); 
+        ptr_lambda_debug<const char*, const bool&>("cp is empty ? ", cp.empty()); 
+
+        wp = cp.pop();          // これは nullptr
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+
 /**
  * MySQL Shell
  * 以前利用した mysqlx を再度検証してみる。
@@ -720,6 +759,8 @@ int main(void) {
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLDriver());
         assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_ConnectionPool());
+        assert(ret == 1);   // テスト内で明示的に exception を投げている
     }
     if(0) {      // 2.00
         auto ret = 0;
