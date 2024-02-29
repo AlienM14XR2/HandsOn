@@ -633,6 +633,8 @@ int test_MySQLDriver() {
  * 次は Connection 管理の仕組みを考えてみる。
  * 
  * 既にどこかにあると思うが、Pool する仕組みをイメージしている。
+ * トランザクションを考えると、read-only と更新系で 2 つ Pool するオブジェクトを用意する必要があるかもしれない。
+ * read-only でも begin と commit を明示してコーディングに含めれば 1 つでもいい。
 */
 
 int test_ConnectionPool() {
