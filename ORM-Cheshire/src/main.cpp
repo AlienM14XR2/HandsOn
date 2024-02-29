@@ -665,6 +665,26 @@ int test_ConnectionPool() {
     }
 }
 
+/**
+ * トランザクションについて考えてみる。
+ * 
+ * con->setAutoCommit(false);
+ * try {
+ *   // ... Prepared Statement の発行等の具体的な SQL 文の構築を行う。
+ *   std::unique_ptr<sql::PreparedStatement> prep_stmt(con->prepareStatement(sql));     // MySQL を例にすれば、ステートメントはコネクションと SQL に依存している。
+ *   con->commit();
+ * } catch(...) {
+ *   con->rollback();
+ * }
+ * 
+ * リポジトリとトランザクションは別、これを如何に綺麗に設計できるのか。
+ * - CRUD 単位でトランザクションのインタフェースを用意する。
+ * - トランザクション内で扱うオブジェクトは、リポジトリのテンプレートにする（できるかな？）。
+ * - おそらく、コネクションとステートメントは抽象化しないとダメかな。
+ * - これも Step 0 として、別ソースファイルで確認する必要がある。
+ * 
+*/
+
 
 /**
  * MySQL Shell
