@@ -110,6 +110,65 @@ int test_stack() {
  * 念のため、同期処理は行うこと。
 */
 
+template <class T>
+class ConnectionPool {
+public:
+    ~ConnectionPool() {     // その役割が任意のポインタの Pool なので、解放は本クラスで行う必要がある。
+        while(!q.empty()) {
+            const T* pt = q.front();
+            q.pop();
+            delete pt;
+        }
+        puts("...... Done ConnectionPool Destructor.");
+    }
+    bool empty() {
+        return q.empty();
+    }
+    void push(const T* pt) const {
+        std::lock_guard<std::mutex> guard(m);
+        q.push(pt);
+    }
+    const T* pop() const {
+        std::lock_guard<std::mutex> guard(m);
+        const T* ret = nullptr;
+        if(!q.empty()) {
+            ret = q.front();
+            q.pop();
+        }
+        return ret;     // TODO nullptr の場合は、何らかの exception としたいが、やりすぎかな。
+    }
+private:
+    mutable std::mutex m;
+    mutable std::queue<const T*> q;
+};
+
+int test_ConnectionPool() {
+    puts("=== test_ConnectionPool");
+    try {
+        Widget* wp1 = new Widget(21);
+        Widget* wp2 = new Widget(24);
+        Widget* wp3 = new Widget(27);
+
+        ConnectionPool<Widget> cp;
+        cp.push(wp1);
+        cp.push(wp2);
+        cp.push(wp3);
+
+        const Widget* wp = cp.pop();
+        ptr_lambda_debug<const char*, const int&>("value is ", wp->getValue()); 
+        wp = cp.pop();
+        ptr_lambda_debug<const char*, const int&>("value is ", wp->getValue()); 
+        wp = cp.pop();
+        ptr_lambda_debug<const char*, const int&>("value is ", wp->getValue()); 
+        ptr_lambda_debug<const char*, const bool&>("cp is empty ? ", cp.empty()); 
+
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START std::queue と std::stack ===");
     if(0.01) {
@@ -122,6 +181,8 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_queue());
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_stack());
+        assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_ConnectionPool());
         assert(ret == 0);
     }
     puts("=== std::queue と std::stack   END");
