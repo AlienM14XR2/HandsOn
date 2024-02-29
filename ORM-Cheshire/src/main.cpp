@@ -71,6 +71,7 @@
 #include "../inc/RdbStrategy.hpp"
 #include "../inc/PersonStrategy.hpp"
 #include "../inc/PersonData.hpp"
+#include "../inc/MySQLDriver.hpp"
 #include "/usr/include/mysql-cppconn-8/mysql/jdbc.h"
 #include "/usr/include/mysql-cppconn-8/mysqlx/xdevapi.h"
 
@@ -589,8 +590,30 @@ int test_insert_person() {
     }
 }
 
+int test_MySQLDriver() {
+    puts("=== test_MySQLDriver");
+    try {
+        MySQLDriver& md1 = MySQLDriver::getInstance();
+        MySQLDriver& md2 = MySQLDriver::getInstance();
+        ptr_lambda_debug<const char*, MySQLDriver*>("md1 addr is ", &md1);
+        ptr_lambda_debug<const char*, MySQLDriver*>("md2 addr is ", &md2);
+        assert(&md1 == &md2);
+
+        sql::Driver* d1 = md1.getDriver();
+        sql::Driver* d2 = md2.getDriver();
+        ptr_lambda_debug<const char*, sql::Driver*>("d1 addr is ", d1);
+        ptr_lambda_debug<const char*, sql::Driver*>("d2 addr is ", d2);
+        assert(d1 == d2);
+
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 /**
- * TODO MySQL Shell
+ * MySQL Shell
  * 以前利用した mysqlx を再度検証してみる。
  * 
  * /usr/include/mysql-cppconn-8/mysqlx/xdevapi.h
@@ -682,8 +705,10 @@ int main(void) {
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_insert_person());
         assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLDriver());
+        assert(ret == 0);
     }
-    if(1.04) {      // 1.04
+    if(0) {      // 2.00
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_connect());
         assert(ret == 0);
