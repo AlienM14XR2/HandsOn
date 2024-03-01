@@ -185,7 +185,25 @@ private:
 };
 
 class MySQLTx final : public Transaction {
+public:
+    MySQLTx(Connection* _con, RdbProcStrategy* _strategy): con(_con), strategy(_strategy)
+    {}
+    virtual void begin()    override {
+        con->setAutoCommit(false);
+    }
+    virtual void commit()   override {
+        con->commit();
+    }
+    virtual void rollback() override {
+        con->rollback();
+    }
+    virtual void proc()     override {
+        strategy->proc();
+    }
 
+private:
+    Connection* con;
+    RdbProcStrategy* strategy;
 };
 
 
