@@ -42,9 +42,37 @@ int test_debug_and_error() {
 
 class Widget {
 public:
+    Widget(const int& _id): id(_id)
+    {}
+
+    int getId() const { return id; }
+    void setId(const int& _id) { id = _id; }
 private:
     int id;
 };
+
+void fx(const Widget& src, Widget& dest) {
+    dest.setId(src.getId() + 1);
+}
+
+int test_fx() {
+    puts("=== test_fx");
+    try {
+        Widget src(1);
+        Widget dest(0);
+        ptr_lambda_debug<const char*, const int&>("before fx ... dest id is ", dest.getId());
+        fx(src, dest);
+        ptr_lambda_debug<const char*, const int&>("after  fx ... dest id is ", dest.getId());
+        assert(dest.getId() == 2);
+        /**
+         * 参照を上手く利用すれば、戻り値としてオブジェクトのコピーを返却する必要はない。
+        */
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 template <class DATA, class PKEY>
 class Repository {
@@ -90,6 +118,8 @@ int main(void) {
         auto ret = 0;
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", ret = test_debug_and_error());
         assert(ret == 1);
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ", ret = test_fx());
+        assert(ret == 0);
     }
     puts("===   トランザクションとリポジトリを如何に抽象化できるか END");
     return 0;
