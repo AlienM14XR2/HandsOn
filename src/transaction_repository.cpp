@@ -91,6 +91,19 @@ public:
  * 解決したい。
 */
 
+class Connection {
+public:
+    void setAutoCommit(const bool& b) {
+        puts("------ Connection::setAutoCommit");
+    }
+    void commit() {
+        puts("------ Connection::commit");
+    }
+    void rollback() {
+        puts("------ Connection::rollback");
+    }
+};
+
 class Transaction {
 public:
     virtual ~Transaction() = default;
