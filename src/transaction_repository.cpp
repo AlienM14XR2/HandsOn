@@ -207,17 +207,12 @@ private:
 };
 
 
-/**
- * 次回は、上記の定義が期待通りに動作するか具体的に試験を行っていく。
- * MySQLTx の定義は最後かもしれない、ちょっと休憩する。
-*/
-
 int test_MySQLCreateStrategy() {
     puts("=== test_MySQLCreateStrategy");
     Connection* con = nullptr;
     try {
-        Widget w(1);
         con = new Connection();
+        Widget w(1);
         std::unique_ptr<Repository<Widget,int>> repo = std::make_unique<WidgetRepository>(WidgetRepository(con, w));
         MySQLCreateStrategy create(repo.get(), w);
         puts("--- 派生クラス MySQLCreateStrategy で直接操作する");
@@ -243,6 +238,29 @@ int test_MySQLCreateStrategy() {
     }
 }
 
+int test_MySQLTx_Insert() {
+    puts("=== test_MySQLTx_Insert");
+    Connection* con = nullptr;
+    try {
+        con = new Connection();
+        Widget w(1);
+        std::unique_ptr<Repository<Widget,int>> repo = std::make_unique<WidgetRepository>(WidgetRepository(con, w));
+        std::unique_ptr<RdbProcStrategy> strategy = std::make_unique<MySQLCreateStrategy<Widget,int>>(MySQLCreateStrategy(repo.get(), w));
+        MySQLTx tx(con, strategy.get());
+        tx.executeTx();
+        if(con) {
+            delete con;
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        if(con) {
+            delete con;
+        }
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START トランザクションとリポジトリを如何に抽象化できるか ===");
     if(0.01) {
@@ -255,6 +273,8 @@ int main(void) {
     if(1.00) {
         auto ret = 0;
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", ret = test_MySQLCreateStrategy());
+        assert(ret == 0);
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ", ret = test_MySQLTx_Insert());
         assert(ret == 0);
     }
     puts("===   トランザクションとリポジトリを如何に抽象化できるか END");
