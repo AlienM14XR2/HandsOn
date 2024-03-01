@@ -207,6 +207,13 @@ private:
     DATA data;
 };
 
+/**
+ * 上例のように CRUD に対応した RdbProcStrategy の派生クラスを定義することで Tx に関する煩雑な処理を
+ * 一元管理できると考えた設計になっている。確認したいことは、これが本当にスレッドセーフなのかという点。
+ * 実際のコネクションはおそらくスレッドセーフではないと思う、コネクションの共有以外の点で別途確認して
+ * みたい。
+*/
+
 template <class DATA, class PKEY>
 class MySQLErrorStrategy final : public RdbProcStrategy {
 public:
