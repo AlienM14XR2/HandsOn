@@ -141,7 +141,6 @@ private:
  * 解決したい。
 */
 
-
 class Transaction {
 public:
     virtual ~Transaction() = default;
@@ -187,6 +186,11 @@ private:
     Repository<DATA,PKEY>* repo;
     DATA data;
 };
+
+/**
+ * 次回は、上記の定義が期待通りに動作するか具体的に試験を行っていく。
+ * MySQLTx の定義は最後かもしれない、ちょっと休憩する。
+*/
 
 int main(void) {
     puts("START トランザクションとリポジトリを如何に抽象化できるか ===");
