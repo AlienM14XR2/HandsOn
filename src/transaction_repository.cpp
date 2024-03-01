@@ -202,7 +202,19 @@ int test_MySQLCreateStrategy() {
         con = new Connection();
         std::unique_ptr<Repository<Widget,int>> repo = std::make_unique<WidgetRepository>(WidgetRepository(con, w));
         MySQLCreateStrategy create(repo.get(), w);
+        puts("--- 派生クラス MySQLCreateStrategy で直接操作する");
         create.proc();
+        /**
+         * 上記は直接 RdbProcStrategy の派生クラスを操作している。
+         * これではまだ不完全だな、MySQLCreateStrategy の基底クラス（インタフェース）である RdbProcStrategy で操作できないといけない。
+        */
+        puts("--- 基底クラス RdbProcStrategy で間接的に接操作する");
+        std::unique_ptr<RdbProcStrategy> strategy = std::make_unique<MySQLCreateStrategy<Widget,int>>(MySQLCreateStrategy(repo.get(), w));
+        strategy->proc();
+
+        if(con) {
+            delete con;
+        }
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         if(con) {
