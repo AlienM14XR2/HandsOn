@@ -98,7 +98,7 @@ public:
     void executeTx() {
         try {
             begin();
-            proc();
+            proc();         // これが バリエーション・ポイント
             commit();
         } catch(std::exception& e) {
             rollback();
@@ -110,6 +110,20 @@ public:
     virtual void commit()   = 0;
     virtual void rollback() = 0;
     virtual void proc()     = 0;
+};
+
+class MySQLTx final : public Transaction {
+
+};
+
+class RdbProcStrategy {
+public:
+    virtual ~RdbProcStrategy() = default;
+    virtual void proc() = 0;
+};
+
+class MySQLCreateStrategy final : public RdbProcStrategy {
+
 };
 
 int main(void) {
