@@ -47,15 +47,35 @@ class Connection {
 public:
     void setAutoCommit(const bool& b) {
         puts("------ Connection::setAutoCommit");
+        try {
+
+        } catch(std::exception& e) {
+            throw std::runtime_error(e.what());
+        }
     }
     void commit() {
         puts("------ Connection::commit");
+        try {
+
+        } catch(std::exception& e) {
+            throw std::runtime_error(e.what());
+        }
     }
     void rollback() {
         puts("------ Connection::rollback");
+        try {
+
+        } catch(std::exception& e) {
+            throw std::runtime_error(e.what());
+        }
     }
     void prepareStatement(const std::string& sql) {       // 本来は PreparedStatement のポインタを返却するもの
         puts("------ Connection::prepareStatement");
+        try {
+
+        } catch(std::exception& e) {
+            throw std::runtime_error(e.what());
+        }
     }
 };
 
@@ -154,7 +174,7 @@ public:
         } catch(std::exception& e) {
             rollback();
             ptr_print_error<const decltype(e)&>(e);
-            throw e;
+            throw std::runtime_error(e.what());
         }
     }
     virtual void begin()    const = 0;
@@ -176,13 +196,36 @@ public:
     {}
     virtual void proc() const override {
         puts("------ MySQLCreateStrategy::proc");
-        repo->insert(data);
-
+        try {
+            repo->insert(data);
+        } catch(std::exception& e) {
+            throw std::runtime_error(e.what());
+        }
     }
 private:
     const Repository<DATA,PKEY>* repo;
     DATA data;
 };
+
+template <class DATA, class PKEY>
+class MySQLErrorStrategy final : public RdbProcStrategy {
+public:
+    MySQLErrorStrategy(const Repository<DATA,PKEY>* _repo, const DATA& _data): repo(_repo), data(_data) 
+    {}
+    virtual void proc() const override {
+        puts("------ MySQLErrorStrategy::proc");
+        try {
+            repo->insert(data);
+            throw std::runtime_error("It's test error.");
+        } catch(std::exception& e) {
+            throw std::runtime_error(e.what());
+        }
+    }
+private:
+    const Repository<DATA,PKEY>* repo;
+    DATA data;
+};
+
 
 class MySQLTx final : public Transaction {
 public:
@@ -264,6 +307,29 @@ int test_MySQLTx_Insert() {
     }
 }
 
+int test_MySQLTx_Insert_Rollback() {
+    puts("=== test_MySQLTx_Insert_Rollback");
+    Connection* con = nullptr;
+    try {
+        con = new Connection();
+        Widget w(1);
+        std::unique_ptr<Repository<Widget,int>> repo = std::make_unique<WidgetRepository>(WidgetRepository(con, w));
+        std::unique_ptr<RdbProcStrategy> strategy = std::make_unique<MySQLErrorStrategy<Widget,int>>(MySQLErrorStrategy(repo.get(), w));
+        MySQLTx tx(con, strategy.get());
+        tx.executeTx();
+        if(con) {
+            delete con;
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        if(con) {
+            delete con;
+        }
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START トランザクションとリポジトリを如何に抽象化できるか ===");
     if(0.01) {
@@ -279,6 +345,8 @@ int main(void) {
         assert(ret == 0);
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", ret = test_MySQLTx_Insert());
         assert(ret == 0);
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ", ret = test_MySQLTx_Insert_Rollback());
+        assert(ret == 1);
     }
     puts("===   トランザクションとリポジトリを如何に抽象化できるか END");
     return 0;
