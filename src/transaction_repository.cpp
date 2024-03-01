@@ -43,7 +43,7 @@ int test_debug_and_error() {
 
 // std::unique_ptr<sql::PreparedStatement> prep_stmt(con->prepareStatement(sql));
 
-class Connection {
+class RdbConnection {
 public:
     void setAutoCommit(const bool& b) {
         puts("------ Connection::setAutoCommit");
@@ -126,7 +126,7 @@ public:
 
 class WidgetRepository final : public Repository<Widget,int> {
 public:
-    WidgetRepository(Connection* _con, const Widget& _w) : con(_con), widget(_w)        // 本来は SQL を発行する DATA が必要、この場合 Widget にそのインタフェースが必要という意味になる。
+    WidgetRepository(RdbConnection* _con, const Widget& _w) : con(_con), widget(_w)        // 本来は SQL を発行する DATA が必要、この場合 Widget にそのインタフェースが必要という意味になる。
     {}
     // ...
     virtual Widget insert(const Widget& w) const override {
@@ -152,7 +152,7 @@ public:
         return result;
     }
 private:
-    Connection* con;
+    RdbConnection* con;
     Widget widget;
 };
 
@@ -236,7 +236,7 @@ private:
 
 class MySQLTx final : public Transaction {
 public:
-    MySQLTx(Connection* _con, const RdbProcStrategy* _strategy): con(_con), strategy(_strategy)
+    MySQLTx(RdbConnection* _con, const RdbProcStrategy* _strategy): con(_con), strategy(_strategy)
     {}
     virtual void begin()    const override {
         con->setAutoCommit(false);
@@ -252,16 +252,16 @@ public:
     }
 
 private:
-    Connection* con;
+    RdbConnection* con;
     const RdbProcStrategy* strategy;
 };
 
 
 int test_MySQLCreateStrategy() {
     puts("=== test_MySQLCreateStrategy");
-    Connection* con = nullptr;
+    RdbConnection* con = nullptr;
     try {
-        con = new Connection();
+        con = new RdbConnection();
         Widget w(1);
         std::unique_ptr<Repository<Widget,int>> repo = std::make_unique<WidgetRepository>(WidgetRepository(con, w));
         MySQLCreateStrategy create(repo.get(), w);
@@ -290,12 +290,12 @@ int test_MySQLCreateStrategy() {
 
 int test_MySQLTx_Insert() {
     puts("=== test_MySQLTx_Insert");
-    Connection* con = nullptr;
+    RdbConnection* con = nullptr;
     /**
      * 以下の処理は同一のコネクションを利用すること。
     */
     try {
-        con = new Connection();
+        con = new RdbConnection();
         Widget w(1);
         std::unique_ptr<Repository<Widget,int>> repo = std::make_unique<WidgetRepository>(WidgetRepository(con, w));
         std::unique_ptr<RdbProcStrategy> strategy = std::make_unique<MySQLCreateStrategy<Widget,int>>(MySQLCreateStrategy(repo.get(), w));
@@ -316,9 +316,9 @@ int test_MySQLTx_Insert() {
 
 int test_MySQLTx_Insert_Rollback() {
     puts("=== test_MySQLTx_Insert_Rollback");
-    Connection* con = nullptr;
+    RdbConnection* con = nullptr;
     try {
-        con = new Connection();
+        con = new RdbConnection();
         Widget w(1);
         std::unique_ptr<Repository<Widget,int>> repo = std::make_unique<WidgetRepository>(WidgetRepository(con, w));
         std::unique_ptr<RdbProcStrategy> strategy = std::make_unique<MySQLErrorStrategy<Widget,int>>(MySQLErrorStrategy(repo.get(), w));
