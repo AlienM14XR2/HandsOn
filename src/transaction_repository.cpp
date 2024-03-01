@@ -162,9 +162,9 @@ private:
  * 解決したい。
 */
 
-class Transaction {
+class RdbTransaction {
 public:
-    virtual ~Transaction() = default;
+    virtual ~RdbTransaction() = default;
     // ...
     void executeTx() const {
         try {
@@ -234,7 +234,7 @@ private:
 };
 
 
-class MySQLTx final : public Transaction {
+class MySQLTx final : public RdbTransaction {
 public:
     MySQLTx(RdbConnection* _con, const RdbProcStrategy* _strategy): con(_con), strategy(_strategy)
     {}
