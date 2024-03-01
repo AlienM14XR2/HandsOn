@@ -98,10 +98,10 @@ class Repository {
 public:
     virtual ~Repository() = default;
     // ...
-    virtual DATA insert(const DATA&)  = 0;
-    virtual DATA update(const DATA&)  = 0;
-    virtual void remove(const PKEY&)  = 0;
-    virtual DATA findOne(const PKEY&) = 0;
+    virtual DATA insert(const DATA&)  const = 0;
+    virtual DATA update(const DATA&)  const = 0;
+    virtual void remove(const PKEY&)  const = 0;
+    virtual DATA findOne(const PKEY&) const = 0;
 };
 
 class WidgetRepository final : public Repository<Widget,int> {
@@ -109,23 +109,23 @@ public:
     WidgetRepository(Connection* _con, const Widget& _w) : con(_con), widget(_w)        // 本来は SQL を発行する DATA が必要、この場合 Widget にそのインタフェースが必要という意味になる。
     {}
     // ...
-    virtual Widget insert(const Widget& w) override {
+    virtual Widget insert(const Widget& w) const override {
         puts("------ WidgetRepository::insert");
         con->prepareStatement("INSERT INTO ...");
         Widget result(1);
         return result;
     }
-    virtual Widget update(const Widget&) override {
+    virtual Widget update(const Widget&) const override {
         puts("------ WidgetRepository::update");
         con->prepareStatement("UPDATE ...");
         Widget result(2);
         return result;
     }
-    virtual void remove(const int& pkey) override {
+    virtual void remove(const int& pkey) const override {
         puts("------ WidgetRepository::remove");
         con->prepareStatement("DELETE ...");
     }
-    virtual Widget findOne(const int& pkey) {
+    virtual Widget findOne(const int& pkey) const override {
         puts("------ WidgetRepository::findOne");
         con->prepareStatement("SELECT ...");
         Widget result(3);
@@ -146,7 +146,7 @@ class Transaction {
 public:
     virtual ~Transaction() = default;
     // ...
-    void executeTx() {
+    void executeTx() const {
         try {
             begin();
             proc();         // これが バリエーション・ポイント
@@ -157,53 +157,53 @@ public:
             throw e;
         }
     }
-    virtual void begin()    = 0;
-    virtual void commit()   = 0;
-    virtual void rollback() = 0;
-    virtual void proc()     = 0;
+    virtual void begin()    const = 0;
+    virtual void commit()   const = 0;
+    virtual void rollback() const = 0;
+    virtual void proc()     const = 0;
 };
 
 class RdbProcStrategy {
 public:
     virtual ~RdbProcStrategy() = default;
-    virtual void proc() = 0;
+    virtual void proc() const = 0;
 };
 
 template <class DATA, class PKEY>
 class MySQLCreateStrategy final : public RdbProcStrategy {
 public:
-    MySQLCreateStrategy(Repository<DATA,PKEY>* _repo, const DATA& _data): repo(_repo), data(_data) 
+    MySQLCreateStrategy(const Repository<DATA,PKEY>* _repo, const DATA& _data): repo(_repo), data(_data) 
     {}
-    virtual void proc() override {
+    virtual void proc() const override {
         puts("------ MySQLCreateStrategy::proc");
         repo->insert(data);
 
     }
 private:
-    Repository<DATA,PKEY>* repo;
+    const Repository<DATA,PKEY>* repo;
     DATA data;
 };
 
 class MySQLTx final : public Transaction {
 public:
-    MySQLTx(Connection* _con, RdbProcStrategy* _strategy): con(_con), strategy(_strategy)
+    MySQLTx(Connection* _con, const RdbProcStrategy* _strategy): con(_con), strategy(_strategy)
     {}
-    virtual void begin()    override {
+    virtual void begin()    const override {
         con->setAutoCommit(false);
     }
-    virtual void commit()   override {
+    virtual void commit()   const override {
         con->commit();
     }
-    virtual void rollback() override {
+    virtual void rollback() const override {
         con->rollback();
     }
-    virtual void proc()     override {
+    virtual void proc()     const override {
         strategy->proc();
     }
 
 private:
     Connection* con;
-    RdbProcStrategy* strategy;
+    const RdbProcStrategy* strategy;
 };
 
 
@@ -241,6 +241,9 @@ int test_MySQLCreateStrategy() {
 int test_MySQLTx_Insert() {
     puts("=== test_MySQLTx_Insert");
     Connection* con = nullptr;
+    /**
+     * 以下の処理は同一のコネクションを利用すること。
+    */
     try {
         con = new Connection();
         Widget w(1);
