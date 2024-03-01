@@ -40,6 +40,8 @@ int test_debug_and_error() {
     }
 }
 
+// std::unique_ptr<sql::PreparedStatement> prep_stmt(con->prepareStatement(sql));
+
 class Connection {
 public:
     void setAutoCommit(const bool& b) {
@@ -50,6 +52,9 @@ public:
     }
     void rollback() {
         puts("------ Connection::rollback");
+    }
+    void prepareStatement(const std::string& sql) {       // 本来は PreparedStatement のポインタを返却するもの
+        puts("------ Connection::prepareStatement");
     }
 };
 
@@ -100,24 +105,34 @@ public:
 
 class WidgetRepository final : public Repository<Widget,int> {
 public:
+    WidgetRepository(Connection* _con, const Widget& _w) : con(_con), widget(_w)        // 本来は SQL を発行する DATA が必要、この場合 Widget にそのインタフェースが必要という意味になる。
+    {}
+    // ...
     virtual Widget insert(const Widget& w) override {
         puts("------ WidgetRepository::insert");
+        con->prepareStatement("INSERT INTO ...");
         Widget result(1);
         return result;
     }
     virtual Widget update(const Widget&) override {
         puts("------ WidgetRepository::update");
+        con->prepareStatement("UPDATE ...");
         Widget result(2);
         return result;
     }
     virtual void remove(const int& pkey) override {
         puts("------ WidgetRepository::remove");
+        con->prepareStatement("DELETE ...");
     }
     virtual Widget findOne(const int& pkey) {
         puts("------ WidgetRepository::findOne");
+        con->prepareStatement("SELECT ...");
         Widget result(3);
         return result;
     }
+private:
+    Connection* con;
+    Widget widget;
 };
 
 /**
@@ -158,8 +173,19 @@ public:
     virtual void proc() = 0;
 };
 
+template <class DATA, class PKEY>
 class MySQLCreateStrategy final : public RdbProcStrategy {
+public:
+    MySQLCreateStrategy(Repository<DATA,PKEY>* _repo, const DATA& _data): repo(_repo), data(_data) 
+    {}
+    virtual void proc() override {
+        puts("------ MySQLCreateStrategy::proc");
+        repo->insert(data);
 
+    }
+private:
+    Repository<DATA,PKEY>* repo;
+    DATA data;
 };
 
 int main(void) {
