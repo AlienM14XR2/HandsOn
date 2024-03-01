@@ -188,6 +188,13 @@ public:
     virtual void proc()     const = 0;
 };
 
+/**
+ * RdbProcStrategy クラス
+ * 
+ * RdbTransaction::proc のパリエーション・ポイントを表現するインタフェース。
+ * CRUD の個別の処理は、本クラスの派生クラスで実現すること。
+*/
+
 class RdbProcStrategy {
 public:
     virtual ~RdbProcStrategy() = default;
@@ -238,28 +245,40 @@ private:
     DATA data;
 };
 
+/**
+ * MySQLTx クラス
+ * 
+ * RdbTransaction の派生クラス、MySQL の Tx を実現している。 
+*/
 
 class MySQLTx final : public RdbTransaction {
 public:
-    MySQLTx(RdbConnection* _con, const RdbProcStrategy* _strategy): con(_con), strategy(_strategy)
-    {}
-    virtual void begin()    const override {
-        con->setAutoCommit(false);
-    }
-    virtual void commit()   const override {
-        con->commit();
-    }
-    virtual void rollback() const override {
-        con->rollback();
-    }
-    virtual void proc()     const override {
-        strategy->proc();
-    }
+    MySQLTx(RdbConnection* _con, const RdbProcStrategy* _strategy);
+    // ...
+    virtual void begin()    const override; 
+    virtual void commit()   const override;
+    virtual void rollback() const override;
+    virtual void proc()     const override;
 
 private:
     RdbConnection* con;
     const RdbProcStrategy* strategy;
 };
+
+MySQLTx::MySQLTx(RdbConnection* _con, const RdbProcStrategy* _strategy): con(_con), strategy(_strategy)
+{}
+void MySQLTx::begin() const {       // override
+    con->setAutoCommit(false);
+}
+void MySQLTx::commit() const {      // override
+    con->commit();
+}
+void MySQLTx::rollback() const {    // override 
+    con->rollback();
+}
+void MySQLTx::proc()     const {    // override
+    strategy->proc();
+}
 
 
 int test_MySQLCreateStrategy() {
