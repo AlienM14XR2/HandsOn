@@ -6,6 +6,8 @@
 */
 #include <iostream>
 #include <cassert>
+#include "/usr/include/mysql-cppconn-8/mysql/jdbc.h"
+
 
 template <class M, class D>
 void (*ptr_lambda_debug)(M, D) = [](const auto message, const auto debug) -> void {
@@ -37,6 +39,45 @@ int test_debug_and_error() {
         return EXIT_FAILURE;
     }
 }
+
+class Widget {
+public:
+private:
+    int id;
+};
+
+template <class DATA, class PKEY>
+class Repository {
+public:
+    virtual ~Repository() = default;
+    // ...
+    virtual DATA insert(const DATA&)  = 0;
+    virtual DATA update(const DATA&)  = 0;
+    virtual void remove(const PKEY&)  = 0;
+    virtual DATA findOne(const PKEY&) = 0;
+};
+
+
+class Transaction {
+public:
+    virtual ~Transaction() = default;
+    // ...
+    void executeTx() {
+        try {
+            begin();
+            proc();
+            commit();
+        } catch(std::exception& e) {
+            rollback();
+            ptr_print_error<const decltype(e)&>(e);
+            throw e;
+        }
+    }
+    virtual void begin()    = 0;
+    virtual void commit()   = 0;
+    virtual void rollback() = 0;
+    virtual void proc()     = 0;
+};
 
 int main(void) {
     puts("START トランザクションとリポジトリを如何に抽象化できるか ===");
