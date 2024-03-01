@@ -40,6 +40,19 @@ int test_debug_and_error() {
     }
 }
 
+class Connection {
+public:
+    void setAutoCommit(const bool& b) {
+        puts("------ Connection::setAutoCommit");
+    }
+    void commit() {
+        puts("------ Connection::commit");
+    }
+    void rollback() {
+        puts("------ Connection::rollback");
+    }
+};
+
 class Widget {
 public:
     Widget(const int& _id): id(_id)
@@ -85,24 +98,34 @@ public:
     virtual DATA findOne(const PKEY&) = 0;
 };
 
+class WidgetRepository final : public Repository<Widget,int> {
+public:
+    virtual Widget insert(const Widget& w) override {
+        puts("------ WidgetRepository::insert");
+        Widget result(1);
+        return result;
+    }
+    virtual Widget update(const Widget&) override {
+        puts("------ WidgetRepository::update");
+        Widget result(2);
+        return result;
+    }
+    virtual void remove(const int& pkey) override {
+        puts("------ WidgetRepository::remove");
+    }
+    virtual Widget findOne(const int& pkey) {
+        puts("------ WidgetRepository::findOne");
+        Widget result(3);
+        return result;
+    }
+};
+
 /**
  * リポジトリは DATA の戻り値を必要とするメンバ関数と戻り値なしが混在する。
  * Tx はリポジトリの詳細とは無縁でありたい。この両者を proc() だけで上手く
  * 解決したい。
 */
 
-class Connection {
-public:
-    void setAutoCommit(const bool& b) {
-        puts("------ Connection::setAutoCommit");
-    }
-    void commit() {
-        puts("------ Connection::commit");
-    }
-    void rollback() {
-        puts("------ Connection::rollback");
-    }
-};
 
 class Transaction {
 public:
