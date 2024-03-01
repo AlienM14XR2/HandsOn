@@ -57,6 +57,11 @@ public:
     virtual DATA findOne(const PKEY&) = 0;
 };
 
+/**
+ * リポジトリは DATA の戻り値を必要とするメンバ関数と戻り値なしが混在する。
+ * Tx はリポジトリの詳細とは無縁でありたい。この両者を proc() だけで上手く
+ * 解決したい。
+*/
 
 class Transaction {
 public:
