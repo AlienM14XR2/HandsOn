@@ -45,39 +45,44 @@ int test_debug_and_error() {
 
 class RdbConnection {
 public:
-    void setAutoCommit(const bool& b) {
-        puts("------ Connection::setAutoCommit");
-        try {
-
-        } catch(std::exception& e) {
-            throw std::runtime_error(e.what());
-        }
-    }
-    void commit() {
-        puts("------ Connection::commit");
-        try {
-
-        } catch(std::exception& e) {
-            throw std::runtime_error(e.what());
-        }
-    }
-    void rollback() {
-        puts("------ Connection::rollback");
-        try {
-
-        } catch(std::exception& e) {
-            throw std::runtime_error(e.what());
-        }
-    }
-    void prepareStatement(const std::string& sql) {       // 本来は PreparedStatement のポインタを返却するもの
-        puts("------ Connection::prepareStatement");
-        try {
-
-        } catch(std::exception& e) {
-            throw std::runtime_error(e.what());
-        }
-    }
+    void setAutoCommit(const bool& b);
+    void commit();
+    void rollback();
+    void prepareStatement(const std::string& sql);
 };
+
+void RdbConnection::setAutoCommit(const bool& b) {
+    puts("------ Connection::setAutoCommit");
+    try {
+
+    } catch(std::exception& e) {
+        throw std::runtime_error(e.what());
+    }
+}
+void RdbConnection::commit() {
+    puts("------ Connection::commit");
+    try {
+
+    } catch(std::exception& e) {
+        throw std::runtime_error(e.what());
+    }
+}
+void RdbConnection::rollback() {
+    puts("------ Connection::rollback");
+    try {
+
+    } catch(std::exception& e) {
+        throw std::runtime_error(e.what());
+    }
+}
+void RdbConnection::prepareStatement(const std::string& sql) {       // 本来は PreparedStatement のポインタを返却するもの
+    puts("------ Connection::prepareStatement");
+    try {
+
+    } catch(std::exception& e) {
+        throw std::runtime_error(e.what());
+    }
+}
 
 class Widget {
 public:
