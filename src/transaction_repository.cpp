@@ -6,6 +6,7 @@
 */
 #include <iostream>
 #include <cassert>
+#include <memory>
 #include "/usr/include/mysql-cppconn-8/mysql/jdbc.h"
 
 
@@ -162,10 +163,6 @@ public:
     virtual void proc()     = 0;
 };
 
-class MySQLTx final : public Transaction {
-
-};
-
 class RdbProcStrategy {
 public:
     virtual ~RdbProcStrategy() = default;
@@ -187,10 +184,34 @@ private:
     DATA data;
 };
 
+class MySQLTx final : public Transaction {
+
+};
+
+
 /**
  * 次回は、上記の定義が期待通りに動作するか具体的に試験を行っていく。
  * MySQLTx の定義は最後かもしれない、ちょっと休憩する。
 */
+
+int test_MySQLCreateStrategy() {
+    puts("=== test_MySQLCreateStrategy");
+    Connection* con = nullptr;
+    try {
+        Widget w(1);
+        con = new Connection();
+        std::unique_ptr<Repository<Widget,int>> repo = std::make_unique<WidgetRepository>(WidgetRepository(con, w));
+        MySQLCreateStrategy create(repo.get(), w);
+        create.proc();
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        if(con) {
+            delete con;
+        }
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 int main(void) {
     puts("START トランザクションとリポジトリを如何に抽象化できるか ===");
@@ -199,6 +220,11 @@ int main(void) {
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", ret = test_debug_and_error());
         assert(ret == 1);
         ptr_lambda_debug<const char*,const int&>("Play and Result ... ", ret = test_fx());
+        assert(ret == 0);
+    }
+    if(1.00) {
+        auto ret = 0;
+        ptr_lambda_debug<const char*,const int&>("Play and Result ... ", ret = test_MySQLCreateStrategy());
         assert(ret == 0);
     }
     puts("===   トランザクションとリポジトリを如何に抽象化できるか END");
