@@ -108,93 +108,9 @@ private:
  * 設計及び実装はここから。
 */
 
-/**
- * RDBMS のコネクション共通クラス（インタフェース）。
-*/
-
-template <class PREPARED_STATEMENT>
-class RdbConnection {
-public:
-    virtual ~RdbConnection() = default;
-    // ...
-    virtual void begin() = 0;
-    virtual void commit() = 0;
-    virtual void rollback() = 0;
-    virtual PREPARED_STATEMENT* prepareStatement(const std::string& sql) = 0;
-};
-
-/**
- * MySQL 用コネクション
-*/
-
-class MySQLConnection final : public RdbConnection<sql::PreparedStatement> {
-public:
-    MySQLConnection(sql::Connection* _con): con(_con)
-    {}
-    // ...
-    virtual void begin() override;
-    virtual void commit() override;
-    virtual void rollback() override;
-    virtual sql::PreparedStatement* prepareStatement(const std::string& sql) override;
-private:
-    sql::Connection* con;
-};
-
-void MySQLConnection::begin()
-{
-    puts("------ MySQLConnection::setAutoCommit");
-    try {
-        con->setAutoCommit(false);
-    } catch(std::exception& e) {
-        throw std::runtime_error(e.what());
-    }
-}
-void MySQLConnection::commit()
-{
-    puts("------ MySQLConnection::commit");
-    try {
-        con->commit();
-    } catch(std::exception& e) {
-        throw std::runtime_error(e.what());
-    }
-}
-void MySQLConnection::rollback()
-{
-    puts("------ MySQLConnection::rollback");
-    try {
-        con->rollback();
-    } catch(std::exception& e) {
-        throw std::runtime_error(e.what());
-    }
-}
-sql::PreparedStatement* MySQLConnection::prepareStatement(const std::string& sql)
-{       // 本来は PreparedStatement のポインタを返却するもの
-    puts("------ MySQLConnection::prepareStatement");
-    try {
-        return con->prepareStatement(sql);
-    } catch(std::exception& e) {
-        throw std::runtime_error(e.what());
-    }
-}
 
 
-/**
- * リポジトリ
- * 
- * PKEY が複合 Key の場合の考慮はしていない。
- * 派生クラス、あるいは別の基底クラスを用意してほしい。
-*/
 
-template <class DATA, class PKEY>
-class Repository {
-public:
-    virtual ~Repository() = default;
-    // ...
-    virtual DATA insert(const DATA&)  const = 0;
-    virtual DATA update(const DATA&)  const = 0;
-    virtual void remove(const PKEY&)  const = 0;
-    virtual DATA findOne(const PKEY&) const = 0;
-};
 
 /**
  * SQL 文の構築に関する考察
@@ -516,6 +432,86 @@ int test_ConnectionPool() {
     }
 }
 
+
+/**
+ * RDBMS のコネクション共通クラス（インタフェース）。
+*/
+
+template <class PREPARED_STATEMENT>
+class RdbConnection {
+public:
+    virtual ~RdbConnection() = default;
+    // ...
+    virtual void begin() = 0;
+    virtual void commit() = 0;
+    virtual void rollback() = 0;
+    virtual PREPARED_STATEMENT* prepareStatement(const std::string& sql) const = 0;
+};
+
+/**
+ * MySQL 用コネクション
+*/
+
+class MySQLConnection final : public RdbConnection<sql::PreparedStatement> {
+public:
+    MySQLConnection(sql::Connection* _con): con(_con)
+    {}
+    // ...
+    virtual void begin() override;
+    virtual void commit() override;
+    virtual void rollback() override;
+    virtual sql::PreparedStatement* prepareStatement(const std::string& sql) const override;
+    virtual sql::Statement* createStatement() const = 0;
+private:
+    sql::Connection* con;
+};
+
+void MySQLConnection::begin()
+{
+    puts("------ MySQLConnection::setAutoCommit");
+    try {
+        con->setAutoCommit(false);
+    } catch(std::exception& e) {
+        throw std::runtime_error(e.what());
+    }
+}
+void MySQLConnection::commit()
+{
+    puts("------ MySQLConnection::commit");
+    try {
+        con->commit();
+    } catch(std::exception& e) {
+        throw std::runtime_error(e.what());
+    }
+}
+void MySQLConnection::rollback()
+{
+    puts("------ MySQLConnection::rollback");
+    try {
+        con->rollback();
+    } catch(std::exception& e) {
+        throw std::runtime_error(e.what());
+    }
+}
+sql::PreparedStatement* MySQLConnection::prepareStatement(const std::string& sql) const
+{
+    puts("------ MySQLConnection::prepareStatement");
+    try {
+        return con->prepareStatement(sql);
+    } catch(std::exception& e) {
+        throw std::runtime_error(e.what());
+    }
+}
+sql::Statement* MySQLConnection::createStatement() const
+{
+    puts("------ MySQLConnection::createStatement");
+    try {
+        return con->createStatement();
+    } catch(std::exception& e) {
+        throw std::runtime_error(e.what());
+    }
+}
+
 /**
  * トランザクションについて考えてみる。
  * 
@@ -535,6 +531,68 @@ int test_ConnectionPool() {
  * - これも Step 0 として、別ソースファイルで確認する必要がある。
  * 
 */
+
+/**
+ * リポジトリ
+ * 
+ * PKEY が複合 Key の場合の考慮はしていない。
+ * 派生クラス、あるいは別の基底クラスを用意してほしい。
+*/
+
+template <class DATA, class PKEY>
+class Repository {
+public:
+    virtual ~Repository() = default;
+    // ...
+    virtual DATA insert(const DATA&)  const = 0;
+    virtual DATA update(const DATA&)  const = 0;
+    virtual void remove(const PKEY&)  const = 0;
+    virtual DATA findOne(const PKEY&) const = 0;
+};
+
+class PersonRepository final : public Repository<PersonData,std::size_t> {
+public:
+    PersonRepository(const MySQLConnection* _con) : con(_con)
+    {}
+    // ...
+    virtual PersonData insert(const PersonData& data) const override {
+        puts("------ PersonRepository::insert");
+        const std::string sql = makeInsertSql(data.getTableName(), data.getColumns());
+        std::unique_ptr<sql::PreparedStatement> prep_stmt(con->prepareStatement(sql));
+        // auto[id_nam, id_val] = data.getId().bind();
+        auto[name_nam, name_val] = data.getName().bind();
+        prep_stmt->setString(1, name_val);
+        auto[email_nam, email_val] = data.getEmail().bind();
+        prep_stmt->setString(2, email_val);
+        auto[age_nam, age_val] = data.getAge().value().bind();
+        prep_stmt->setInt(3, age_val);
+        int ret = prep_stmt->executeUpdate();
+        ptr_lambda_debug<const char*, const int&>("ret is ", ret);
+
+        std::unique_ptr<sql::Statement> stmt(con->createStatement());
+        std::unique_ptr<sql::ResultSet> res( stmt->executeQuery("SELECT LAST_INSERT_ID()") );
+
+        // 次回はここから
+        return PersonData::dummy();
+    }
+    virtual PersonData update(const PersonData& data) const override {
+        puts("------ PersonRepository::update");
+        // con->prepareStatement("UPDATE ...");
+        return PersonData::dummy();
+    }
+    virtual void remove(const std::size_t& pkey) const override {
+        puts("------ PersonRepository::remove");
+        // con->prepareStatement("DELETE ...");
+    }
+    virtual PersonData findOne(const std::size_t& pkey) const override {
+        puts("------ PersonRepository::findOne");
+        // con->prepareStatement("SELECT ...");
+        return PersonData::dummy();
+    }
+private:
+    const MySQLConnection* con;
+};
+
 
 
 /**

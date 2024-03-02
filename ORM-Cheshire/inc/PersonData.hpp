@@ -10,6 +10,9 @@
 #include "RdbStrategy.hpp"
 
 class PersonData final : public RdbData {
+private:
+    // ダミーとして使うこと
+    PersonData();
 public:
     PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
     , const DataField<std::string>& _name
@@ -26,6 +29,8 @@ public:
     , const DataField<std::string>& _name
     , const DataField<std::string>& _email 
     , const std::optional<DataField<int>>& _age);
+
+    static PersonData dummy();
 
     // ..
     virtual std::vector<std::string> getColumns() const override;

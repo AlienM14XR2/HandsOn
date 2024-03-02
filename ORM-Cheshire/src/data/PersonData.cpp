@@ -28,6 +28,18 @@ PersonData::PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
 {
     // 必要ならここで Validation を行う、妥当性検証のオブジェクトをコンポジションして利用するのもあり。
 }
+// デフォルトコンストラクタ、ダミーとして使うこと。
+PersonData::PersonData(): strategy(nullptr)
+    , id(std::move(DataField<std::size_t>("id", 0ul)))
+    , name(std::move(DataField<std::string>("name", "")))
+    , email(std::move(DataField<std::string>("email", "")))
+    , age(std::nullopt)
+{
+}
+
+PersonData PersonData::dummy() {
+    return PersonData();
+}
 
 // ... 
 std::vector<std::string> PersonData::getColumns() const {   // override
