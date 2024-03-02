@@ -361,7 +361,7 @@ int test_insert_person() {
                 ptr_lambda_debug<const char*, const decltype(id)&>("id is ", id);
                 ptr_lambda_debug<const char*, const std::string&>("id type is ", typeid(id).name());
                 auto sql_2 = makeFindOneSql(derek.getTableName(), id_nam, derek.getColumns());
-                ptr_lambda_debug<const char*,const decltype(sql)&>("sql_2: ", sql_2);
+                ptr_lambda_debug<const char*,const decltype(sql_2)&>("sql_2: ", sql_2);
                 std::unique_ptr<sql::PreparedStatement> prep_stmt_2(con->prepareStatement(sql_2));
                 prep_stmt_2->setBigInt(1, std::to_string(id));
                 std::unique_ptr<sql::ResultSet> res_2( prep_stmt_2->executeQuery() );
@@ -559,7 +559,7 @@ public:
         puts("------ PersonRepository::insert");
         const std::string sql = makeInsertSql(data.getTableName(), data.getColumns());
         std::unique_ptr<sql::PreparedStatement> prep_stmt(con->prepareStatement(sql));
-        // auto[id_nam, id_val] = data.getId().bind();
+        auto[id_nam, id_val] = data.getId().bind();
         auto[name_nam, name_val] = data.getName().bind();
         prep_stmt->setString(1, name_val);
         auto[email_nam, email_val] = data.getEmail().bind();
@@ -571,8 +571,35 @@ public:
 
         std::unique_ptr<sql::Statement> stmt(con->createStatement());
         std::unique_ptr<sql::ResultSet> res( stmt->executeQuery("SELECT LAST_INSERT_ID()") );
-
-        // 次回はここから
+        while(res->next()) {
+            puts("------ A");
+            // ptr_lambda_debug<const char*, const sql::ResultSet::enum_type&>("enum_type is ", res->getType());
+            auto id = res->getInt64(1);
+            ptr_lambda_debug<const char*, const decltype(id)&>("id is ", id);
+            ptr_lambda_debug<const char*, const std::string&>("id type is ", typeid(id).name());
+            auto sql_2 = makeFindOneSql(data.getTableName(), id_nam, data.getColumns());
+            ptr_lambda_debug<const char*,const decltype(sql_2)&>("sql_2: ", sql_2);
+            std::unique_ptr<sql::PreparedStatement> prep_stmt_2(con->prepareStatement(sql_2));
+            prep_stmt_2->setBigInt(1, std::to_string(id));
+            std::unique_ptr<sql::ResultSet> res_2( prep_stmt_2->executeQuery() );
+            while(res_2->next()) {
+                puts("------ B");
+                auto res_id = res_2->getUInt64(1);
+                auto res_name = res_2->getString(2);
+                auto res_email = res_2->getString(3);
+                auto res_age = res_2->getInt(4);
+                ptr_lambda_debug<const char*,const decltype(res_id)&>("res_id: ", res_id);
+                ptr_lambda_debug<const char*,const decltype(res_name)&>("res_name: ", res_name);
+                ptr_lambda_debug<const char*,const decltype(res_email)&>("res_email: ", res_email);
+                ptr_lambda_debug<const char*,const decltype(res_age)&>("res_age: ", res_age);
+                /**
+                 * 最終的には ResultSet の各値を Person オブジェクトに詰めて返却するところまでを Insert のタスク
+                 * としたい。RDBMS のドライバとコネクションまたトランザクションをどのように設計するかが今後のポイ
+                 * ントだと考える。上記をまとめて実装するとこのような出来になってしまう。
+                 * Driver Connection Transaction Repository の設計いかんでこのアプリの出来は決まってしまう。
+                */
+            }
+        }
         return PersonData::dummy();
     }
     virtual PersonData update(const PersonData& data) const override {
