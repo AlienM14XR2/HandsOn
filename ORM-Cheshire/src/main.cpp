@@ -104,6 +104,62 @@ private:
     int value;
 };
 
+/**
+ * 設計及び実装はここから。
+*/
+
+/**
+ * RDBMS のコネクション共通クラス（インタフェース）。
+*/
+
+class RdbConnection {
+public:
+    virtual ~RdbConnection() = default;
+    // ...
+    virtual void setAutoCommit(const bool& b) = 0;
+    virtual void commit() = 0;
+    virtual void rollback() = 0;
+    virtual void prepareStatement(const std::string& sql) = 0;
+};
+
+class MySQLConnection final : public RdbConnection {
+public:
+private:
+    sql::Connection* con;
+};
+
+// void RdbConnection::setAutoCommit(const bool& b) {
+//     puts("------ Connection::setAutoCommit");
+//     try {
+
+//     } catch(std::exception& e) {
+//         throw std::runtime_error(e.what());
+//     }
+// }
+// void RdbConnection::commit() {
+//     puts("------ Connection::commit");
+//     try {
+
+//     } catch(std::exception& e) {
+//         throw std::runtime_error(e.what());
+//     }
+// }
+// void RdbConnection::rollback() {
+//     puts("------ Connection::rollback");
+//     try {
+
+//     } catch(std::exception& e) {
+//         throw std::runtime_error(e.what());
+//     }
+// }
+// void RdbConnection::prepareStatement(const std::string& sql) {       // 本来は PreparedStatement のポインタを返却するもの
+//     puts("------ Connection::prepareStatement");
+//     try {
+
+//     } catch(std::exception& e) {
+//         throw std::runtime_error(e.what());
+//     }
+// }
 
 
 /**
