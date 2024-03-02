@@ -41,9 +41,10 @@ public:
     DataField<std::string>                getName() const;
     DataField<std::string>                getEmail() const;
     std::optional<DataField<int>>         getAge() const;
+    std::unique_ptr<RdbStrategy<PersonData>>& getDataStrategy();
 private:
     const std::string TABLE_NAME;
-    std::unique_ptr<RdbStrategy<PersonData>> strategy = nullptr;
+    std::unique_ptr<RdbStrategy<PersonData>> strategy;
     DataField<std::size_t> id;          // 必須
     DataField<std::string> name;        // 必須
     DataField<std::string> email;       // 必須

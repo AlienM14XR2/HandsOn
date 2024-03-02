@@ -58,3 +58,4 @@ DataField<std::size_t>                PersonData::getId()         const { return
 DataField<std::string>                PersonData::getName()       const { return name; }
 DataField<std::string>                PersonData::getEmail()      const { return email; }
 std::optional<DataField<int>>         PersonData::getAge()        const { return age; }
+std::unique_ptr<RdbStrategy<PersonData>>& PersonData::getDataStrategy() { return strategy; }

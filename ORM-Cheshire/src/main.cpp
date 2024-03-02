@@ -592,12 +592,6 @@ public:
                 ptr_lambda_debug<const char*,const decltype(res_name)&>("res_name: ", res_name);
                 ptr_lambda_debug<const char*,const decltype(res_email)&>("res_email: ", res_email);
                 ptr_lambda_debug<const char*,const decltype(res_age)&>("res_age: ", res_age);
-                /**
-                 * 最終的には ResultSet の各値を Person オブジェクトに詰めて返却するところまでを Insert のタスク
-                 * としたい。RDBMS のドライバとコネクションまたトランザクションをどのように設計するかが今後のポイ
-                 * ントだと考える。上記をまとめて実装するとこのような出来になってしまう。
-                 * Driver Connection Transaction Repository の設計いかんでこのアプリの出来は決まってしまう。
-                */
             }
         }
         return PersonData::dummy();
