@@ -67,7 +67,7 @@ int test_PersonData() {
         DataField<std::string> name("name", "Derek");
         DataField<std::string> email("email", "derek@loki.org");
         DataField<int> age("age", 21);
-        PersonData derek(std::move(strategy),name,email,age);
+        PersonData derek(strategy.get(),name,email,age);
 
         ptr_lambda_debug<const char*,const std::string&>("table is ", derek.getTableName());
         auto[nam, val] = derek.getName().bind();
@@ -108,7 +108,7 @@ int test_makeInsertSql() {
         DataField<std::string> name("name", "Derek");
         DataField<std::string> email("email", "derek@loki.org");
         DataField<int> age("age", 21);
-        PersonData derek(std::move(strategy),name,email,age);
+        PersonData derek(strategy.get(),name,email,age);
 
         auto sql = makeInsertSql(derek.getTableName(), derek.getColumns());
         ptr_lambda_debug<const char*,const decltype(sql)&>("sql: ", sql);
@@ -117,7 +117,7 @@ int test_makeInsertSql() {
         DataField<std::string> name2("name", "Cheshire");
         DataField<std::string> email2("email", "cheshire@loki.org");
         std::optional<DataField<int>> empty_age;
-        PersonData cheshire(std::move(strategy2),name2,email2,empty_age);
+        PersonData cheshire(strategy2.get(),name2,email2,empty_age);
 
         auto sql2 = makeInsertSql(cheshire.getTableName(), cheshire.getColumns());
         ptr_lambda_debug<const char*,const decltype(sql2)&>("sql2: ", sql2);
@@ -135,7 +135,7 @@ int test_makeUpdateSql() {
         DataField<std::string> name("name", "Derek");
         DataField<std::string> email("email", "derek@loki.org");
         DataField<int> age("age", 21);
-        PersonData derek(std::move(strategy),name,email,age);
+        PersonData derek(strategy.get(),name,email,age);
         auto[pk_nam, pk_val] = derek.getId().bind();
         auto sql = makeUpdateSql(derek.getTableName(),pk_nam, derek.getColumns());
         ptr_lambda_debug<const char*,const decltype(sql)&>("sql: ", sql);
@@ -154,7 +154,7 @@ int test_makeDeleteSql() {
         DataField<std::string> name("name", "Derek");
         DataField<std::string> email("email", "derek@loki.org");
         DataField<int> age("age", 21);
-        PersonData derek(std::move(strategy),name,email,age);
+        PersonData derek(strategy.get(),name,email,age);
         auto[pk_nam, pk_val] = derek.getId().bind();
         auto sql = makeDeleteSql(derek.getTableName(),pk_nam);
         ptr_lambda_debug<const char*,const decltype(sql)&>("sql: ", sql);
@@ -173,7 +173,7 @@ int test_makeFindOneSql() {
         DataField<std::string> name("name", "Derek");
         DataField<std::string> email("email", "derek@loki.org");
         DataField<int> age("age", 21);
-        PersonData derek(std::move(strategy),name,email,age);
+        PersonData derek(strategy.get(),name,email,age);
         auto[pk_nam, pk_val] = derek.getId().bind();
         auto sql = makeFindOneSql(derek.getTableName(), pk_nam, derek.getColumns());
         ptr_lambda_debug<const char*, const decltype(sql)&>("sql: ", sql);
@@ -193,7 +193,7 @@ int test_makeCreateTableSql() {
         DataField<std::string> name("name", "Derek", "VARCHAR(128)", "NOT NULL");
         DataField<std::string> email("email", "derek@loki.org", "VARCHAR(256)", "NOT NULL UNIQUE");
         DataField<int> age("age", 21, "INT", "");
-        PersonData derek(std::move(strategy),id,name,email,age);
+        PersonData derek(strategy.get(),id,name,email,age);
         auto tblInfos = derek.getTableInfo();
         for(auto info: tblInfos) {
             ptr_lambda_debug<const char*, const decltype(get<0>(info))&>("name is ", get<0>(info));

@@ -286,7 +286,7 @@ int test_mysql_connect() {
         DataField<std::string> name("name", "Derek", "VARCHAR(128)", "NOT NULL");
         DataField<std::string> email("email", "derek@loki.org", "VARCHAR(256)", "NOT NULL UNIQUE");
         DataField<int> age("age", 21, "INT", "");
-        PersonData derek(std::move(strategy),id,name,email,age);
+        PersonData derek(strategy.get(),id,name,email,age);
         auto sql = makeCreateTableSql(derek.getTableName(),derek.getTableInfo());
         ptr_lambda_debug<const char*, const decltype(sql)&>("sql is ", sql);
         stmt->execute(sql);
@@ -321,7 +321,7 @@ int test_insert_person() {
         DataField<std::string> name("name", "Derek");
         DataField<std::string> email("email", "derek@loki.org");
         DataField<int> age("age", 21);
-        PersonData derek(std::move(strategy),name,email,age);
+        PersonData derek(strategy.get(),name,email,age);
         auto sql = makeInsertSql(derek.getTableName(), derek.getColumns());
         ptr_lambda_debug<const char*,const decltype(sql)&>("sql: ", sql);
 

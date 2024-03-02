@@ -14,24 +14,24 @@ private:
     // ダミーとして使うこと
     PersonData();
 public:
-    PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
+    PersonData(RdbStrategy<PersonData>* _strategy
     , const DataField<std::string>& _name
     , const DataField<std::string>& _email 
     , const DataField<int>& _age);
 
-    PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
+    PersonData(RdbStrategy<PersonData>* _strategy
     , const DataField<std::size_t>& _id
     , const DataField<std::string>& _name
     , const DataField<std::string>& _email 
     , const DataField<int>& _age);
 
-    PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
+    PersonData(RdbStrategy<PersonData>* _strategy
     , const DataField<std::size_t>& _id
     , const DataField<std::string>& _name
     , const DataField<std::string>& _email 
     , std::optional<DataField<int>>& _age);
 
-    PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
+    PersonData(RdbStrategy<PersonData>* _strategy
     , const DataField<std::string>& _name
     , const DataField<std::string>& _email 
     , const std::optional<DataField<int>>& _age);
@@ -47,11 +47,11 @@ public:
     DataField<std::string>                getName() const;
     DataField<std::string>                getEmail() const;
     std::optional<DataField<int>>         getAge() const;
-    std::unique_ptr<RdbStrategy<PersonData>>& getDataStrategy();
+    RdbStrategy<PersonData>*              getDataStrategy() const;
 private:
     const std::string TABLE_NAME;
     // std::unique_ptr を 単純なデータ構造を保持するクラスに持つと、コピーできないという制限が強すぎて扱いづらくなる。クラス内では raw ポインタの方が都合がいいと思った。
-    std::unique_ptr<RdbStrategy<PersonData>> strategy;
+    RdbStrategy<PersonData>* strategy;
     DataField<std::size_t> id;          // 必須
     DataField<std::string> name;        // 必須
     DataField<std::string> email;       // 必須

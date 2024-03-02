@@ -1,6 +1,6 @@
 #include "../../inc/PersonData.hpp"
 
-PersonData::PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
+PersonData::PersonData(RdbStrategy<PersonData>* _strategy
     , const DataField<std::string>& _name
     , const DataField<std::string>& _email 
     , const DataField<int>& _age) 
@@ -9,7 +9,7 @@ PersonData::PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
 {
     // 必要ならここで Validation を行う、妥当性検証のオブジェクトをコンポジションして利用するのもあり。
 }
-PersonData::PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
+PersonData::PersonData(RdbStrategy<PersonData>* _strategy
     , const DataField<std::size_t>& _id
     , const DataField<std::string>& _name
     , const DataField<std::string>& _email 
@@ -19,7 +19,7 @@ PersonData::PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
 {
 
 }
-PersonData::PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
+PersonData::PersonData(RdbStrategy<PersonData>* _strategy
     , const DataField<std::size_t>& _id
     , const DataField<std::string>& _name
     , const DataField<std::string>& _email 
@@ -29,7 +29,7 @@ PersonData::PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
 {
 }
 
-PersonData::PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
+PersonData::PersonData(RdbStrategy<PersonData>* _strategy
     , const DataField<std::string>& _name
     , const DataField<std::string>& _email 
     , const std::optional<DataField<int>>& _age) 
@@ -54,7 +54,7 @@ PersonData PersonData::dummy() {
 // ... 
 std::vector<std::string> PersonData::getColumns() const {   // override
     puts("------ PersonData::getColums");
-    return strategy.get()->getColumns(*this);
+    return strategy->getColumns(*this);
 }
 
 std::vector<std::tuple<std::string, std::string, std::string>> PersonData::getTableInfo() const { // override
@@ -68,4 +68,4 @@ DataField<std::size_t>                PersonData::getId()         const { return
 DataField<std::string>                PersonData::getName()       const { return name; }
 DataField<std::string>                PersonData::getEmail()      const { return email; }
 std::optional<DataField<int>>         PersonData::getAge()        const { return age; }
-std::unique_ptr<RdbStrategy<PersonData>>& PersonData::getDataStrategy() { return strategy; }
+RdbStrategy<PersonData>*              PersonData::getDataStrategy() const { return strategy; }
