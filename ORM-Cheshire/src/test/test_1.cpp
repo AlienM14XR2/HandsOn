@@ -63,7 +63,7 @@ int test_DataField_3() {
 int test_PersonData() {
     puts("=== test_PersonData");
     try {
-        std::unique_ptr<RdbStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
+        std::unique_ptr<RdbDataStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
         DataField<std::string> name("name", "Derek");
         DataField<std::string> email("email", "derek@loki.org");
         DataField<int> age("age", 21);
@@ -104,7 +104,7 @@ int test_PersonData() {
 int test_makeInsertSql() {
     puts("=== test_makeInsertSql");
     try {
-        std::unique_ptr<RdbStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
+        std::unique_ptr<RdbDataStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
         DataField<std::string> name("name", "Derek");
         DataField<std::string> email("email", "derek@loki.org");
         DataField<int> age("age", 21);
@@ -113,7 +113,7 @@ int test_makeInsertSql() {
         auto sql = makeInsertSql(derek.getTableName(), derek.getColumns());
         ptr_lambda_debug<const char*,const decltype(sql)&>("sql: ", sql);
 
-        std::unique_ptr<RdbStrategy<PersonData>> strategy2 = std::make_unique<PersonStrategy>(PersonStrategy());
+        std::unique_ptr<RdbDataStrategy<PersonData>> strategy2 = std::make_unique<PersonStrategy>(PersonStrategy());
         DataField<std::string> name2("name", "Cheshire");
         DataField<std::string> email2("email", "cheshire@loki.org");
         std::optional<DataField<int>> empty_age;
@@ -131,7 +131,7 @@ int test_makeInsertSql() {
 int test_makeUpdateSql() {
     puts("=== test_makeUpdateSql");
     try {
-        std::unique_ptr<RdbStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
+        std::unique_ptr<RdbDataStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
         DataField<std::string> name("name", "Derek");
         DataField<std::string> email("email", "derek@loki.org");
         DataField<int> age("age", 21);
@@ -150,7 +150,7 @@ int test_makeUpdateSql() {
 int test_makeDeleteSql() {
     puts("=== test_makeDeleteSql");
     try {
-        std::unique_ptr<RdbStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
+        std::unique_ptr<RdbDataStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
         DataField<std::string> name("name", "Derek");
         DataField<std::string> email("email", "derek@loki.org");
         DataField<int> age("age", 21);
@@ -169,7 +169,7 @@ int test_makeDeleteSql() {
 int test_makeFindOneSql() {
     puts("=== test_makeFindOneSql");
     try {
-        std::unique_ptr<RdbStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
+        std::unique_ptr<RdbDataStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
         DataField<std::string> name("name", "Derek");
         DataField<std::string> email("email", "derek@loki.org");
         DataField<int> age("age", 21);
@@ -188,7 +188,7 @@ int test_makeFindOneSql() {
 int test_makeCreateTableSql() {
     puts("=== test_makeCreateTableSql");
     try {
-        std::unique_ptr<RdbStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
+        std::unique_ptr<RdbDataStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
         DataField<std::size_t> id("id", 0, "BIGINT", "AUTO_INCREMENT PRIMARY KEY");  // MySQL でこの構文で問題がないか要検証。
         DataField<std::string> name("name", "Derek", "VARCHAR(128)", "NOT NULL");
         DataField<std::string> email("email", "derek@loki.org", "VARCHAR(256)", "NOT NULL UNIQUE");

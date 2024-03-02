@@ -69,7 +69,7 @@
 #include <chrono>
 #include "../inc/Debug.hpp"
 #include "../inc/DataField.hpp"
-#include "../inc/RdbStrategy.hpp"
+#include "../inc/RdbDataStrategy.hpp"
 #include "../inc/PersonStrategy.hpp"
 #include "../inc/PersonData.hpp"
 #include "../inc/MySQLDriver.hpp"
@@ -281,7 +281,7 @@ int test_mysql_connect() {
         stmt->execute("USE cheshire");
         stmt->execute("DROP TABLE IF EXISTS person");
 
-        std::unique_ptr<RdbStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
+        std::unique_ptr<RdbDataStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
         DataField<std::size_t> id("id", 0, "BIGINT", "AUTO_INCREMENT PRIMARY KEY");  // MySQL でこの構文で問題がないか要検証。
         DataField<std::string> name("name", "Derek", "VARCHAR(128)", "NOT NULL");
         DataField<std::string> email("email", "derek@loki.org", "VARCHAR(256)", "NOT NULL UNIQUE");
@@ -317,7 +317,7 @@ int test_insert_person() {
     sql::Driver* driver = nullptr;
     std::unique_ptr<sql::Connection> con = nullptr;
     try {
-        std::unique_ptr<RdbStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
+        std::unique_ptr<RdbDataStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
         DataField<std::string> name("name", "Derek");
         DataField<std::string> email("email", "derek@loki.org");
         DataField<int> age("age", 21);

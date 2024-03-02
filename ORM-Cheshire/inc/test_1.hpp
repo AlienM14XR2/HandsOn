@@ -11,7 +11,7 @@
 #include <chrono>
 #include "../inc/Debug.hpp"
 #include "../inc/DataField.hpp"
-#include "../inc/RdbStrategy.hpp"
+#include "../inc/RdbDataStrategy.hpp"
 #include "../inc/PersonStrategy.hpp"
 #include "../inc/PersonData.hpp"
 #include "../inc/MySQLDriver.hpp"

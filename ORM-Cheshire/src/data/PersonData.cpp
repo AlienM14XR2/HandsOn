@@ -1,25 +1,25 @@
 #include "../../inc/PersonData.hpp"
 
-PersonData::PersonData(RdbStrategy<PersonData>* _strategy
+PersonData::PersonData(RdbDataStrategy<PersonData>* _strategy
     , const DataField<std::string>& _name
     , const DataField<std::string>& _email 
     , const DataField<int>& _age) 
     : TABLE_NAME{std::move(std::string("person"))}
-    , strategy{std::move(_strategy)}, id{std::move(DataField<std::size_t>("id",0))}, name{_name}, email{_email}, age{_age}
+    , strategy{_strategy}, id{std::move(DataField<std::size_t>("id",0))}, name{_name}, email{_email}, age{_age}
 {
     // 必要ならここで Validation を行う、妥当性検証のオブジェクトをコンポジションして利用するのもあり。
 }
-PersonData::PersonData(RdbStrategy<PersonData>* _strategy
+PersonData::PersonData(RdbDataStrategy<PersonData>* _strategy
     , const DataField<std::size_t>& _id
     , const DataField<std::string>& _name
     , const DataField<std::string>& _email 
     , const DataField<int>& _age)
     : TABLE_NAME{std::move(std::string("person"))}
-    , strategy{std::move(_strategy)}, id{_id}, name{_name}, email{_email}, age{_age}
+    , strategy{_strategy}, id{_id}, name{_name}, email{_email}, age{_age}
 {
 
 }
-PersonData::PersonData(RdbStrategy<PersonData>* _strategy
+PersonData::PersonData(RdbDataStrategy<PersonData>* _strategy
     , const DataField<std::size_t>& _id
     , const DataField<std::string>& _name
     , const DataField<std::string>& _email 
@@ -29,12 +29,12 @@ PersonData::PersonData(RdbStrategy<PersonData>* _strategy
 {
 }
 
-PersonData::PersonData(RdbStrategy<PersonData>* _strategy
+PersonData::PersonData(RdbDataStrategy<PersonData>* _strategy
     , const DataField<std::string>& _name
     , const DataField<std::string>& _email 
     , const std::optional<DataField<int>>& _age) 
     : TABLE_NAME{std::move(std::string("person"))}
-    , strategy{std::move(_strategy)}, id{std::move(DataField<std::size_t>("id",0))}, name{_name}, email{_email}, age{_age}
+    , strategy{_strategy}, id{std::move(DataField<std::size_t>("id",0))}, name{_name}, email{_email}, age{_age}
 {
     // 必要ならここで Validation を行う、妥当性検証のオブジェクトをコンポジションして利用するのもあり。
 }
@@ -68,4 +68,4 @@ DataField<std::size_t>                PersonData::getId()         const { return
 DataField<std::string>                PersonData::getName()       const { return name; }
 DataField<std::string>                PersonData::getEmail()      const { return email; }
 std::optional<DataField<int>>         PersonData::getAge()        const { return age; }
-RdbStrategy<PersonData>*              PersonData::getDataStrategy() const { return strategy; }
+RdbDataStrategy<PersonData>*          PersonData::getDataStrategy() const { return strategy; }
