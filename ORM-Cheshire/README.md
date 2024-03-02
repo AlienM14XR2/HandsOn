@@ -32,3 +32,7 @@ $ dpkg -L libmysqlcppconn-dev
 ```
 
 当分先になるのか、はたまた、興味がなくなるのか。それは分からないが、次は PostgreSQL にも対応したい。現状、MySQL への対応がまだ終わっていないことを考えれば、やはり後回しになるのだろう。
+
+The C++ connector for PostgreSQL
+
+https://pqxx.org/development/libpqxx/
