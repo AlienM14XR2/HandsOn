@@ -544,10 +544,10 @@ class Repository {
 public:
     virtual ~Repository() = default;
     // ...
-    virtual DATA insert(const DATA&)  const = 0;
-    virtual DATA update(const DATA&)   const = 0;
+    virtual std::optional<DATA> insert(const DATA&)  const = 0;
+    virtual std::optional<DATA> update(const DATA&)   const = 0;
     virtual void remove(const PKEY&)   const = 0;
-    virtual DATA findOne(const PKEY&)  const = 0;
+    virtual std::optional<DATA> findOne(const PKEY&)  const = 0;
 };
 
 class PersonRepository final : public Repository<PersonData,std::size_t> {
@@ -555,7 +555,7 @@ public:
     PersonRepository(const MySQLConnection* _con) : con(_con)
     {}
     // ...
-    virtual PersonData insert(const PersonData& data) const override {
+    virtual std::optional<PersonData> insert(const PersonData& data) const override {
         puts("------ PersonRepository::insert");
         const std::string sql = makeInsertSql(data.getTableName(), data.getColumns());
         std::unique_ptr<sql::PreparedStatement> prep_stmt(con->prepareStatement(sql));
@@ -602,13 +602,13 @@ public:
                 if(!res_age) {
                     p_age = DataField<int>("age", res_age);
                 }
-                // PersonData result(data.getDataStrategy(), p_id, p_name, p_email, p_age);
-                // return std::move(result);
+                PersonData person(data.getDataStrategy(), p_id, p_name, p_email, p_age);
+                return person;
             }
         }
-        return PersonData::dummy();
+        return std::nullopt;
     }
-    virtual PersonData update(const PersonData& data) const override {
+    virtual std::optional<PersonData> update(const PersonData& data) const override {
         puts("------ PersonRepository::update");
         // con->prepareStatement("UPDATE ...");
         return PersonData::dummy();
@@ -617,7 +617,7 @@ public:
         puts("------ PersonRepository::remove");
         // con->prepareStatement("DELETE ...");
     }
-    virtual PersonData findOne(const std::size_t& pkey) const override {
+    virtual std::optional<PersonData> findOne(const std::size_t& pkey) const override {
         puts("------ PersonRepository::findOne");
         // con->prepareStatement("SELECT ...");
         return PersonData::dummy();
