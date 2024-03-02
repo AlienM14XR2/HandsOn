@@ -123,6 +123,10 @@ public:
     virtual PREPARED_STATEMENT* prepareStatement(const std::string& sql) = 0;
 };
 
+/**
+ * MySQL 用コネクション
+*/
+
 class MySQLConnection final : public RdbConnection<sql::PreparedStatement> {
 public:
     MySQLConnection(sql::Connection* _con): con(_con)
@@ -175,16 +179,22 @@ sql::PreparedStatement* MySQLConnection::prepareStatement(const std::string& sql
 
 
 /**
- * リポジトリ案 A
+ * リポジトリ
+ * 
+ * PKEY が複合 Key の場合の考慮はしていない。
+ * 派生クラス、あるいは別の基底クラスを用意してほしい。
 */
 
-// template <class Data, class PKEY>
-// class Repository {
-//     bool insert(const Data&) = 0;
-//     bool update(const Data&) = 0;
-//     bool remove(const PKEY&) = 0;
-//     Data findOne(const PKEY&) = 0;
-// };
+template <class DATA, class PKEY>
+class Repository {
+public:
+    virtual ~Repository() = default;
+    // ...
+    virtual DATA insert(const DATA&)  const = 0;
+    virtual DATA update(const DATA&)  const = 0;
+    virtual void remove(const PKEY&)  const = 0;
+    virtual DATA findOne(const PKEY&) const = 0;
+};
 
 /**
  * SQL 文の構築に関する考察
