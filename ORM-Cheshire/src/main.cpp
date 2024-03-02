@@ -112,54 +112,66 @@ private:
  * RDBMS のコネクション共通クラス（インタフェース）。
 */
 
+template <class PREPARED_STATEMENT>
 class RdbConnection {
 public:
     virtual ~RdbConnection() = default;
     // ...
-    virtual void setAutoCommit(const bool& b) = 0;
+    virtual void begin() = 0;
     virtual void commit() = 0;
     virtual void rollback() = 0;
-    virtual void prepareStatement(const std::string& sql) = 0;
+    virtual PREPARED_STATEMENT* prepareStatement(const std::string& sql) = 0;
 };
 
-class MySQLConnection final : public RdbConnection {
+class MySQLConnection final : public RdbConnection<sql::PreparedStatement> {
 public:
+    MySQLConnection(sql::Connection* _con): con(_con)
+    {}
+    // ...
+    virtual void begin() override;
+    virtual void commit() override;
+    virtual void rollback() override;
+    virtual sql::PreparedStatement* prepareStatement(const std::string& sql) override;
 private:
     sql::Connection* con;
 };
 
-// void RdbConnection::setAutoCommit(const bool& b) {
-//     puts("------ Connection::setAutoCommit");
-//     try {
-
-//     } catch(std::exception& e) {
-//         throw std::runtime_error(e.what());
-//     }
-// }
-// void RdbConnection::commit() {
-//     puts("------ Connection::commit");
-//     try {
-
-//     } catch(std::exception& e) {
-//         throw std::runtime_error(e.what());
-//     }
-// }
-// void RdbConnection::rollback() {
-//     puts("------ Connection::rollback");
-//     try {
-
-//     } catch(std::exception& e) {
-//         throw std::runtime_error(e.what());
-//     }
-// }
-// void RdbConnection::prepareStatement(const std::string& sql) {       // 本来は PreparedStatement のポインタを返却するもの
-//     puts("------ Connection::prepareStatement");
-//     try {
-
-//     } catch(std::exception& e) {
-//         throw std::runtime_error(e.what());
-//     }
-// }
+void MySQLConnection::begin()
+{
+    puts("------ MySQLConnection::setAutoCommit");
+    try {
+        con->setAutoCommit(false);
+    } catch(std::exception& e) {
+        throw std::runtime_error(e.what());
+    }
+}
+void MySQLConnection::commit()
+{
+    puts("------ MySQLConnection::commit");
+    try {
+        con->commit();
+    } catch(std::exception& e) {
+        throw std::runtime_error(e.what());
+    }
+}
+void MySQLConnection::rollback()
+{
+    puts("------ MySQLConnection::rollback");
+    try {
+        con->rollback();
+    } catch(std::exception& e) {
+        throw std::runtime_error(e.what());
+    }
+}
+sql::PreparedStatement* MySQLConnection::prepareStatement(const std::string& sql)
+{       // 本来は PreparedStatement のポインタを返却するもの
+    puts("------ MySQLConnection::prepareStatement");
+    try {
+        return con->prepareStatement(sql);
+    } catch(std::exception& e) {
+        throw std::runtime_error(e.what());
+    }
+}
 
 
 /**
