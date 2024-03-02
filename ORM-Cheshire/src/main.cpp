@@ -558,6 +558,7 @@ public:
     virtual std::optional<PersonData> insert(const PersonData& data) const override {
         puts("------ PersonRepository::insert");
         const std::string sql = makeInsertSql(data.getTableName(), data.getColumns());
+        ptr_lambda_debug<const char*,const decltype(sql)&>("sql: ", sql);
         std::unique_ptr<sql::PreparedStatement> prep_stmt(con->prepareStatement(sql));
         auto[id_nam, id_val] = data.getId().bind();
         auto[name_nam, name_val] = data.getName().bind();
@@ -570,7 +571,9 @@ public:
         ptr_lambda_debug<const char*, const int&>("ret is ", ret);
 
         std::unique_ptr<sql::Statement> stmt(con->createStatement());
-        std::unique_ptr<sql::ResultSet> res( stmt->executeQuery("SELECT LAST_INSERT_ID()") );
+        std::string sql_last_insert_id = "SELECT LAST_INSERT_ID()";
+        ptr_lambda_debug<const char*,const decltype(sql_last_insert_id)&>("sql_last_insert_id: ", sql_last_insert_id);
+        std::unique_ptr<sql::ResultSet> res( stmt->executeQuery(sql_last_insert_id) );
         while(res->next()) {
             puts("------ A");
             // ptr_lambda_debug<const char*, const sql::ResultSet::enum_type&>("enum_type is ", res->getType());
@@ -646,7 +649,7 @@ public:
     std::optional<DATA> executeTx() const {
         try {
             begin();
-            DATA data = proc();         // これが バリエーション・ポイント
+            std::optional<DATA> data = proc();         // これが バリエーション・ポイント
             commit();
             return data;
         } catch(std::exception& e) {
@@ -747,7 +750,15 @@ int test_MySQLTx() {
             DataField<std::string> email("email", "alice@loki.org");
             DataField<int> age("age", 12);
             PersonData alice(strategy.get(),name,email,age);
-            std::optional<PersonData> after = repo->insert(alice);
+            // std::optional<PersonData> after = repo->insert(alice);       // リポジトリの単体動作は OK だった。
+            // auto [id_nam, id_val] = after.value().getId().bind();
+            // ptr_lambda_debug<const char*, const decltype(id_val)&>("after id_val is ", id_val);
+
+            // こんなコーディングを見るとやっぱり、factory がほしくなるよね。
+            std::unique_ptr<RdbProcStrategy<PersonData>> proc_strategy = std::make_unique<MySQLCreateStrategy<PersonData,std::size_t>>(repo.get(), alice);
+            // MySQLTx(RdbConnection<sql::PreparedStatement>* _con, const RdbProcStrategy<DATA>* _strategy)
+            MySQLTx tx(mcon.get(), proc_strategy.get());
+            std::optional<PersonData> after = tx.executeTx();
             auto [id_nam, id_val] = after.value().getId().bind();
             ptr_lambda_debug<const char*, const decltype(id_val)&>("after id_val is ", id_val);
         }
