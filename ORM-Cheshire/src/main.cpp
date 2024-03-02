@@ -461,7 +461,7 @@ public:
     virtual void commit() override;
     virtual void rollback() override;
     virtual sql::PreparedStatement* prepareStatement(const std::string& sql) const override;
-    virtual sql::Statement* createStatement() const = 0;
+    sql::Statement* createStatement() const;
 private:
     sql::Connection* con;
 };
@@ -730,6 +730,33 @@ private:
 };
 
 
+int test_MySQLTx() {
+    puts("=== test_MySQLTx");
+    try {
+        sql::Driver* driver = MySQLDriver::getInstance().getDriver();
+        std::unique_ptr<sql::Connection> con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
+        if(con->isValid()) {
+            puts("connected ... ");
+            con->setSchema("cheshire");
+
+            std::unique_ptr<MySQLConnection> mcon = std::make_unique<MySQLConnection>(con.get()); 
+            std::unique_ptr<Repository<PersonData,std::size_t>> repo = std::make_unique<PersonRepository>(PersonRepository(mcon.get()));
+            
+            std::unique_ptr<RdbDataStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
+            DataField<std::string> name("name", "Alice");
+            DataField<std::string> email("email", "alice@loki.org");
+            DataField<int> age("age", 12);
+            PersonData alice(strategy.get(),name,email,age);
+            std::optional<PersonData> after = repo->insert(alice);
+            auto [id_nam, id_val] = after.value().getId().bind();
+            ptr_lambda_debug<const char*, const decltype(id_val)&>("after id_val is ", id_val);
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 
 /**
@@ -829,6 +856,11 @@ int main(void) {
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_ConnectionPool());
         assert(ret == 1);   // テスト内で明示的に exception を投げている
+    }
+    if(1.04) {
+        auto ret = 0;
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLTx());
+        assert(ret == 0);
     }
     if(0) {      // 2.00
         auto ret = 0;
