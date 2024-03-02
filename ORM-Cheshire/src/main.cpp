@@ -545,9 +545,9 @@ public:
     virtual ~Repository() = default;
     // ...
     virtual DATA insert(const DATA&)  const = 0;
-    virtual DATA update(const DATA&)  const = 0;
-    virtual void remove(const PKEY&)  const = 0;
-    virtual DATA findOne(const PKEY&) const = 0;
+    virtual DATA update(const DATA&)   const = 0;
+    virtual void remove(const PKEY&)   const = 0;
+    virtual DATA findOne(const PKEY&)  const = 0;
 };
 
 class PersonRepository final : public Repository<PersonData,std::size_t> {
@@ -584,14 +584,26 @@ public:
             std::unique_ptr<sql::ResultSet> res_2( prep_stmt_2->executeQuery() );
             while(res_2->next()) {
                 puts("------ B");
-                auto res_id = res_2->getUInt64(1);
-                auto res_name = res_2->getString(2);
+                auto res_id    = res_2->getUInt64(1);
+                auto res_name  = res_2->getString(2);
                 auto res_email = res_2->getString(3);
-                auto res_age = res_2->getInt(4);
+                auto res_age   = res_2->getInt(4);
                 ptr_lambda_debug<const char*,const decltype(res_id)&>("res_id: ", res_id);
                 ptr_lambda_debug<const char*,const decltype(res_name)&>("res_name: ", res_name);
                 ptr_lambda_debug<const char*,const decltype(res_email)&>("res_email: ", res_email);
-                ptr_lambda_debug<const char*,const decltype(res_age)&>("res_age: ", res_age);
+                if(!res_age){
+                    ptr_lambda_debug<const char*,const decltype(res_age)&>("res_age: ", res_age);
+                }
+                // 次の一連のコーディングは間違いを犯す危険が高い、データトランスファ機能を持ったファクトリが必要かもしれない。
+                DataField<std::size_t> p_id("id", res_id);
+                DataField<std::string> p_name("name", res_name);
+                DataField<std::string> p_email("email", res_email);
+                std::optional<DataField<int>> p_age;
+                if(!res_age) {
+                    p_age = DataField<int>("age", res_age);
+                }
+                // PersonData result(data.getDataStrategy(), p_id, p_name, p_email, p_age);
+                // return std::move(result);
             }
         }
         return PersonData::dummy();

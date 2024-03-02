@@ -20,6 +20,16 @@ PersonData::PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
 
 }
 PersonData::PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
+    , const DataField<std::size_t>& _id
+    , const DataField<std::string>& _name
+    , const DataField<std::string>& _email 
+    , std::optional<DataField<int>>& _age)
+    : TABLE_NAME{std::move(std::string("person"))}
+    , strategy{std::move(_strategy)}, id{_id}, name{_name}, email{_email}, age{_age}
+{
+}
+
+PersonData::PersonData(std::unique_ptr<RdbStrategy<PersonData>> _strategy
     , const DataField<std::string>& _name
     , const DataField<std::string>& _email 
     , const std::optional<DataField<int>>& _age) 
