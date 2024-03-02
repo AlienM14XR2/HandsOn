@@ -626,6 +626,35 @@ private:
     const MySQLConnection* con;
 };
 
+/**
+ * RdbTransaction クラス
+ * 
+ * RDBMS のトランザクション処理の基底クラス
+*/
+
+class RdbTransaction {
+public:
+    virtual ~RdbTransaction() = default;
+    // ...
+
+    // 次のメンバ関数は、戻り値を返すものも必要だと思う、proc も然り。
+
+    void executeTx() const {
+        try {
+            begin();
+            proc();         // これが バリエーション・ポイント
+            commit();
+        } catch(std::exception& e) {
+            rollback();
+            ptr_print_error<const decltype(e)&>(e);
+            throw std::runtime_error(e.what());
+        }
+    }
+    virtual void begin()    const = 0;
+    virtual void commit()   const = 0;
+    virtual void rollback() const = 0;
+    virtual void proc()     const = 0;
+};
 
 
 /**
