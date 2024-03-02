@@ -632,18 +632,23 @@ private:
  * RDBMS のトランザクション処理の基底クラス
 */
 
+template <class DATA>
 class RdbTransaction {
 public:
     virtual ~RdbTransaction() = default;
     // ...
 
-    // 次のメンバ関数は、戻り値を返すものも必要だと思う、proc も然り。
+    /**
+     * 次のメンバ関数は、戻り値を返すものも必要だと思う、proc も然り。
+     * std::optional だったら 1 つでいいのかも。
+    */
 
-    void executeTx() const {
+    std::optional<DATA> executeTx() const {
         try {
             begin();
-            proc();         // これが バリエーション・ポイント
+            DATA data = proc();         // これが バリエーション・ポイント
             commit();
+            return data;
         } catch(std::exception& e) {
             rollback();
             ptr_print_error<const decltype(e)&>(e);
@@ -653,7 +658,7 @@ public:
     virtual void begin()    const = 0;
     virtual void commit()   const = 0;
     virtual void rollback() const = 0;
-    virtual void proc()     const = 0;
+    virtual std::optional<DATA> proc() const = 0;
 };
 
 
