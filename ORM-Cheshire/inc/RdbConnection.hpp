@@ -1,6 +1,8 @@
 #ifndef _RDBCONNECTION_H_
 #define _RDBCONNECTION_H_
 
+#include <string>
+
 /**
  * RDBMS のコネクション共通クラス（インタフェース）。
 */

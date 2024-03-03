@@ -45,7 +45,7 @@
  * ```
  * 
  * e.g. compile A.
- * g++ -O3 -DDEBUG -std=c++20 -I../inc/ -I/usr/include/mysql-cppconn-8/ -L/usr/lib/x86_64-linux-gnu/ -pedantic-errors -Wall -Werror main.cpp -lmysqlcppconn -lmysqlcppconn8 ./model/PersonStrategy.cpp ./data/PersonData.cpp ./driver/MySQLDriver.cpp ./test/test_1.cpp -o ../bin/main
+ * g++ -O3 -DDEBUG -std=c++20 -I../inc/ -I/usr/include/mysql-cppconn-8/ -L/usr/lib/x86_64-linux-gnu/ -pedantic-errors -Wall -Werror main.cpp -lmysqlcppconn -lmysqlcppconn8 ./model/PersonStrategy.cpp ./data/PersonData.cpp ./driver/MySQLDriver.cpp ./test/test_1.cpp ./connection/MySQLConnection.cpp -o ../bin/main
  * 
  * e.g. compile B. 
  * 分割した方が少しだけコンパイル時間が短縮できるかな、体感値で申し訳ないが。
@@ -56,7 +56,8 @@
  * g++ -O3 -DDEBUG -std=c++20 -I../inc/ -pedantic-errors -Wall -Werror -c ./model/PersonStrategy.cpp -o ../bin/PersonStrategy.o
  * g++ -O3 -DDEBUG -std=c++20 -I../inc/ -pedantic-errors -Wall -Werror -c ./driver/MySQLDriver.cpp -o ../bin/MySQLDriver.o
  * g++ -O3 -DDEBUG -std=c++20 -I../inc/ -pedantic-errors -Wall -Werror -c ./test/test_1.cpp -o ../bin/test_1.o
- * g++ -O3 -DDEBUG -std=c++20 -I../inc/ -I/usr/include/mysql-cppconn-8/ -L/usr/lib/x86_64-linux-gnu/ -pedantic-errors -Wall -Werror main.cpp -lmysqlcppconn -lmysqlcppconn8 ../bin/PersonStrategy.o ../bin/PersonData.o ../bin/MySQLDriver.o ../bin/test_1.o -o ../bin/main
+ * g++ -O3 -DDEBUG -std=c++20 -I../inc/ -pedantic-errors -Wall -Werror -c ./connection/MySQLConnection.cpp -o ../bin/MySQLConnection.o
+ * g++ -O3 -DDEBUG -std=c++20 -I../inc/ -I/usr/include/mysql-cppconn-8/ -L/usr/lib/x86_64-linux-gnu/ -pedantic-errors -Wall -Werror main.cpp -lmysqlcppconn -lmysqlcppconn8 ../bin/PersonStrategy.o ../bin/PersonData.o ../bin/MySQLDriver.o ../bin/test_1.o ../bin/MySQLConnection.o -o  ../bin/main
 */
 
 #include <iostream>
@@ -75,7 +76,7 @@
 #include "../inc/MySQLDriver.hpp"
 #include "../inc/ConnectionPool.hpp"
 #include "../inc/test_1.hpp"
-#include "../inc/RdbConnection.hpp"
+#include "../inc/MySQLConnection.hpp"
 #include "/usr/include/mysql-cppconn-8/mysql/jdbc.h"
 #include "/usr/include/mysql-cppconn-8/mysqlx/xdevapi.h"
 
@@ -433,73 +434,6 @@ int test_ConnectionPool() {
     }
 }
 
-
-
-/**
- * MySQL 用コネクション
-*/
-
-class MySQLConnection final : public RdbConnection<sql::PreparedStatement> {
-public:
-    MySQLConnection(sql::Connection* _con): con(_con)
-    {}
-    // ...
-    virtual void begin() const override;
-    virtual void commit() const override;
-    virtual void rollback() const override;
-    virtual sql::PreparedStatement* prepareStatement(const std::string& sql) const override;
-    sql::Statement* createStatement() const;
-private:
-    sql::Connection* con;
-    // void begin_() const { con->setAutoCommit(false); }
-};
-
-void MySQLConnection::begin() const
-{
-    puts("------ MySQLConnection::setAutoCommit");
-    try {
-        con->setAutoCommit(false);
-        // begin_();
-    } catch(std::exception& e) {
-        throw std::runtime_error(e.what());
-    }
-}
-void MySQLConnection::commit() const
-{
-    puts("------ MySQLConnection::commit");
-    try {
-        con->commit();
-    } catch(std::exception& e) {
-        throw std::runtime_error(e.what());
-    }
-}
-void MySQLConnection::rollback() const
-{
-    puts("------ MySQLConnection::rollback");
-    try {
-        con->rollback();
-    } catch(std::exception& e) {
-        throw std::runtime_error(e.what());
-    }
-}
-sql::PreparedStatement* MySQLConnection::prepareStatement(const std::string& sql) const
-{
-    puts("------ MySQLConnection::prepareStatement");
-    try {
-        return con->prepareStatement(sql);
-    } catch(std::exception& e) {
-        throw std::runtime_error(e.what());
-    }
-}
-sql::Statement* MySQLConnection::createStatement() const
-{
-    puts("------ MySQLConnection::createStatement");
-    try {
-        return con->createStatement();
-    } catch(std::exception& e) {
-        throw std::runtime_error(e.what());
-    }
-}
 
 
 /**
