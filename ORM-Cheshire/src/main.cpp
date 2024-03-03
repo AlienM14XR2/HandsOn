@@ -514,25 +514,6 @@ sql::Statement* MySQLConnection::createStatement() const
     }
 }
 
-/**
- * トランザクションについて考えてみる。
- * 
- * con->setAutoCommit(false);
- * try {
- *   // ... Prepared Statement の発行等の具体的な SQL 文の構築を行う。
- *   std::unique_ptr<sql::PreparedStatement> prep_stmt(con->prepareStatement(sql));     // MySQL を例にすれば、ステートメントはコネクションと SQL に依存している。
- *   con->commit();
- * } catch(...) {
- *   con->rollback();
- * }
- * 
- * リポジトリとトランザクションは別、これを如何に綺麗に設計できるのか。
- * - CRUD 単位でトランザクションのインタフェースを用意する。
- * - トランザクション内で扱うオブジェクトは、リポジトリのテンプレートにする（できるかな？）。
- * - おそらく、コネクションとステートメントは抽象化しないとダメかな。
- * - これも Step 0 として、別ソースファイルで確認する必要がある。
- * 
-*/
 
 /**
  * リポジトリ
@@ -554,65 +535,9 @@ public:
 
 class PersonRepository final : public Repository<PersonData,std::size_t> {
 public:
-    PersonRepository(const MySQLConnection* _con) : con(_con)
-    {}
+    PersonRepository(const MySQLConnection* _con);
     // ...
-    virtual std::optional<PersonData> insert(const PersonData& data) const override {
-        puts("------ PersonRepository::insert");
-        const std::string sql = makeInsertSql(data.getTableName(), data.getColumns());
-        ptr_lambda_debug<const char*,const decltype(sql)&>("sql: ", sql);
-        std::unique_ptr<sql::PreparedStatement> prep_stmt(con->prepareStatement(sql));
-        auto[id_nam, id_val] = data.getId().bind();
-        auto[name_nam, name_val] = data.getName().bind();
-        prep_stmt->setString(1, name_val);
-        auto[email_nam, email_val] = data.getEmail().bind();
-        prep_stmt->setString(2, email_val);
-        auto[age_nam, age_val] = data.getAge().value().bind();
-        prep_stmt->setInt(3, age_val);
-        int ret = prep_stmt->executeUpdate();
-        ptr_lambda_debug<const char*, const int&>("ret is ", ret);
-
-        std::unique_ptr<sql::Statement> stmt(con->createStatement());
-        std::string sql_last_insert_id = "SELECT LAST_INSERT_ID()";
-        ptr_lambda_debug<const char*,const decltype(sql_last_insert_id)&>("sql_last_insert_id: ", sql_last_insert_id);
-        std::unique_ptr<sql::ResultSet> res( stmt->executeQuery(sql_last_insert_id) );
-        while(res->next()) {
-            puts("------ A");
-            // ptr_lambda_debug<const char*, const sql::ResultSet::enum_type&>("enum_type is ", res->getType());
-            auto id = res->getInt64(1);
-            ptr_lambda_debug<const char*, const decltype(id)&>("id is ", id);
-            ptr_lambda_debug<const char*, const std::string&>("id type is ", typeid(id).name());
-            auto sql_2 = makeFindOneSql(data.getTableName(), id_nam, data.getColumns());
-            ptr_lambda_debug<const char*,const decltype(sql_2)&>("sql_2: ", sql_2);
-            std::unique_ptr<sql::PreparedStatement> prep_stmt_2(con->prepareStatement(sql_2));
-            prep_stmt_2->setBigInt(1, std::to_string(id));
-            std::unique_ptr<sql::ResultSet> res_2( prep_stmt_2->executeQuery() );
-            while(res_2->next()) {
-                puts("------ B");
-                auto res_id    = res_2->getUInt64(1);
-                auto res_name  = res_2->getString(2);
-                auto res_email = res_2->getString(3);
-                auto res_age   = res_2->getInt(4);
-                ptr_lambda_debug<const char*,const decltype(res_id)&>("res_id: ", res_id);
-                ptr_lambda_debug<const char*,const decltype(res_name)&>("res_name: ", res_name);
-                ptr_lambda_debug<const char*,const decltype(res_email)&>("res_email: ", res_email);
-                if(!res_age){
-                    ptr_lambda_debug<const char*,const decltype(res_age)&>("res_age: ", res_age);
-                }
-                // 次の一連のコーディングは間違いを犯す危険が高い、データトランスファ機能を持ったファクトリが必要かもしれない。
-                DataField<std::size_t> p_id("id", res_id);
-                DataField<std::string> p_name("name", res_name);
-                DataField<std::string> p_email("email", res_email);
-                std::optional<DataField<int>> p_age;
-                if(!res_age) {
-                    p_age = DataField<int>("age", res_age);
-                }
-                PersonData person(data.getDataStrategy(), p_id, p_name, p_email, p_age);
-                return person;
-            }
-        }
-        return std::nullopt;
-    }
+    virtual std::optional<PersonData> insert(const PersonData& data) const override;
     virtual std::optional<PersonData> update(const PersonData& data) const override {
         puts("------ PersonRepository::update");
         // con->prepareStatement("UPDATE ...");
@@ -630,6 +555,87 @@ public:
 private:
     const MySQLConnection* con;
 };
+
+PersonRepository::PersonRepository(const MySQLConnection* _con) : con(_con)
+{}
+std::optional<PersonData> PersonRepository::insert(const PersonData& data) const
+{
+    puts("------ PersonRepository::insert");
+    const std::string sql = makeInsertSql(data.getTableName(), data.getColumns());
+    ptr_lambda_debug<const char*,const decltype(sql)&>("sql: ", sql);
+    std::unique_ptr<sql::PreparedStatement> prep_stmt(con->prepareStatement(sql));
+    auto[id_nam, id_val] = data.getId().bind();
+    auto[name_nam, name_val] = data.getName().bind();
+    prep_stmt->setString(1, name_val);
+    auto[email_nam, email_val] = data.getEmail().bind();
+    prep_stmt->setString(2, email_val);
+    auto[age_nam, age_val] = data.getAge().value().bind();
+    prep_stmt->setInt(3, age_val);
+    int ret = prep_stmt->executeUpdate();
+    ptr_lambda_debug<const char*, const int&>("ret is ", ret);
+
+    std::unique_ptr<sql::Statement> stmt(con->createStatement());
+    std::string sql_last_insert_id = "SELECT LAST_INSERT_ID()";
+    ptr_lambda_debug<const char*,const decltype(sql_last_insert_id)&>("sql_last_insert_id: ", sql_last_insert_id);
+    std::unique_ptr<sql::ResultSet> res( stmt->executeQuery(sql_last_insert_id) );
+    while(res->next()) {
+        puts("------ A");
+        // ptr_lambda_debug<const char*, const sql::ResultSet::enum_type&>("enum_type is ", res->getType());
+        auto id = res->getInt64(1);
+        ptr_lambda_debug<const char*, const decltype(id)&>("id is ", id);
+        ptr_lambda_debug<const char*, const std::string&>("id type is ", typeid(id).name());
+        auto sql_2 = makeFindOneSql(data.getTableName(), id_nam, data.getColumns());
+        ptr_lambda_debug<const char*,const decltype(sql_2)&>("sql_2: ", sql_2);
+        std::unique_ptr<sql::PreparedStatement> prep_stmt_2(con->prepareStatement(sql_2));
+        prep_stmt_2->setBigInt(1, std::to_string(id));
+        std::unique_ptr<sql::ResultSet> res_2( prep_stmt_2->executeQuery() );
+        while(res_2->next()) {
+            puts("------ B");
+            auto res_id    = res_2->getUInt64(1);
+            auto res_name  = res_2->getString(2);
+            auto res_email = res_2->getString(3);
+            auto res_age   = res_2->getInt(4);
+            ptr_lambda_debug<const char*,const decltype(res_id)&>("res_id: ", res_id);
+            ptr_lambda_debug<const char*,const decltype(res_name)&>("res_name: ", res_name);
+            ptr_lambda_debug<const char*,const decltype(res_email)&>("res_email: ", res_email);
+            if(res_age){
+                ptr_lambda_debug<const char*,const decltype(res_age)&>("res_age: ", res_age);
+            }
+            // 次の一連のコーディングは間違いを犯す危険が高い、データトランスファ機能を持ったファクトリが必要かもしれない。
+            DataField<std::size_t> p_id("id", res_id);
+            DataField<std::string> p_name("name", res_name);
+            DataField<std::string> p_email("email", res_email);
+            std::optional<DataField<int>> p_age;
+            if(res_age) {
+                p_age = DataField<int>("age", res_age);
+            }
+            PersonData person(data.getDataStrategy(), p_id, p_name, p_email, p_age);
+            return person;
+        }
+    }
+    return std::nullopt;
+}
+
+
+/**
+ * トランザクションについて考えてみる。
+ * 
+ * con->setAutoCommit(false);
+ * try {
+ *   // ... Prepared Statement の発行等の具体的な SQL 文の構築を行う。
+ *   std::unique_ptr<sql::PreparedStatement> prep_stmt(con->prepareStatement(sql));     // MySQL を例にすれば、ステートメントはコネクションと SQL に依存している。
+ *   con->commit();
+ * } catch(...) {
+ *   con->rollback();
+ * }
+ * 
+ * リポジトリとトランザクションは別、これを如何に綺麗に設計できるのか。
+ * - CRUD 単位でトランザクションのインタフェースを用意する。
+ * - トランザクション内で扱うオブジェクトは、リポジトリのテンプレートにする（できるかな？）。
+ * - おそらく、コネクションとステートメントは抽象化しないとダメかな。
+ * - これも Step 0 として、別ソースファイルで確認する必要がある。
+ * 
+*/
 
 /**
  * RdbTransaction クラス
