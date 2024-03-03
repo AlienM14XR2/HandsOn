@@ -390,16 +390,15 @@ std::optional<PersonData> PersonRepository::insert(const PersonData& data) const
     prep_stmt->setString(2, email_val);
     auto[age_nam, age_val] = data.getAge().value().bind();
     prep_stmt->setInt(3, age_val);
-    int ret = prep_stmt->executeUpdate();
+    int ret = prep_stmt->executeUpdate();                       // INSERT 実行
     ptr_lambda_debug<const char*, const int&>("ret is ", ret);
 
     std::unique_ptr<sql::Statement> stmt(con->createStatement());
     std::string sql_last_insert_id = "SELECT LAST_INSERT_ID()";
     ptr_lambda_debug<const char*,const decltype(sql_last_insert_id)&>("sql_last_insert_id: ", sql_last_insert_id);
-    std::unique_ptr<sql::ResultSet> res( stmt->executeQuery(sql_last_insert_id) );
+    std::unique_ptr<sql::ResultSet> res( stmt->executeQuery(sql_last_insert_id) );  // SELECT ... Auto Increment されたライマリキを取得する
     while(res->next()) {
         puts("------ A");
-        // ptr_lambda_debug<const char*, const sql::ResultSet::enum_type&>("enum_type is ", res->getType());
         auto id = res->getInt64(1);
         ptr_lambda_debug<const char*, const decltype(id)&>("id is ", id);
         ptr_lambda_debug<const char*, const std::string&>("id type is ", typeid(id).name());
@@ -407,7 +406,7 @@ std::optional<PersonData> PersonRepository::insert(const PersonData& data) const
         ptr_lambda_debug<const char*,const decltype(sql_2)&>("sql_2: ", sql_2);
         std::unique_ptr<sql::PreparedStatement> prep_stmt_2(con->prepareStatement(sql_2));
         prep_stmt_2->setBigInt(1, std::to_string(id));
-        std::unique_ptr<sql::ResultSet> res_2( prep_stmt_2->executeQuery() );
+        std::unique_ptr<sql::ResultSet> res_2( prep_stmt_2->executeQuery() );       // SELECT ... 登録されたデータを取得する
         while(res_2->next()) {
             puts("------ B");
             auto res_id    = res_2->getUInt64(1);
@@ -421,12 +420,12 @@ std::optional<PersonData> PersonRepository::insert(const PersonData& data) const
                 ptr_lambda_debug<const char*,const decltype(res_age)&>("res_age: ", res_age);
             }
             // 次の一連のコーディングは間違いを犯す危険が高い、データトランスファ機能を持ったファクトリが必要かもしれない。
-            DataField<std::size_t> p_id("id", res_id);
-            DataField<std::string> p_name("name", res_name);
-            DataField<std::string> p_email("email", res_email);
+            DataField<std::size_t> p_id(data.getId().getName(), res_id);              // この名前の部分 "id" はハードコーディングではなく別な方法がいいと思う、引数を信頼するなら、そこに必要な値は格納されている。 
+            DataField<std::string> p_name(data.getName().getName(), res_name);
+            DataField<std::string> p_email(data.getEmail().getName(), res_email);
             std::optional<DataField<int>> p_age;
             if(res_age) {
-                p_age = DataField<int>("age", res_age);
+                p_age = DataField<int>(data.getAge().value().getName(), res_age);
             }
             PersonData person(data.getDataStrategy(), p_id, p_name, p_email, p_age);
             return person;
@@ -514,12 +513,16 @@ int test_MySQLTx() {
             // 検査
             assert(after.has_value() == true);
             auto [id_nam, id_val] = after.value().getId().bind();
+            printf("name is %s\t", id_nam.c_str());
             ptr_lambda_debug<const char*, const decltype(id_val)&>("after id_val is ", id_val);
             auto [name_nam, name_val] = after.value().getName().bind();
+            printf("name is %s\n", name_nam.c_str());
             assert(name_val == expect_name);
             auto [email_nam, email_val] = after.value().getEmail().bind();
+            printf("name is %s\n", email_nam.c_str());
             assert(email_val == expect_email);
             auto [age_nam, age_val] = after.value().getAge().value().bind();
+            printf("name is %s\n", age_nam.c_str());
             assert(age_val == expect_age);
         }
         std::clock_t end = clock();

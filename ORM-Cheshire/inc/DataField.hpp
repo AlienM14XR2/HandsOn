@@ -11,6 +11,16 @@ public:
     std::pair<std::string,T> bind() const;
     std::tuple<std::string, T, std::string> bindTuple() const;
     std::tuple<std::string, std::string, std::string> bindTupleTblInfo() const;
+    /**
+     * これは使い勝手の問題なので本当に必要と感じた際に実装すればいいが std::pair や std::tuple だけではなく
+     * name や value のみを返却するメンバ関数は、あった方が良くはなかろうか。
+    */
+    std::string getName() const {
+        return name;
+    }
+    T getValue() const {
+        return value;
+    }
 private:
     std::string name;
     T value;
