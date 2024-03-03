@@ -760,10 +760,13 @@ int test_MySQLTx() {
             std::unique_ptr<MySQLConnection> mcon = std::make_unique<MySQLConnection>(con.get()); 
             std::unique_ptr<Repository<PersonData,std::size_t>> repo = std::make_unique<PersonRepository>(PersonRepository(mcon.get()));
             
+            std::string expect_name("Alice");
+            std::string expect_email("alice@loki.org");
+            int expect_age = 12;
             std::unique_ptr<RdbDataStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
-            DataField<std::string> name("name", "Alice");
-            DataField<std::string> email("email", "alice@loki.org");
-            DataField<int> age("age", 12);
+            DataField<std::string> name("name", expect_name);
+            DataField<std::string> email("email", expect_email);
+            DataField<int> age("age", expect_age);
             PersonData alice(strategy.get(),name,email,age);
             // std::optional<PersonData> after = repo->insert(alice);       // リポジトリの単体動作は OK だった。
             // auto [id_nam, id_val] = after.value().getId().bind();
@@ -780,11 +783,11 @@ int test_MySQLTx() {
             auto [id_nam, id_val] = after.value().getId().bind();
             ptr_lambda_debug<const char*, const decltype(id_val)&>("after id_val is ", id_val);
             auto [name_nam, name_val] = after.value().getName().bind();
-            assert(name_val == "Alice");
+            assert(name_val == expect_name);
             auto [email_nam, email_val] = after.value().getEmail().bind();
-            assert(email_val == "alice@loki.org");
+            assert(email_val == expect_email);
             auto [age_nam, age_val] = after.value().getAge().value().bind();
-            assert(age_val == 12);
+            assert(age_val == expect_age);
         }
         std::clock_t end = clock();
         std::cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << std::endl;
