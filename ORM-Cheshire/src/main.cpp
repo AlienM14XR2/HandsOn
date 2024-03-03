@@ -75,6 +75,7 @@
 #include "../inc/MySQLDriver.hpp"
 #include "../inc/ConnectionPool.hpp"
 #include "../inc/test_1.hpp"
+#include "../inc/RdbConnection.hpp"
 #include "/usr/include/mysql-cppconn-8/mysql/jdbc.h"
 #include "/usr/include/mysql-cppconn-8/mysqlx/xdevapi.h"
 
@@ -433,20 +434,6 @@ int test_ConnectionPool() {
 }
 
 
-/**
- * RDBMS のコネクション共通クラス（インタフェース）。
-*/
-
-template <class PREPARED_STATEMENT>
-class RdbConnection {
-public:
-    virtual ~RdbConnection() = default;
-    // ...
-    virtual void begin() const = 0;
-    virtual void commit() const = 0;
-    virtual void rollback() const = 0;
-    virtual PREPARED_STATEMENT* prepareStatement(const std::string& sql) const = 0;
-};
 
 /**
  * MySQL 用コネクション
