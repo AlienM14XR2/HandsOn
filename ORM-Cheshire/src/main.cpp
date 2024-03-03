@@ -302,7 +302,15 @@ std::optional<PersonData> PersonRepository::findOne(const std::size_t& pkey) con
      * 問題ないと考える。
     */
     puts("------ PersonRepository::findOne");
-    // con->prepareStatement("SELECT ...");
+    DataField<std::size_t> id("id", pkey);
+    DataField<std::string> name("name", "");
+    DataField<std::string> email("email", "");
+    DataField<int>         age("age", 0);
+    std::unique_ptr<RdbDataStrategy<PersonData>> dataStratedy = std::make_unique<PersonStrategy>(PersonStrategy());
+    // 上記一連を作る factory が欲しくなる、どこに作るべきかな、最終的に PersonData を返却してくれたらいいので、PersonData の static メンバ関数ではどうだろうか。
+    PersonData data(dataStratedy.get(), id, name, email, age);
+    std::string sql = makeFindOneSql(data.getTableName(), id.getName(), data.getColumns());     // namespace とは必要かな？
+    ptr_lambda_debug<const char*, const std::string&>("sql: ", sql);
     return PersonData::dummy();
 }
 
@@ -422,6 +430,38 @@ int test_MySQLTx_rollback() {
     }
 }
 
+int test_PersonRepository_findOne() {
+    puts("=== test_PersonRepository_findOne");
+    try {
+        sql::Driver* driver = MySQLDriver::getInstance().getDriver();
+        std::unique_ptr<sql::Connection> con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
+        if(con->isValid()) {
+            puts("connected ... ");
+            con->setSchema("cheshire");
+            std::unique_ptr<MySQLConnection> mcon = std::make_unique<MySQLConnection>(con.get()); 
+            std::unique_ptr<Repository<PersonData,std::size_t>> repo = std::make_unique<PersonRepository>(PersonRepository(mcon.get()));
+            repo->findOne(1ul);
+            // TODO 実装中、まだ不完全のテスト。
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * MySQL Shell
  * 以前利用した mysqlx を再度検証してみる。
@@ -526,6 +566,11 @@ int main(void) {
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLTx_rollback());
         assert(ret == 1);
+    }
+    if(1.05) {
+        auto ret = 0;
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_PersonRepository_findOne());
+        assert(ret == 0);
     }
     if(0) {      // 2.00
         auto ret = 0;
