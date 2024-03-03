@@ -538,20 +538,9 @@ public:
     PersonRepository(const MySQLConnection* _con);
     // ...
     virtual std::optional<PersonData> insert(const PersonData& data) const override;
-    virtual std::optional<PersonData> update(const PersonData& data) const override {
-        puts("------ PersonRepository::update");
-        // con->prepareStatement("UPDATE ...");
-        return PersonData::dummy();
-    }
-    virtual void remove(const std::size_t& pkey) const override {
-        puts("------ PersonRepository::remove");
-        // con->prepareStatement("DELETE ...");
-    }
-    virtual std::optional<PersonData> findOne(const std::size_t& pkey) const override {
-        puts("------ PersonRepository::findOne");
-        // con->prepareStatement("SELECT ...");
-        return PersonData::dummy();
-    }
+    virtual std::optional<PersonData> update(const PersonData& data) const override;
+    virtual void remove(const std::size_t& pkey) const override;
+    virtual std::optional<PersonData> findOne(const std::size_t& pkey) const;
 private:
     const MySQLConnection* con;
 };
@@ -614,6 +603,23 @@ std::optional<PersonData> PersonRepository::insert(const PersonData& data) const
         }
     }
     return std::nullopt;
+}
+std::optional<PersonData> PersonRepository::update(const PersonData& data) const
+{
+    puts("------ PersonRepository::update");
+    // con->prepareStatement("UPDATE ...");
+    return PersonData::dummy();
+}
+void PersonRepository::remove(const std::size_t& pkey) const
+{
+    puts("------ PersonRepository::remove");
+    // con->prepareStatement("DELETE ...");
+}
+std::optional<PersonData> PersonRepository::findOne(const std::size_t& pkey) const
+{
+    puts("------ PersonRepository::findOne");
+    // con->prepareStatement("SELECT ...");
+    return PersonData::dummy();
 }
 
 
