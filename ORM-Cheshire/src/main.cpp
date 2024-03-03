@@ -735,6 +735,7 @@ private:
 
 int test_MySQLTx() {
     puts("=== test_MySQLTx");
+    std::clock_t start = clock();
     try {
         sql::Driver* driver = MySQLDriver::getInstance().getDriver();
         std::unique_ptr<sql::Connection> con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
@@ -762,6 +763,8 @@ int test_MySQLTx() {
             auto [id_nam, id_val] = after.value().getId().bind();
             ptr_lambda_debug<const char*, const decltype(id_val)&>("after id_val is ", id_val);
         }
+        std::clock_t end = clock();
+        std::cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << std::endl;
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)>(e);
