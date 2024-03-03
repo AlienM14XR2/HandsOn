@@ -442,9 +442,9 @@ class RdbConnection {
 public:
     virtual ~RdbConnection() = default;
     // ...
-    virtual void begin() = 0;
-    virtual void commit() = 0;
-    virtual void rollback() = 0;
+    virtual void begin() const = 0;
+    virtual void commit() const = 0;
+    virtual void rollback() const = 0;
     virtual PREPARED_STATEMENT* prepareStatement(const std::string& sql) const = 0;
 };
 
@@ -457,25 +457,27 @@ public:
     MySQLConnection(sql::Connection* _con): con(_con)
     {}
     // ...
-    virtual void begin() override;
-    virtual void commit() override;
-    virtual void rollback() override;
+    virtual void begin() const override;
+    virtual void commit() const override;
+    virtual void rollback() const override;
     virtual sql::PreparedStatement* prepareStatement(const std::string& sql) const override;
     sql::Statement* createStatement() const;
 private:
     sql::Connection* con;
+    // void begin_() const { con->setAutoCommit(false); }
 };
 
-void MySQLConnection::begin()
+void MySQLConnection::begin() const
 {
     puts("------ MySQLConnection::setAutoCommit");
     try {
         con->setAutoCommit(false);
+        // begin_();
     } catch(std::exception& e) {
         throw std::runtime_error(e.what());
     }
 }
-void MySQLConnection::commit()
+void MySQLConnection::commit() const
 {
     puts("------ MySQLConnection::commit");
     try {
@@ -484,7 +486,7 @@ void MySQLConnection::commit()
         throw std::runtime_error(e.what());
     }
 }
-void MySQLConnection::rollback()
+void MySQLConnection::rollback() const
 {
     puts("------ MySQLConnection::rollback");
     try {
@@ -728,7 +730,7 @@ public:
     }
 
 private:
-    RdbConnection<sql::PreparedStatement>* con;
+    const RdbConnection<sql::PreparedStatement>* con;
     const RdbProcStrategy<DATA>* strategy;
 };
 
