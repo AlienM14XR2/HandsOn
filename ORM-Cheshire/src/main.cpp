@@ -78,6 +78,7 @@
 #include "../inc/test_1.hpp"
 #include "../inc/MySQLConnection.hpp"
 #include "../inc/Repository.hpp"
+#include "../inc/RdbTransaction.hpp"
 #include "/usr/include/mysql-cppconn-8/mysql/jdbc.h"
 #include "/usr/include/mysql-cppconn-8/mysqlx/xdevapi.h"
 
@@ -550,42 +551,10 @@ std::optional<PersonData> PersonRepository::findOne(const std::size_t& pkey) con
  * - おそらく、コネクションとステートメントは抽象化しないとダメかな。
  * - これも Step 0 として、別ソースファイルで確認する必要がある。
  * 
-*/
-
-/**
- * RdbTransaction クラス
+ * @see inc/RdbTransaction.hpp
  * 
- * RDBMS のトランザクション処理の基底クラス
 */
 
-template <class DATA>
-class RdbTransaction {
-public:
-    virtual ~RdbTransaction() = default;
-    // ...
-
-    /**
-     * 次のメンバ関数は、戻り値を返すものも必要だと思う、proc も然り。
-     * std::optional だったら 1 つでいいのかも。
-    */
-
-    std::optional<DATA> executeTx() const {
-        try {
-            begin();
-            std::optional<DATA> data = proc();         // これが バリエーション・ポイント
-            commit();
-            return data;
-        } catch(std::exception& e) {
-            rollback();
-            ptr_print_error<const decltype(e)&>(e);
-            throw std::runtime_error(e.what());
-        }
-    }
-    virtual void begin()    const = 0;
-    virtual void commit()   const = 0;
-    virtual void rollback() const = 0;
-    virtual std::optional<DATA> proc() const = 0;
-};
 
 /**
  * RdbProcStrategy クラス
