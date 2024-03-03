@@ -77,6 +77,7 @@
 #include "../inc/ConnectionPool.hpp"
 #include "../inc/test_1.hpp"
 #include "../inc/MySQLConnection.hpp"
+#include "../inc/Repository.hpp"
 #include "/usr/include/mysql-cppconn-8/mysql/jdbc.h"
 #include "/usr/include/mysql-cppconn-8/mysqlx/xdevapi.h"
 
@@ -435,24 +436,11 @@ int test_ConnectionPool() {
 }
 
 
-
 /**
- * リポジトリ
+ * PersonRepository クラス
  * 
- * PKEY が複合 Key の場合の考慮はしていない。
- * 派生クラス、あるいは別の基底クラスを用意してほしい。
+ * PersonData の CRUD を実現する。
 */
-
-template <class DATA, class PKEY>
-class Repository {
-public:
-    virtual ~Repository() = default;
-    // ...
-    virtual std::optional<DATA> insert(const DATA&)  const = 0;
-    virtual std::optional<DATA> update(const DATA&)   const = 0;
-    virtual void remove(const PKEY&)   const = 0;
-    virtual std::optional<DATA> findOne(const PKEY&)  const = 0;
-};
 
 class PersonRepository final : public Repository<PersonData,std::size_t> {
 public:
