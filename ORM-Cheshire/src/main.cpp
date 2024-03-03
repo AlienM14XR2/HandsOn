@@ -439,12 +439,12 @@ std::optional<PersonData> PersonRepository::update(const PersonData& data) const
     // con->prepareStatement("UPDATE ...");
     return PersonData::dummy();
 }
-void PersonRepository::remove(const std::size_t& pkey) const
+void PersonRepository::remove(const std::size_t& pkey) const                        // これでも作れる、でも PersonData を仮引数で渡したほうきっといい。
 {
     puts("------ PersonRepository::remove");
     // con->prepareStatement("DELETE ...");
 }
-std::optional<PersonData> PersonRepository::findOne(const std::size_t& pkey) const
+std::optional<PersonData> PersonRepository::findOne(const std::size_t& pkey) const  // これも remove と同じだな。
 {
     puts("------ PersonRepository::findOne");
     // con->prepareStatement("SELECT ...");
