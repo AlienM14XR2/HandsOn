@@ -80,6 +80,7 @@
 #include "../inc/Repository.hpp"
 #include "../inc/RdbTransaction.hpp"
 #include "../inc/RdbProcStrategy.hpp"
+#include "../inc/MySQLCreateStrategy.hpp"
 #include "/usr/include/mysql-cppconn-8/mysql/jdbc.h"
 #include "/usr/include/mysql-cppconn-8/mysqlx/xdevapi.h"
 
@@ -558,29 +559,6 @@ std::optional<PersonData> PersonRepository::findOne(const std::size_t& pkey) con
 
 
 
-/**
- * MySQLCreateStrategy クラス
- * 
- * Create（Insert） を行う。
-*/
-
-template <class DATA, class PKEY>
-class MySQLCreateStrategy final : public RdbProcStrategy<DATA> {
-public:
-    MySQLCreateStrategy(const Repository<DATA,PKEY>* _repo, const DATA& _data): repo(_repo), data(_data) 
-    {}
-    virtual std::optional<DATA> proc() const override {
-        puts("------ MySQLCreateStrategy::proc");
-        try {
-            return repo->insert(data);
-        } catch(std::exception& e) {
-            throw std::runtime_error(e.what());
-        }
-    }
-private:
-    const Repository<DATA,PKEY>* repo;
-    DATA data;
-};
 
 /**
  * MySQLTx クラス
