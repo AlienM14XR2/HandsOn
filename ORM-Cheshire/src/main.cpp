@@ -774,8 +774,17 @@ int test_MySQLTx() {
             // MySQLTx(RdbConnection<sql::PreparedStatement>* _con, const RdbProcStrategy<DATA>* _strategy)
             MySQLTx tx(mcon.get(), proc_strategy.get());
             std::optional<PersonData> after = tx.executeTx();
+
+            // 検査
+            assert(after.has_value() == true);
             auto [id_nam, id_val] = after.value().getId().bind();
             ptr_lambda_debug<const char*, const decltype(id_val)&>("after id_val is ", id_val);
+            auto [name_nam, name_val] = after.value().getName().bind();
+            assert(name_val == "Alice");
+            auto [email_nam, email_val] = after.value().getEmail().bind();
+            assert(email_val == "alice@loki.org");
+            auto [age_nam, age_val] = after.value().getAge().value().bind();
+            assert(age_val == 12);
         }
         std::clock_t end = clock();
         std::cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << std::endl;
