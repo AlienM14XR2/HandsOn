@@ -35,5 +35,6 @@ int test_makeDeleteSql();
 int test_makeFindOneSql();
 int test_makeCreateTableSql();
 int test_MySQLDriver();
+int test_insert_person();
 
 #endif
