@@ -312,6 +312,14 @@ std::optional<PersonData> PersonRepository::update(const PersonData& data) const
 void PersonRepository::remove(const std::size_t& pkey) const
 {   
     puts("------ PersonRepository::remove");
+    PersonData data = PersonData::dummy();
+    std::string sql = makeDeleteSql(data.getTableName(), data.getId().getName());
+    ptr_lambda_debug<const char*, const std::string&>("sql: ", sql);
+    std::unique_ptr<sql::PreparedStatement> prep_stmt(con->prepareStatement(sql));
+    prep_stmt->setBigInt(1, std::to_string(pkey));
+    int ret = prep_stmt->executeUpdate();                       // Delete 実行
+    ptr_lambda_debug<const char*, const int&>("ret is ", ret);
+
 }
 std::optional<PersonData> PersonRepository::findOne(const std::size_t& pkey) const
 {
@@ -328,7 +336,7 @@ std::optional<PersonData> PersonRepository::findOne(const std::size_t& pkey) con
     std::unique_ptr<RdbDataStrategy<PersonData>> dataStratedy = std::make_unique<PersonStrategy>(PersonStrategy());
     // 上記一連を作る factory が欲しくなる、どこに作るべきかな、最終的に PersonData を返却してくれたらいいので、PersonData の static メンバ関数ではどうだろうか。
     PersonData data(dataStratedy.get(), id, name, email, age);
-    std::string sql = makeFindOneSql(data.getTableName(), id.getName(), data.getColumns());     // namespace とは必要かな？
+    std::string sql = makeFindOneSql(data.getTableName(), id.getName(), data.getColumns());     // makeFindOneSql に namespace は必要かな？
     ptr_lambda_debug<const char*, const std::string&>("sql: ", sql);
     std::unique_ptr<sql::PreparedStatement> prep_stmt(con->prepareStatement(sql));
     prep_stmt->setBigInt(1, std::to_string(pkey));
@@ -339,6 +347,10 @@ std::optional<PersonData> PersonRepository::findOne(const std::size_t& pkey) con
     }
     return std::nullopt;
 }
+
+
+
+
 
 
 
@@ -611,6 +623,22 @@ int test_PersonRepository_insert_no_age() {
 int test_PersonRepository_remove() {
     puts("=== test_PersonRepository_remove");
     try {
+        sql::Driver* driver = MySQLDriver::getInstance().getDriver();
+        std::unique_ptr<sql::Connection> con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
+        if(con->isValid()) {
+            puts("connected ... ");
+            con->setSchema("cheshire");
+            std::unique_ptr<MySQLConnection> mcon = std::make_unique<MySQLConnection>(con.get());
+            std::size_t remove_id(1ul);
+            std::unique_ptr<Repository<PersonData,std::size_t>> repo = std::make_unique<PersonRepository>(mcon.get());
+            repo->remove(remove_id);
+
+            // 検証
+            std::optional<PersonData> test = repo->findOne(remove_id);
+            assert(test.has_value() == false);
+        } else {
+            throw std::runtime_error("Invalid connection.");
+        }
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
