@@ -87,3 +87,5 @@ DataField<std::string>                PersonData::getName()       const { return
 DataField<std::string>                PersonData::getEmail()      const { return email; }
 std::optional<DataField<int>>         PersonData::getAge()        const { return age; }
 RdbDataStrategy<PersonData>*          PersonData::getDataStrategy() const { return strategy; }
+void                                  PersonData::setDataStrategy(RdbDataStrategy<PersonData>* _strategy) { strategy = _strategy; }
+void                                  PersonData::setName(DataField<std::string> _name) { name = _name; }

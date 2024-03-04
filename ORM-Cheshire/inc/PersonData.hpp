@@ -49,7 +49,9 @@ public:
     DataField<std::string>                getName() const;
     DataField<std::string>                getEmail() const;
     std::optional<DataField<int>>         getAge() const;
-    RdbDataStrategy<PersonData>*              getDataStrategy() const;
+    RdbDataStrategy<PersonData>*          getDataStrategy() const;
+    void                                  setDataStrategy(RdbDataStrategy<PersonData>*);
+    void                                  setName(DataField<std::string> _name);
 private:
     const std::string TABLE_NAME;
     // std::unique_ptr を 単純なデータ構造を保持するクラスに持つと、コピーできないという制限が強すぎて扱いづらくなる。クラス内では raw ポインタの方が都合がいいと思った。

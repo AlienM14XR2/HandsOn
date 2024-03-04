@@ -259,6 +259,7 @@ std::optional<PersonData> PersonRepository::insert(const PersonData& data) const
         std::unique_ptr<sql::ResultSet> res_2( prep_stmt_2->executeQuery() );       // SELECT ... 登録されたデータを取得する
         while(res_2->next()) {
             puts("------ B");
+            // デバッグ
             auto res_id    = res_2->getUInt64(1);
             auto res_name  = res_2->getString(2);
             auto res_email = res_2->getString(3);
@@ -277,15 +278,35 @@ std::optional<PersonData> PersonRepository::insert(const PersonData& data) const
 std::optional<PersonData> PersonRepository::update(const PersonData& data) const
 {
     puts("------ PersonRepository::update");
-    // con->prepareStatement("UPDATE ...");
-    return PersonData::dummy();
+    ptr_lambda_debug<const char*,const RdbDataStrategy<PersonData>*>("stragety addr is ", data.getDataStrategy());
+    auto[debug_id_nam, debug_id_val] = data.getId().bind();
+    ptr_lambda_debug<const char*,const decltype(debug_id_nam)&>("debug_id_nam is ", debug_id_nam);
+    ptr_lambda_debug<const char*,const decltype(debug_id_val)&>("debug_id_val is ", debug_id_val);
+
+    const std::string sql = makeUpdateSql(data.getTableName(), data.getId().getName(), data.getColumns());
+    ptr_lambda_debug<const char*,const std::string&>("sql: ", sql);
+    std::unique_ptr<sql::PreparedStatement> prep_stmt(con->prepareStatement(sql));
+    auto[name_nam, name_val] = data.getName().bind();
+    prep_stmt->setString(1, name_val);
+    auto[email_nam, email_val] = data.getEmail().bind();
+    prep_stmt->setString(2, email_val);
+    if(data.getAge().has_value()) {
+        auto[age_nam, age_val] = data.getAge().value().bind();
+        prep_stmt->setInt(3, age_val);
+    }
+    auto[id_nam, id_val] = data.getId().bind();
+    prep_stmt->setBigInt(4, std::to_string(id_val));
+    int ret = prep_stmt->executeUpdate();                       // Update 実行
+    ptr_lambda_debug<const char*, const int&>("ret is ", ret);
+    // return data;        // findOne したものを返却すべきなのか、悩ましい。
+    return findOne(data.getId().getValue());
 }
-void PersonRepository::remove(const std::size_t& pkey) const                        // これでも作れる、でも PersonData を仮引数で渡したほうきっといい。
+void PersonRepository::remove(const std::size_t& pkey) const
 {   
     puts("------ PersonRepository::remove");
     // con->prepareStatement("DELETE ...");
 }
-std::optional<PersonData> PersonRepository::findOne(const std::size_t& pkey) const  // これも remove と同じだな。
+std::optional<PersonData> PersonRepository::findOne(const std::size_t& pkey) const
 {
     /**
      * 前言撤回だな、結論から言えば、利用する側からしたら、今のインタフェースの方が使い勝手がいい。
@@ -307,10 +328,13 @@ std::optional<PersonData> PersonRepository::findOne(const std::size_t& pkey) con
     std::unique_ptr<sql::ResultSet> res(prep_stmt->executeQuery());
     while(res->next()) {
         puts("------ A");
-        return PersonData::factory(res.get(), dataStratedy.get());
+        return PersonData::factory(res.get(), nullptr);
     }
     return std::nullopt;
 }
+
+
+
 
 
 /**
@@ -439,7 +463,7 @@ int test_PersonRepository_findOne() {
             std::unique_ptr<MySQLConnection> mcon = std::make_unique<MySQLConnection>(con.get()); 
             std::unique_ptr<Repository<PersonData,std::size_t>> repo = std::make_unique<PersonRepository>(PersonRepository(mcon.get()));
             std::optional<PersonData> result = repo->findOne(1ul);
-            // TODO 実装中、まだ不完全のテスト。
+            
             assert(result.has_value() == true);
             auto [id_nam, id_val] = result.value().getId().bind();
             printf("name is %s\t", id_nam.c_str());
@@ -459,7 +483,41 @@ int test_PersonRepository_findOne() {
     }
 }
 
+int test_PersonRepository_update() {
+    puts("=== test_PersonRepository_update");
+    try {
+        sql::Driver* driver = MySQLDriver::getInstance().getDriver();
+        std::unique_ptr<sql::Connection> con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
 
+        if(con->isValid()) {
+            puts("connected ... ");
+            con->setSchema("cheshire");
+            std::unique_ptr<MySQLConnection> mcon = std::make_unique<MySQLConnection>(con.get()); 
+            std::unique_ptr<Repository<PersonData,std::size_t>> repo = std::make_unique<PersonRepository>(PersonRepository(mcon.get()));
+            std::optional<PersonData> updateData = repo->findOne(1ul);
+            if(updateData.has_value()) {
+                std::unique_ptr<RdbDataStrategy<PersonData>> dataStrategy = std::make_unique<PersonStrategy>(PersonStrategy());
+                PersonData data = updateData.value();
+                data.setDataStrategy(dataStrategy.get());
+                std::string expect_name = "DEREK_2";
+                DataField<std::string> name("name", expect_name);
+                data.setName(name);
+                std::optional<PersonData> result = repo->update(data);
+                assert(result.has_value() == true);
+                if(result.has_value()) {
+                    // TODO id 以外のすべてのデータの確認が必要
+                    assert(expect_name == result.value().getName().getValue()); 
+                }
+            } else {
+                throw std::runtime_error("Not found test data.");
+            }
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 
 
@@ -579,6 +637,8 @@ int main(void) {
     if(1.05) {
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_PersonRepository_findOne());
+        assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_PersonRepository_update());
         assert(ret == 0);
     }
     if(0) {      // 2.00
