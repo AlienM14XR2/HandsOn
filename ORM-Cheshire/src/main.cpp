@@ -557,6 +557,26 @@ int test_mysqlx_connect() {
 }
 
 
+int test_mysqlx_insert() {
+    puts("=== test_mysqlx_insert");
+    try {
+        mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+        mysqlx::Schema db = sess.getSchema("cheshire");
+        mysqlx::Table person = db.getTable("person");
+        auto ret = person.insert("name", "email", "age")
+                .values("Jabberwocky", "Jabberwocky@loki.org", nullptr)
+                .values("Rabbit Foot", "rabbit@loki.org", 1)
+                .execute();
+        ptr_lambda_debug<const char*,const char*>("ret type is ", typeid(ret).name());
+        
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+
 /**
  * 全くの別件だが、今回いろいろ C++ のビルド周りを調べた際に次のような情報を見つけた。
  * C++ と C のコードを混在させてコンパイル、ビルドする際は、以下のような記述が必要との
@@ -643,6 +663,8 @@ int main(void) {
     if(2.00) {      // 2.00
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_connect());
+        assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_insert());
         assert(ret == 0);
     }
     puts("===   Lost Chapter O/R Mapping END");
