@@ -8,6 +8,7 @@
 #include "RdbData.hpp"
 #include "DataField.hpp"
 #include "RdbDataStrategy.hpp"
+#include "/usr/include/mysql-cppconn-8/mysql/jdbc.h"
 
 class PersonData final : public RdbData {
 private:
@@ -37,6 +38,7 @@ public:
     , const std::optional<DataField<int>>& _age);
 
     static PersonData dummy();
+    static PersonData factory(sql::ResultSet* rs, RdbDataStrategy<PersonData>* strategy);
 
     // ..
     virtual std::vector<std::string> getColumns() const override;

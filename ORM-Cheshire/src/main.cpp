@@ -269,16 +269,7 @@ std::optional<PersonData> PersonRepository::insert(const PersonData& data) const
             if(res_age){
                 ptr_lambda_debug<const char*,const decltype(res_age)&>("res_age: ", res_age);
             }
-            // 次の一連のコーディングは間違いを犯す危険が高い、データトランスファ機能を持ったファクトリが必要かもしれない。
-            DataField<std::size_t> p_id(data.getId().getName(), res_id); 
-            DataField<std::string> p_name(data.getName().getName(), res_name);
-            DataField<std::string> p_email(data.getEmail().getName(), res_email);
-            std::optional<DataField<int>> p_age;
-            if(res_age) {
-                p_age = DataField<int>(data.getAge().value().getName(), res_age);
-            }
-            PersonData person(data.getDataStrategy(), p_id, p_name, p_email, p_age);
-            return person;
+            return PersonData::factory(res_2.get(), data.getDataStrategy());
         }
     }
     return std::nullopt;
@@ -316,20 +307,7 @@ std::optional<PersonData> PersonRepository::findOne(const std::size_t& pkey) con
     std::unique_ptr<sql::ResultSet> res(prep_stmt->executeQuery());
     while(res->next()) {
         puts("------ A");
-        // TODO sql::ResultSet -> PersonData の構築、これも PersonRepository の private メンバ関数か PersonData の factory にしたい。
-        auto res_id    = res->getUInt64(1);
-        auto res_name  = res->getString(2);
-        auto res_email = res->getString(3);
-        auto res_age   = res->getInt(4);
-        DataField<std::size_t> p_id(data.getId().getName(), res_id); 
-        DataField<std::string> p_name(data.getName().getName(), res_name);
-        DataField<std::string> p_email(data.getEmail().getName(), res_email);
-        std::optional<DataField<int>> p_age;
-        if(res_age) {
-            p_age = DataField<int>(data.getAge().value().getName(), res_age);
-        }
-        PersonData person(data.getDataStrategy(), p_id, p_name, p_email, p_age);
-        return person;
+        return PersonData::factory(res.get(), dataStratedy.get());
     }
     return std::nullopt;
 }

@@ -51,6 +51,24 @@ PersonData PersonData::dummy() {
     return PersonData();
 }
 
+PersonData PersonData::factory(sql::ResultSet* rs, RdbDataStrategy<PersonData>* strategy) 
+{
+    auto rs_id    = rs->getUInt64(1);
+    auto rs_name  = rs->getString(2);
+    auto rs_email = rs->getString(3);
+    auto rs_age   = rs->getInt(4);
+    DataField<std::size_t> p_id("id", rs_id); 
+    DataField<std::string> p_name("name", rs_name);
+    DataField<std::string> p_email("email", rs_email);
+    std::optional<DataField<int>> p_age;
+    if(rs_age) {
+        p_age = DataField<int>("age", rs_age);
+    }
+    PersonData person(strategy, p_id, p_name, p_email, p_age);
+    return person;
+}
+
+
 // ... 
 std::vector<std::string> PersonData::getColumns() const {   // override
     puts("------ PersonData::getColums");
