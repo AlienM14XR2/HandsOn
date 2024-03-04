@@ -238,8 +238,10 @@ std::optional<PersonData> PersonRepository::insert(const PersonData& data) const
     prep_stmt->setString(1, name_val);
     auto[email_nam, email_val] = data.getEmail().bind();
     prep_stmt->setString(2, email_val);
-    auto[age_nam, age_val] = data.getAge().value().bind();
-    prep_stmt->setInt(3, age_val);
+    if(data.getAge().has_value()) {
+        auto[age_nam, age_val] = data.getAge().value().bind();
+        prep_stmt->setInt(3, age_val);
+    }
     int ret = prep_stmt->executeUpdate();                       // INSERT 実行
     ptr_lambda_debug<const char*, const int&>("ret is ", ret);
 
@@ -263,14 +265,20 @@ std::optional<PersonData> PersonRepository::insert(const PersonData& data) const
             auto res_id    = res_2->getUInt64(1);
             auto res_name  = res_2->getString(2);
             auto res_email = res_2->getString(3);
-            auto res_age   = res_2->getInt(4);
             ptr_lambda_debug<const char*,const decltype(res_id)&>("res_id: ", res_id);
             ptr_lambda_debug<const char*,const decltype(res_name)&>("res_name: ", res_name);
             ptr_lambda_debug<const char*,const decltype(res_email)&>("res_email: ", res_email);
-            if(res_age){
+            if(data.getAge().has_value()){              // std::optional と RDB 上の Null を許可したカラムについてはもっとテストと考察が必要、現状では煩雑過ぎる。
+                auto res_age   = res_2->getInt(4);
                 ptr_lambda_debug<const char*,const decltype(res_age)&>("res_age: ", res_age);
+                return PersonData::factory(res_2.get(), data.getDataStrategy());
+            } else {
+                return PersonData::factoryNoAge(res_2.get(), data.getDataStrategy());
             }
-            return PersonData::factory(res_2.get(), data.getDataStrategy());
+            /**
+             * std::optional が複数あるデータの場合は、上記のような factory を用いずに、データから ResultSet の有無を推論する仕組み
+             * の方がより自然で汎用性が高いと思う。
+            */
         }
     }
     return std::nullopt;
@@ -474,6 +482,8 @@ int test_PersonRepository_findOne() {
             printf("name is %s\t value is %s\n", email_nam.c_str(), email_val.c_str());
             auto [age_nam, age_val] = result.value().getAge().value().bind();
             printf("name is %s\t value is %d\n", age_nam.c_str(), age_val);     // 現状では、非常に細かいことに聞こえるが、age は std::optional なので RDB のレコードの値が NULL の場合もチェックしてほしい。
+        } else {
+            throw std::runtime_error("Invalid connection.");
         }
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
@@ -554,6 +564,39 @@ int test_PersonRepository_insert() {
                 assert(expect_name  == opt.value().getName().getValue());
                 assert(expect_email == opt.value().getEmail().getValue());
                 assert(expect_age   == opt.value().getAge().value().getValue());
+            }
+        } else {
+            throw std::runtime_error("Invalid connection.");
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+int test_PersonRepository_insert_no_age() {
+    puts("=== test_PersonRepository_insert_no_age");
+    try {
+        sql::Driver* driver = MySQLDriver::getInstance().getDriver();
+        std::unique_ptr<sql::Connection> con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
+        if(con->isValid()) {
+            puts("connected ... ");
+            con->setSchema("cheshire");
+            std::unique_ptr<MySQLConnection> mcon = std::make_unique<MySQLConnection>(con.get()); 
+            std::unique_ptr<RdbDataStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
+            std::string expect_name  = std::string("cheshire_2");
+            std::string expect_email = std::string("cheshire_2@loki.org");
+            // int         expect_age   = 3;
+            PersonData data = PersonData::factory(expect_name, expect_email, strategy.get());
+            std::unique_ptr<Repository<PersonData,std::size_t>> repo = std::make_unique<PersonRepository>(mcon.get());
+            std::optional<PersonData> opt = repo->insert(data);
+
+            assert(opt.has_value() == true);
+            if(opt.has_value()) {
+                assert(expect_name  == opt.value().getName().getValue());
+                assert(expect_email == opt.value().getEmail().getValue());
+                assert(opt.value().getAge().has_value() == false);
             }
         } else {
             throw std::runtime_error("Invalid connection.");
@@ -697,6 +740,8 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_PersonRepository_update());
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_PersonRepository_insert());
+        assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_PersonRepository_insert_no_age());
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_PersonRepository_remove());
         assert(ret == 0);

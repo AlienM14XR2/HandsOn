@@ -47,6 +47,8 @@ PersonData::PersonData(): strategy(nullptr)
 {
 }
 
+// ... 
+
 PersonData PersonData::dummy() {
     return PersonData();
 }
@@ -60,12 +62,23 @@ PersonData PersonData::factory(sql::ResultSet* rs, RdbDataStrategy<PersonData>* 
     DataField<std::size_t> p_id("id", rs_id); 
     DataField<std::string> p_name("name", rs_name);
     DataField<std::string> p_email("email", rs_email);
-    std::optional<DataField<int>> p_age;
-    if(rs_age) {
-        p_age = DataField<int>("age", rs_age);
-    }
+    std::optional<DataField<int>> p_age(DataField("age", rs_age));
     PersonData person(strategy, p_id, p_name, p_email, p_age);
     return person;
+}
+
+PersonData PersonData::factoryNoAge(sql::ResultSet* rs, RdbDataStrategy<PersonData>* strategy)
+{
+    auto rs_id    = rs->getUInt64(1);
+    auto rs_name  = rs->getString(2);
+    auto rs_email = rs->getString(3);
+    DataField<std::size_t> p_id("id", rs_id); 
+    DataField<std::string> p_name("name", rs_name);
+    DataField<std::string> p_email("email", rs_email);
+    std::optional<DataField<int>> p_age;
+    PersonData person(strategy, p_id, p_name, p_email, p_age);
+    return person;
+
 }
 
 PersonData PersonData::factory(
@@ -80,8 +93,18 @@ PersonData PersonData::factory(
     return PersonData(_strategy, df_name, df_email, df_age);
 }
 
+PersonData PersonData::factory(
+          std::string _name
+        , std::string _email
+        , RdbDataStrategy<PersonData>* _strategy)
+{
+    DataField<std::string> df_name("name", _name);
+    DataField<std::string> df_email("email", _email);
+    std::optional<DataField<int>> df_age;
+    return PersonData(_strategy, df_name, df_email, df_age);
+}
 
-// ... 
+
 std::vector<std::string> PersonData::getColumns() const {   // override
     puts("------ PersonData::getColums");
     return strategy->getColumns(*this);

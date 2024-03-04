@@ -37,15 +37,21 @@ public:
     , const DataField<std::string>& _email 
     , const std::optional<DataField<int>>& _age);
 
+
+    // ..
     static PersonData dummy();
     static PersonData factory(sql::ResultSet* rs, RdbDataStrategy<PersonData>* strategy);
+    static PersonData factoryNoAge(sql::ResultSet* rs, RdbDataStrategy<PersonData>* strategy);
     static PersonData factory(
           std::string _name
         , std::string _email
         , int         _age
         , RdbDataStrategy<PersonData>* _strategy);
-
-    // ..
+    static PersonData factory(
+          std::string _name
+        , std::string _email
+        , RdbDataStrategy<PersonData>* _strategy);
+        
     virtual std::vector<std::string> getColumns() const override;
     virtual std::vector<std::tuple<std::string, std::string, std::string>> getTableInfo() const override;
 
