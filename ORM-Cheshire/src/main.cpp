@@ -522,6 +522,41 @@ int test_PersonRepository_update() {
             } else {
                 throw std::runtime_error("Not found test data.");
             }
+        } else {
+            throw std::runtime_error("Invalid connection.");
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+int test_PersonRepository_insert() {
+    puts("=== test_PersonRepository_insert");
+    try {
+        sql::Driver* driver = MySQLDriver::getInstance().getDriver();
+        std::unique_ptr<sql::Connection> con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
+        if(con->isValid()) {
+            puts("connected ... ");
+            con->setSchema("cheshire");
+            std::unique_ptr<MySQLConnection> mcon = std::make_unique<MySQLConnection>(con.get()); 
+            std::unique_ptr<RdbDataStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
+            std::string expect_name  = std::string("cheshire");
+            std::string expect_email = std::string("cheshire@loki.org");
+            int         expect_age   = 3;
+            PersonData data = PersonData::factory(expect_name, expect_email, expect_age, strategy.get());
+            std::unique_ptr<Repository<PersonData,std::size_t>> repo = std::make_unique<PersonRepository>(mcon.get());
+            std::optional<PersonData> opt = repo->insert(data);
+
+            assert(opt.has_value() == true);
+            if(opt.has_value()) {
+                assert(expect_name  == opt.value().getName().getValue());
+                assert(expect_email == opt.value().getEmail().getValue());
+                assert(expect_age   == opt.value().getAge().value().getValue());
+            }
+        } else {
+            throw std::runtime_error("Invalid connection.");
         }
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
@@ -660,6 +695,8 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_PersonRepository_findOne());
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_PersonRepository_update());
+        assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_PersonRepository_insert());
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_PersonRepository_remove());
         assert(ret == 0);

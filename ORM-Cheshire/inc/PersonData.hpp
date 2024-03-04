@@ -39,6 +39,11 @@ public:
 
     static PersonData dummy();
     static PersonData factory(sql::ResultSet* rs, RdbDataStrategy<PersonData>* strategy);
+    static PersonData factory(
+          std::string _name
+        , std::string _email
+        , int         _age
+        , RdbDataStrategy<PersonData>* _strategy);
 
     // ..
     virtual std::vector<std::string> getColumns() const override;

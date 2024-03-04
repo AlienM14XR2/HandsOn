@@ -68,6 +68,18 @@ PersonData PersonData::factory(sql::ResultSet* rs, RdbDataStrategy<PersonData>* 
     return person;
 }
 
+PersonData PersonData::factory(
+      std::string _name
+    , std::string _email
+    , int         _age
+    , RdbDataStrategy<PersonData>* _strategy)
+{
+    DataField<std::string> df_name("name", _name);
+    DataField<std::string> df_email("email", _email);
+    DataField<int>         df_age("age", _age);
+    return PersonData(_strategy, df_name, df_email, df_age);
+}
+
 
 // ... 
 std::vector<std::string> PersonData::getColumns() const {   // override
