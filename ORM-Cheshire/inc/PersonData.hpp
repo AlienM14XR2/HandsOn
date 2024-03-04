@@ -51,7 +51,10 @@ public:
     std::optional<DataField<int>>         getAge() const;
     RdbDataStrategy<PersonData>*          getDataStrategy() const;
     void                                  setDataStrategy(RdbDataStrategy<PersonData>*);
+    // 次の setter メンバ関数には DataField を介さず直接値（DataField::T にあたる value）を設定できた方が便利だが、カプセル化の兼ね合いも悩ましい。
     void                                  setName(DataField<std::string> _name);
+    void                                  setEmail(DataField<std::string> _email);
+    void                                  setAge(DataField<int> _age);
 private:
     const std::string TABLE_NAME;
     // std::unique_ptr を 単純なデータ構造を保持するクラスに持つと、コピーできないという制限が強すぎて扱いづらくなる。クラス内では raw ポインタの方が都合がいいと思った。

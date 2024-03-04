@@ -499,14 +499,26 @@ int test_PersonRepository_update() {
                 std::unique_ptr<RdbDataStrategy<PersonData>> dataStrategy = std::make_unique<PersonStrategy>(PersonStrategy());
                 PersonData data = updateData.value();
                 data.setDataStrategy(dataStrategy.get());
-                std::string expect_name = "DEREK_2";
-                DataField<std::string> name("name", expect_name);
+                std::string expect_name  = "DEREK_2";
+                std::string expect_email = "derek_2@loki.org";
+                int         expect_age   = 33;
+                DataField<std::string> name("name"  , expect_name);
+                DataField<std::string> email("email", expect_email);
+                DataField<int>         age("age"  , expect_age);
+
                 data.setName(name);
+                data.setEmail(email);
+                data.setAge(age);
                 std::optional<PersonData> result = repo->update(data);
                 assert(result.has_value() == true);
                 if(result.has_value()) {
+                    ptr_lambda_debug<const char*, const std::string&>("result name is ", result.value().getName().getValue());
+                    ptr_lambda_debug<const char*, const std::string&>("result email is ", result.value().getEmail().getValue());
+                    ptr_lambda_debug<const char*, const int&>("result age is ", result.value().getAge().value().getValue());
                     // TODO id 以外のすべてのデータの確認が必要
                     assert(expect_name == result.value().getName().getValue()); 
+                    assert(expect_email == result.value().getEmail().getValue());
+                    assert(expect_age == result.value().getAge().value().getValue());
                 }
             } else {
                 throw std::runtime_error("Not found test data.");
