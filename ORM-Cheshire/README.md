@@ -36,3 +36,9 @@ $ dpkg -L libmysqlcppconn-dev
 The C++ connector for PostgreSQL
 
 https://pqxx.org/development/libpqxx/
+
+## OSS ORM
+
+この課題が終わったら、次を見てみる（やはり既にあるよね：）。
+
+https://codesynthesis.com/products/odb/
