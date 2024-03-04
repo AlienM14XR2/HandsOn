@@ -538,14 +538,17 @@ int test_mysqlx_connect() {
         std::cout << "your schema is " << db.getName() << std::endl;
         mysqlx::Table person = db.getTable("person");
         std::cout << "person count is " << person.count() << std::endl;
-        mysqlx::TableSelect selectOpe = person.select("email").where("id=1");
+        mysqlx::TableSelect selectOpe = person.select("email").where("id=2");
         mysqlx::Row row = selectOpe.execute().fetchOne();
         std::cout << "row is null ? " << row.isNull() << std::endl;
         mysqlx::Value val = row.get(0);
-        std::cout << val << std::endl;    
+        std::cout << val << std::endl;
         sess.close();
         std::clock_t end = clock();
         std::cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << std::endl;
+        /**
+         * X DevAPI 圧倒的に速いんだよな。
+        */
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)>(e);
@@ -637,7 +640,7 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_PersonRepository_remove());
         assert(ret == 0);
     }
-    if(0) {      // 2.00
+    if(2.00) {      // 2.00
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_connect());
         assert(ret == 0);
