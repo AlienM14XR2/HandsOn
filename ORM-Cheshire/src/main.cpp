@@ -520,7 +520,7 @@ int test_PersonRepository_remove() {
 
 
 /**
- * MySQL Shell
+ * MySQL X DevAPI
  * 以前利用した mysqlx を再度検証してみる。
  * 
  * /usr/include/mysql-cppconn-8/mysqlx/xdevapi.h
