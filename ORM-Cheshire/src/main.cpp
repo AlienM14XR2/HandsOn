@@ -270,7 +270,7 @@ std::optional<PersonData> PersonRepository::insert(const PersonData& data) const
                 ptr_lambda_debug<const char*,const decltype(res_age)&>("res_age: ", res_age);
             }
             // 次の一連のコーディングは間違いを犯す危険が高い、データトランスファ機能を持ったファクトリが必要かもしれない。
-            DataField<std::size_t> p_id(data.getId().getName(), res_id);              // この名前の部分 "id" はハードコーディングではなく別な方法がいいと思う、引数を信頼するなら、そこに必要な値は格納されている。 
+            DataField<std::size_t> p_id(data.getId().getName(), res_id); 
             DataField<std::string> p_name(data.getName().getName(), res_name);
             DataField<std::string> p_email(data.getEmail().getName(), res_email);
             std::optional<DataField<int>> p_age;
@@ -311,7 +311,27 @@ std::optional<PersonData> PersonRepository::findOne(const std::size_t& pkey) con
     PersonData data(dataStratedy.get(), id, name, email, age);
     std::string sql = makeFindOneSql(data.getTableName(), id.getName(), data.getColumns());     // namespace とは必要かな？
     ptr_lambda_debug<const char*, const std::string&>("sql: ", sql);
-    return PersonData::dummy();
+    std::unique_ptr<sql::PreparedStatement> prep_stmt(con->prepareStatement(sql));
+    prep_stmt->setBigInt(1, std::to_string(pkey));
+    std::unique_ptr<sql::ResultSet> res(prep_stmt->executeQuery());
+    while(res->next()) {
+        puts("------ A");
+        // TODO sql::ResultSet -> PersonData の構築、これも PersonRepository の private メンバ関数か PersonData の factory にしたい。
+        auto res_id    = res->getUInt64(1);
+        auto res_name  = res->getString(2);
+        auto res_email = res->getString(3);
+        auto res_age   = res->getInt(4);
+        DataField<std::size_t> p_id(data.getId().getName(), res_id); 
+        DataField<std::string> p_name(data.getName().getName(), res_name);
+        DataField<std::string> p_email(data.getEmail().getName(), res_email);
+        std::optional<DataField<int>> p_age;
+        if(res_age) {
+            p_age = DataField<int>(data.getAge().value().getName(), res_age);
+        }
+        PersonData person(data.getDataStrategy(), p_id, p_name, p_email, p_age);
+        return person;
+    }
+    return std::nullopt;
 }
 
 
@@ -440,8 +460,19 @@ int test_PersonRepository_findOne() {
             con->setSchema("cheshire");
             std::unique_ptr<MySQLConnection> mcon = std::make_unique<MySQLConnection>(con.get()); 
             std::unique_ptr<Repository<PersonData,std::size_t>> repo = std::make_unique<PersonRepository>(PersonRepository(mcon.get()));
-            repo->findOne(1ul);
+            std::optional<PersonData> result = repo->findOne(1ul);
             // TODO 実装中、まだ不完全のテスト。
+            assert(result.has_value() == true);
+            auto [id_nam, id_val] = result.value().getId().bind();
+            printf("name is %s\t", id_nam.c_str());
+            ptr_lambda_debug<const char*, const decltype(id_val)&>("result id_val is ", id_val);
+            assert(id_val == 1ul);
+            auto [name_nam, name_val] = result.value().getName().bind();
+            printf("name is %s\t value is %s\n", name_nam.c_str(), name_val.c_str());
+            auto [email_nam, email_val] = result.value().getEmail().bind();
+            printf("name is %s\t value is %s\n", email_nam.c_str(), email_val.c_str());
+            auto [age_nam, age_val] = result.value().getAge().value().bind();
+            printf("name is %s\t value is %d\n", age_nam.c_str(), age_val);     // 現状では、非常に細かいことに聞こえるが、age は std::optional なので RDB のレコードの値が NULL の場合もチェックしてほしい。
         }
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
