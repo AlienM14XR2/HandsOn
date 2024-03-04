@@ -559,16 +559,24 @@ int test_mysqlx_connect() {
 
 int test_mysqlx_insert() {
     puts("=== test_mysqlx_insert");
+    std::clock_t start = clock();
     try {
         mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
         mysqlx::Schema db = sess.getSchema("cheshire");
         mysqlx::Table person = db.getTable("person");
-        auto ret = person.insert("name", "email", "age")
+        mysqlx::Result res = person.insert("name", "email", "age")
                 .values("Jabberwocky", "Jabberwocky@loki.org", nullptr)
                 .values("Rabbit Foot", "rabbit@loki.org", 1)
                 .execute();
-        ptr_lambda_debug<const char*,const char*>("ret type is ", typeid(ret).name());
-        
+        // ptr_lambda_debug<const char*,const char*>("ret type is ", typeid(ret).name());
+        std::cout <<  res.getAutoIncrementValue() << std::endl;
+        std::cout <<  res.getAffectedItemsCount() << std::endl;
+        // auto ids = res.getGeneratedIds();        // Document のみかな？ Table ではダメ？
+        // for(auto id: ids) {
+        //     std::cout <<  id << std::endl;
+        // }
+        std::clock_t end = clock();
+        std::cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << std::endl;
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
