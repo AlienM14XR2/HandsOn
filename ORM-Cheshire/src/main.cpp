@@ -85,8 +85,8 @@
 #include "MySQLCreateStrategy.hpp"
 #include "MySQLTx.hpp"
 #include "PersonRepository.hpp"
-#include "/usr/include/mysql-cppconn-8/mysql/jdbc.h"
-#include "/usr/include/mysql-cppconn-8/mysqlx/xdevapi.h"
+#include "mysql/jdbc.h"
+#include "mysqlx/xdevapi.h"
 
 int test_debug_and_error() {
     puts("=== test_debug_and_error");
