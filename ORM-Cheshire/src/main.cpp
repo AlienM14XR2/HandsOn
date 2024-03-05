@@ -380,6 +380,34 @@ private:
 };
 
 
+/**
+ * MySQLDeleteStrategy クラス
+ * 
+ * Read（Select） を行う。
+*/
+
+template <class DATA, class PKEY>
+class MySQLDeleteStrategy final : public RdbProcStrategy<DATA> {
+public:
+    MySQLDeleteStrategy(const Repository<DATA,PKEY>* _repo, const PKEY& _pkey)
+    : repo(_repo)
+    , pkey(_pkey)
+    {}
+    virtual std::optional<DATA> proc() const override {
+        puts("------ MySQLDeleteStrategy::proc");
+        try {
+            repo->remove(pkey);
+            return std::nullopt;
+        } catch(std::exception& e) {
+            throw std::runtime_error(e.what());
+        }
+    }
+private:
+    const Repository<DATA,PKEY>* repo;
+    PKEY pkey;
+};
+
+
 int test_MySQLTx() {
     puts("=== test_MySQLTx");
     std::unique_ptr<sql::Connection> con    = nullptr;
@@ -422,6 +450,9 @@ int test_MySQLTx() {
         // MySQLTx(RdbConnection<sql::PreparedStatement>* _con, const RdbProcStrategy<DATA>* _strategy)
         MySQLTx tx(mcon.get(), proc_strategy.get());
         std::optional<PersonData> after = tx.executeTx();
+        if(rawCon) {
+            cheshire::app_cp.push(rawCon);
+        }
         // 検査
         assert(after.has_value() == true);
         auto [id_nam, id_val] = after.value().getId().bind();
@@ -436,9 +467,6 @@ int test_MySQLTx() {
         auto [age_nam, age_val] = after.value().getAge().value().bind();
         printf("name is %s\n", age_nam.c_str());
         assert(age_val == expect_age);
-        if(rawCon) {
-            cheshire::app_cp.push(rawCon);
-        }
         std::clock_t end = clock();
         std::cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << std::endl;
         return EXIT_SUCCESS;
@@ -483,7 +511,7 @@ int test_MySQLTx_rollback() {
 
 int test_MySQLTx_Create(std::size_t* insId) {
     puts("=== test_MySQLTx_Create");
-    sql::Connection*                                    rawCon = nullptr;
+    sql::Connection*                                            rawCon = nullptr;
     try {
         if(!cheshire::app_cp.empty()) {
             std::clock_t start = clock();
@@ -621,6 +649,42 @@ int test_MySQLTx_Update(std::size_t* insId) {
         ptr_print_error<const decltype(e)&>(e);
         return EXIT_FAILURE;
     }
+}
+
+int test_MySQLTx_Delete(std::size_t* insId) {
+    puts("=== test_MySQLTx_Delete");
+    std::size_t danteId = *insId;
+    ptr_lambda_debug<const char*, std::size_t&>("danteId is ", danteId);
+    sql::Connection*                                            rawCon = nullptr;
+    try {
+        if(!cheshire::app_cp.empty()) {
+            std::clock_t start = clock();
+                                                                rawCon          = cheshire::app_cp.pop();
+            std::unique_ptr<MySQLConnection>                    mcon            = std::make_unique<MySQLConnection>(rawCon);
+            std::unique_ptr<Repository<PersonData,std::size_t>> repo            = std::make_unique<PersonRepository>(PersonRepository(mcon.get()));                
+            std::unique_ptr<RdbProcStrategy<PersonData>>        proc_strategy_d = std::make_unique<MySQLDeleteStrategy<PersonData,std::size_t>>(repo.get(), danteId);
+            MySQLTx tx(mcon.get(), proc_strategy_d.get());
+            tx.executeTx();     // これも戻り値があるが、強制的に空の optional を返却しているので、検証に使用するのは妥当ではない。
+            std::clock_t end = clock();
+            std::cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << std::endl;
+
+            // 検証
+            std::unique_ptr<RdbProcStrategy<PersonData>> proc_strategy_r = std::make_unique<MySQLReadStrategy<PersonData,std::size_t>>(repo.get(), danteId);
+            MySQLTx tx_r(mcon.get(), proc_strategy_r.get());
+            std::optional<PersonData> after = tx_r.executeTx();
+            // この仕組みは再考の余地がある、エラーが起きた時は、誰がどこで、コネクションを返却するのか？
+            if(rawCon) {
+                cheshire::app_cp.push(rawCon);
+            }
+            assert(after.has_value() == false);
+        } else {
+            throw std::runtime_error("No connection pooling.");
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    } 
 }
 
 int test_PersonRepository_findOne() {
@@ -971,6 +1035,8 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLTx_Read(insId.get()));
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLTx_Update(insId.get()));
+        assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLTx_Delete(insId.get()));
         assert(ret == 0);
     }
     if(0) {      // 2.00
