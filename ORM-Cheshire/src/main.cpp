@@ -567,10 +567,11 @@ int test_mysqlx_insert() {
         mysqlx::Result res = person.insert("name", "email", "age")
                 .values("Jabberwocky", "Jabberwocky@loki.org", nullptr)
                 .values("Rabbit Foot", "rabbit@loki.org", 1)
+                .values(";DELETE FROM person;", "ace@loki.org", nullptr)    // SQL Injection はできなかった
                 .execute();
         // ptr_lambda_debug<const char*,const char*>("ret type is ", typeid(ret).name());
-        std::cout <<  res.getAutoIncrementValue() << std::endl;
-        std::cout <<  res.getAffectedItemsCount() << std::endl;
+        std::cout <<  res.getAutoIncrementValue() << std::endl;     // 最初に Insert したレコードの pkey (AUTO INCREMENT) の値
+        std::cout <<  res.getAffectedItemsCount() << std::endl;     // 上記で Insert されたレコード件数
         // auto ids = res.getGeneratedIds();        // Document のみかな？ Table ではダメ？
         // for(auto id: ids) {
         //     std::cout <<  id << std::endl;
