@@ -19,13 +19,13 @@ public:
     bool empty() {
         return q.empty();
     }
-    void push(const T* pt) const {
+    void push(T* pt) const {
         std::lock_guard<std::mutex> guard(m);
         q.push(pt);
     }
-    const T* pop() const {
+    T* pop() const {
         std::lock_guard<std::mutex> guard(m);
-        const T* ret = nullptr;
+        T* ret = nullptr;
         if(!q.empty()) {
             ret = q.front();
             q.pop();
@@ -37,7 +37,7 @@ public:
     }
 private:
     mutable std::mutex m;
-    mutable std::queue<const T*> q;
+    mutable std::queue<T*> q;
 };
 
 #endif

@@ -238,7 +238,7 @@ int test_mysql_connection_pool_A() {
 
         ptr_lambda_debug<const char*, const bool&>("empty ? ", cheshire::app_cp.empty());
         assert(cheshire::app_cp.empty() == 0);      // プールされていることを期待する
-        const sql::Connection* con_1 = cheshire::app_cp.pop();
+        sql::Connection* con_1 = cheshire::app_cp.pop();
         ptr_lambda_debug<const char*, const sql::Connection*>("con_1 addr is ", con_1);
         std::unique_ptr<MySQLConnection> mcon_1 = std::make_unique<MySQLConnection>(con_1);
         std::string sql("SELECT id, name, email, age FROM person WHERE id = ?");
@@ -247,7 +247,7 @@ int test_mysql_connection_pool_A() {
         // コネクションの利用が終わったら返却する
         cheshire::app_cp.push(con_1);
 
-        const sql::Connection* con_2 = cheshire::app_cp.pop();
+        sql::Connection* con_2 = cheshire::app_cp.pop();
         ptr_lambda_debug<const char*, const sql::Connection*>("con_2 addr is ", con_2);
         std::unique_ptr<MySQLConnection> mcon_2 = std::make_unique<MySQLConnection>(con_2);
         std::unique_ptr<sql::PreparedStatement> prep_stmt_2(mcon_2->prepareStatement(sql));
@@ -269,7 +269,7 @@ int test_mysql_connection_pool_B() {
     try {
         ptr_lambda_debug<const char*, const bool&>("empty ? ", cheshire::app_cp.empty());
         assert(cheshire::app_cp.empty() == 0);      // プールされていることを期待する
-        const sql::Connection* con_1 = cheshire::app_cp.pop();
+        sql::Connection* con_1 = cheshire::app_cp.pop();
         ptr_lambda_debug<const char*, const sql::Connection*>("con_1 addr is ", con_1);
         std::unique_ptr<MySQLConnection> mcon_1 = std::make_unique<MySQLConnection>(con_1);
         std::string sql("SELECT id, name, email, age FROM person WHERE id = ?");
@@ -278,7 +278,7 @@ int test_mysql_connection_pool_B() {
         // コネクションの利用が終わったら返却する
         cheshire::app_cp.push(con_1);
 
-        const sql::Connection* con_2 = cheshire::app_cp.pop();
+        sql::Connection* con_2 = cheshire::app_cp.pop();
         ptr_lambda_debug<const char*, const sql::Connection*>("con_2 addr is ", con_2);
         std::unique_ptr<MySQLConnection> mcon_2 = std::make_unique<MySQLConnection>(con_2);
         std::unique_ptr<sql::PreparedStatement> prep_stmt_2(mcon_2->prepareStatement(sql));
@@ -356,7 +356,7 @@ private:
 int test_MySQLTx() {
     puts("=== test_MySQLTx");
     std::unique_ptr<sql::Connection> con    = nullptr;
-    const sql::Connection*           rawCon = nullptr;
+    sql::Connection*                 rawCon = nullptr;
     std::unique_ptr<MySQLConnection> mcon   = nullptr;
     try {
         if(cheshire::app_cp.empty()) {
@@ -459,7 +459,7 @@ int test_MySQLTx_Create(std::size_t* insId) {
     try {
         if(!cheshire::app_cp.empty()) {
             std::clock_t start = clock();
-            const sql::Connection*                              rawCon = cheshire::app_cp.pop();
+            sql::Connection*                                    rawCon = cheshire::app_cp.pop();
             std::unique_ptr<MySQLConnection>                    mcon = std::make_unique<MySQLConnection>(rawCon);
             std::unique_ptr<Repository<PersonData,std::size_t>> repo = std::make_unique<PersonRepository>(PersonRepository(mcon.get()));                
             std::string expect_name("Dante");
@@ -511,7 +511,7 @@ int test_MySQLTx_Read(std::size_t* insId) {
     try {
         if(!cheshire::app_cp.empty()) {
             std::clock_t start = clock();
-            const sql::Connection*                              rawCon = cheshire::app_cp.pop();
+            sql::Connection*                                    rawCon = cheshire::app_cp.pop();
             std::unique_ptr<MySQLConnection>                    mcon = std::make_unique<MySQLConnection>(rawCon);
             std::unique_ptr<Repository<PersonData,std::size_t>> repo = std::make_unique<PersonRepository>(PersonRepository(mcon.get()));                
             std::unique_ptr<RdbProcStrategy<PersonData>> proc_strategy = std::make_unique<MySQLReadStrategy<PersonData,std::size_t>>(repo.get(), danteId);

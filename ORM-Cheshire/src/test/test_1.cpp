@@ -94,6 +94,13 @@ int test_PersonData() {
             ptr_lambda_debug<const char*, const decltype(name)&>("name is ", name);
         }
         assert(cols.size() == 3U);
+
+        // dumny 動作確認
+        PersonData dummy = PersonData::dummy();
+        ptr_lambda_debug<const char*, const std::size_t&>("id value is ", dummy.getId().getValue());
+        ptr_lambda_debug<const char*, const std::string&>("name value is ", dummy.getName().getValue());
+        ptr_lambda_debug<const char*, const std::string&>("email value is ", dummy.getEmail().getValue());
+        ptr_lambda_debug<const char*, const int&>("age value is ", dummy.getAge().value().getValue());
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
