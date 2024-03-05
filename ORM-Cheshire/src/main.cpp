@@ -324,6 +324,35 @@ int test_mysql_connection_pool_B() {
  * 
 */
 
+
+
+/**
+ * MySQLReadStrategy クラス
+ * 
+ * Read（Select） を行う。
+*/
+
+template <class DATA, class PKEY>
+class MySQLReadStrategy final : public RdbProcStrategy<DATA> {
+public:
+    MySQLReadStrategy(const Repository<DATA,PKEY>* _repo, const PKEY& _pkey)
+    : repo(_repo)
+    , pkey(_pkey)
+    {}
+    virtual std::optional<DATA> proc() const override {
+        puts("------ MySQLReadStrategy::proc");
+        try {
+            return repo->findOne(pkey);
+        } catch(std::exception& e) {
+            throw std::runtime_error(e.what());
+        }
+    }
+private:
+    const Repository<DATA,PKEY>* repo;
+    PKEY pkey;
+};
+
+
 int test_MySQLTx() {
     puts("=== test_MySQLTx");
     std::unique_ptr<sql::Connection> con    = nullptr;
@@ -380,7 +409,7 @@ int test_MySQLTx() {
         auto [age_nam, age_val] = after.value().getAge().value().bind();
         printf("name is %s\n", age_nam.c_str());
         assert(age_val == expect_age);
-        if(!cheshire::app_cp.empty()) {
+        if(rawCon) {
             cheshire::app_cp.push(rawCon);
         }
         std::clock_t end = clock();
@@ -417,6 +446,89 @@ int test_MySQLTx_rollback() {
             // MySQLTx(RdbConnection<sql::PreparedStatement>* _con, const RdbProcStrategy<DATA>* _strategy)
             MySQLTx tx(mcon.get(), proc_strategy.get());
             std::optional<PersonData> after = tx.executeTx();
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+int test_MySQLTx_Create(std::size_t* insId) {
+    puts("=== test_MySQLTx_Create");
+    try {
+        if(!cheshire::app_cp.empty()) {
+            std::clock_t start = clock();
+            const sql::Connection*                              rawCon = cheshire::app_cp.pop();
+            std::unique_ptr<MySQLConnection>                    mcon = std::make_unique<MySQLConnection>(rawCon);
+            std::unique_ptr<Repository<PersonData,std::size_t>> repo = std::make_unique<PersonRepository>(PersonRepository(mcon.get()));                
+            std::string expect_name("Dante");
+            std::string expect_email("dante@loki.org");
+            int expect_age = 39;
+            std::unique_ptr<RdbDataStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>();
+            DataField<std::string> name("name", expect_name);
+            DataField<std::string> email("email", expect_email);
+            DataField<int> age("age", expect_age);
+            PersonData dante(strategy.get(),name,email,age);
+
+            std::unique_ptr<RdbProcStrategy<PersonData>> proc_strategy = std::make_unique<MySQLCreateStrategy<PersonData,std::size_t>>(repo.get(), dante);
+            MySQLTx tx(mcon.get(), proc_strategy.get());
+            std::optional<PersonData> after = tx.executeTx();
+            // 検査
+            assert(after.has_value() == true);
+            auto [id_nam, id_val] = after.value().getId().bind();
+            *insId = id_val;
+            printf("name is %s\t", id_nam.c_str());
+            ptr_lambda_debug<const char*, const decltype(id_val)&>("after id_val is ", id_val);
+            auto [name_nam, name_val] = after.value().getName().bind();
+            printf("name is %s\t value is %s\n", name_nam.c_str(), name_val.c_str());
+            assert(name_val == expect_name);
+            auto [email_nam, email_val] = after.value().getEmail().bind();
+            printf("name is %s\t value is %s\n", email_nam.c_str(), email_val.c_str());
+            assert(email_val == expect_email);
+            auto [age_nam, age_val] = after.value().getAge().value().bind();
+            printf("name is %s\t value is %d\n", age_nam.c_str(), age_val);
+            assert(age_val == expect_age);
+            if(rawCon) {
+                cheshire::app_cp.push(rawCon);
+            }
+            std::clock_t end = clock();
+            std::cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << std::endl;
+        } else {
+            throw std::runtime_error("No connection pooling.");
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+int test_MySQLTx_Read(std::size_t* insId) {
+    puts("=== test_MySQLTx_Read");
+    std::size_t danteId = *insId;
+    ptr_lambda_debug<const char*, std::size_t&>("danteId is ", danteId);
+    try {
+        if(!cheshire::app_cp.empty()) {
+            std::clock_t start = clock();
+            const sql::Connection*                              rawCon = cheshire::app_cp.pop();
+            std::unique_ptr<MySQLConnection>                    mcon = std::make_unique<MySQLConnection>(rawCon);
+            std::unique_ptr<Repository<PersonData,std::size_t>> repo = std::make_unique<PersonRepository>(PersonRepository(mcon.get()));                
+            std::unique_ptr<RdbProcStrategy<PersonData>> proc_strategy = std::make_unique<MySQLReadStrategy<PersonData,std::size_t>>(repo.get(), danteId);
+            MySQLTx tx(mcon.get(), proc_strategy.get());
+            std::optional<PersonData> after = tx.executeTx();
+            // 検証
+            assert(after.has_value() == true);
+            ptr_lambda_debug<const char*, const std::size_t&>("id is ", after.value().getId().getValue());
+            ptr_lambda_debug<const char*, const std::string&>("name is ", after.value().getName().getValue());
+            ptr_lambda_debug<const char*, const std::string&>("email is ", after.value().getEmail().getValue());
+            ptr_lambda_debug<const char*, const int&>("age is ", after.value().getAge().value().getValue());
+            
+            // after.value().getId().getValue()
+            std::clock_t end = clock();
+            std::cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << std::endl;
+        } else {
+            throw std::runtime_error("No connection pooling.");
         }
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
@@ -740,20 +852,6 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_ConnectionPool());
         assert(ret == 1);   // テスト内で明示的に exception を投げている
     }
-    if(1.04) {
-        if(1.041) {
-            auto ret = 0;
-            ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysql_connection_pool_A());
-            assert(ret == 0);
-            ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysql_connection_pool_B());
-            assert(ret == 0);
-        }
-        auto ret = 0;
-        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLTx());
-        assert(ret == 0);
-        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLTx_rollback());
-        assert(ret == 1);
-    }
     if(1.05) {
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_PersonRepository_findOne());
@@ -765,6 +863,26 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_PersonRepository_insert_no_age());
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_PersonRepository_remove());
+        assert(ret == 0);
+    }
+    if(1.06) {
+        if(1.061) {
+            auto ret = 0;
+            ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysql_connection_pool_A());
+            assert(ret == 0);
+            ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysql_connection_pool_B());
+            assert(ret == 0);
+        }
+        auto ret = 0;
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLTx());
+        assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLTx_rollback());
+        assert(ret == 1);
+        std::unique_ptr<std::size_t> insId = std::make_unique<std::size_t>(0ul);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLTx_Create(insId.get()));
+        ptr_lambda_debug<const char*, const std::size_t&>("indId is ", *(insId.get()));
+        assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLTx_Read(insId.get()));
         assert(ret == 0);
     }
     if(0) {      // 2.00

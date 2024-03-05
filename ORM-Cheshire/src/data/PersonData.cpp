@@ -45,7 +45,7 @@ PersonData::PersonData()
     , id(std::move(DataField<std::size_t>("id", 0ul)))
     , name(std::move(DataField<std::string>("name", "")))
     , email(std::move(DataField<std::string>("email", "")))
-    , age(std::nullopt)
+    , age(std::move(DataField<int>("age", 0)))
 {
 }
 

@@ -15,7 +15,7 @@ class Repository {
 public:
     virtual ~Repository() = default;
     // ...
-    virtual std::optional<DATA> insert(const DATA&)  const = 0;
+    virtual std::optional<DATA> insert(const DATA&)   const = 0;
     virtual std::optional<DATA> update(const DATA&)   const = 0;
     virtual void remove(const PKEY&)   const = 0;
     virtual std::optional<DATA> findOne(const PKEY&)  const = 0;
