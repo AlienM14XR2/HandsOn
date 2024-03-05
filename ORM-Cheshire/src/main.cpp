@@ -85,6 +85,7 @@
 #include "MySQLCreateStrategy.hpp"
 #include "MySQLReadStrategy.hpp"
 #include "MySQLUpdateStrategy.hpp"
+#include "MySQLDeleteStrategy.hpp"
 #include "MySQLTx.hpp"
 #include "PersonRepository.hpp"
 #include "mysql/jdbc.h"
@@ -331,32 +332,6 @@ int test_mysql_connection_pool_B() {
 
 
 
-/**
- * MySQLDeleteStrategy クラス
- * 
- * Read（Select） を行う。
-*/
-
-template <class DATA, class PKEY>
-class MySQLDeleteStrategy final : public RdbProcStrategy<DATA> {
-public:
-    MySQLDeleteStrategy(const Repository<DATA,PKEY>* _repo, const PKEY& _pkey)
-    : repo(_repo)
-    , pkey(_pkey)
-    {}
-    virtual std::optional<DATA> proc() const override {
-        puts("------ MySQLDeleteStrategy::proc");
-        try {
-            repo->remove(pkey);
-            return std::nullopt;
-        } catch(std::exception& e) {
-            throw std::runtime_error(e.what());
-        }
-    }
-private:
-    const Repository<DATA,PKEY>* repo;
-    PKEY pkey;
-};
 
 
 int test_MySQLTx() {
