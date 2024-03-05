@@ -353,6 +353,33 @@ private:
 };
 
 
+/**
+ * MySQLUpdateStrategy クラス
+ * 
+ * Read（Select） を行う。
+*/
+
+template <class DATA, class PKEY>
+class MySQLUpdateStrategy final : public RdbProcStrategy<DATA> {
+public:
+    MySQLUpdateStrategy(const Repository<DATA,PKEY>* _repo, const DATA& _data)
+    : repo(_repo)
+    , data(_data)
+    {}
+    virtual std::optional<DATA> proc() const override {
+        puts("------ MySQLUpdateStrategy::proc");
+        try {
+            return repo->update(data);
+        } catch(std::exception& e) {
+            throw std::runtime_error(e.what());
+        }
+    }
+private:
+    const Repository<DATA,PKEY>* repo;
+    DATA data;
+};
+
+
 int test_MySQLTx() {
     puts("=== test_MySQLTx");
     std::unique_ptr<sql::Connection> con    = nullptr;
@@ -530,6 +557,18 @@ int test_MySQLTx_Read(std::size_t* insId) {
         } else {
             throw std::runtime_error("No connection pooling.");
         }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+int test_MySQLTx_Update(std::size_t* insId) {
+    puts("=== test_MySQLTx_Update");
+    std::size_t danteId = *insId;
+    ptr_lambda_debug<const char*, std::size_t&>("danteId is ", danteId);
+    try {
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
@@ -883,6 +922,8 @@ int main(void) {
         ptr_lambda_debug<const char*, const std::size_t&>("indId is ", *(insId.get()));
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLTx_Read(insId.get()));
+        assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLTx_Update(insId.get()));
         assert(ret == 0);
     }
     if(0) {      // 2.00
