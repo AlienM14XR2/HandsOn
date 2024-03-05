@@ -209,8 +209,54 @@ int test_ConnectionPool() {
 }
 
 
+namespace cheshire {
 
+ConnectionPool<sql::Connection> app_cp;
 
+void mysql_connection_pool(const std::string& server, const std::string& user, const std::string& password, const int& sum) 
+{
+    sql::Driver* driver = MySQLDriver::getInstance().getDriver();
+    for(int i=0; i<sum; i++) {
+        sql::Connection* con = driver->connect(server, user, password);
+        if(con->isValid()) {
+            puts("connected ... ");
+            con->setSchema("cheshire");
+            // auto commit は true としておく、Tx が必要な場合はリポジトリで明確にすること。あるいは MySQLTx を利用すること。
+            app_cp.push(con);
+        } else {
+            puts("connection is invalid ... ");            
+        }
+    }
+}
+
+}   // end namespace cheshire
+
+int test_mysql_connection_pool_A() {
+    puts("=== test_mysql_connection_pool");
+    try {
+        cheshire::mysql_connection_pool("tcp://127.0.0.1:3306", "derek", "derek1234", 3);
+        ptr_lambda_debug<const char*, const bool&>("empty ? ", cheshire::app_cp.empty());
+        assert(cheshire::app_cp.empty() == 0);      // プールされていることを期待する
+
+        const sql::Connection* con = cheshire::app_cp.pop();
+        ptr_lambda_debug<const char*, const sql::Connection*>("con addr is ", con);
+        std::unique_ptr<MySQLConnection> mcon = std::make_unique<MySQLConnection>(con);
+        std::string sql("SELECT id, name, email, age FROM person WHERE id = ?");
+        std::unique_ptr<sql::PreparedStatement> prep_stmt(mcon->prepareStatement(sql));
+        // ... do something
+
+        // コネクションの利用が終わったら返却する
+        cheshire::app_cp.push(con);
+
+        /**
+         * これを踏まえて テスト B を行ってみる。
+        */
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 
 
@@ -240,11 +286,6 @@ int test_ConnectionPool() {
  * @see inc/RdbTransaction.hpp
  * 
 */
-
-
-
-
-
 
 int test_MySQLTx() {
     puts("=== test_MySQLTx");
@@ -669,7 +710,12 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_PersonRepository_remove());
         assert(ret == 0);
     }
-    if(2.00) {      // 2.00
+    if(1.06) {
+        auto ret = 0;
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysql_connection_pool_A());
+        assert(ret == 0);
+    }
+    if(0) {      // 2.00
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_connect());
         assert(ret == 0);

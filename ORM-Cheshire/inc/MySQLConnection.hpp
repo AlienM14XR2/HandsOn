@@ -10,7 +10,7 @@
 
 class MySQLConnection final : public RdbConnection<sql::PreparedStatement> {
 public:
-    MySQLConnection(sql::Connection* _con): con(_con)
+    MySQLConnection(const sql::Connection* _con): con(_con)
     {}
     // ...
     virtual void begin() const override;
@@ -19,7 +19,7 @@ public:
     virtual sql::PreparedStatement* prepareStatement(const std::string& sql) const override;
     sql::Statement* createStatement() const;
 private:
-    sql::Connection* con;
+    const sql::Connection* con;
     // void begin_() const { con->setAutoCommit(false); }
 };
 
