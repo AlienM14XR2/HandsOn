@@ -16,14 +16,10 @@
 #include "../inc/PersonData.hpp"
 #include "../inc/MySQLDriver.hpp"
 #include "../inc/ConnectionPool.hpp"
+#include "../inc/sql_generator.hpp"
+#include "../inc/PersonRepository.hpp"
 #include "/usr/include/mysql-cppconn-8/mysql/jdbc.h"
 #include "/usr/include/mysql-cppconn-8/mysqlx/xdevapi.h"
-
-std::string makeInsertSql(const std::string& tableName, const std::vector<std::string>& colNames);
-std::string makeUpdateSql(const std::string& tableName, const std::string& pkName, const std::vector<std::string>& colNames);
-std::string makeDeleteSql(const std::string& tableName, const std::string& pkName);
-std::string makeFindOneSql(const std::string& tableName, const std::string& pkeyName, const std::vector<std::string>& colNames);
-std::string makeCreateTableSql(const std::string& tableName, const std::vector<std::tuple<std::string,std::string,std::string>>& tblInfos);
 
 int test_DataField();
 int test_DataField_2();
@@ -36,5 +32,10 @@ int test_makeFindOneSql();
 int test_makeCreateTableSql();
 int test_MySQLDriver();
 int test_insert_person();
+int test_PersonRepository_findOne();
+int test_PersonRepository_update();
+int test_PersonRepository_insert();
+int test_PersonRepository_insert_no_age();
+int test_PersonRepository_remove();
 
 #endif
