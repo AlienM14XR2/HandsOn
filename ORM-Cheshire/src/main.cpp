@@ -83,6 +83,7 @@
 #include "RdbTransaction.hpp"
 #include "RdbProcStrategy.hpp"
 #include "MySQLCreateStrategy.hpp"
+#include "MySQLReadStrategy.hpp"
 #include "MySQLTx.hpp"
 #include "PersonRepository.hpp"
 #include "mysql/jdbc.h"
@@ -325,32 +326,6 @@ int test_mysql_connection_pool_B() {
 */
 
 
-
-/**
- * MySQLReadStrategy クラス
- * 
- * Read（Select） を行う。
-*/
-
-template <class DATA, class PKEY>
-class MySQLReadStrategy final : public RdbProcStrategy<DATA> {
-public:
-    MySQLReadStrategy(const Repository<DATA,PKEY>* _repo, const PKEY& _pkey)
-    : repo(_repo)
-    , pkey(_pkey)
-    {}
-    virtual std::optional<DATA> proc() const override {
-        puts("------ MySQLReadStrategy::proc");
-        try {
-            return repo->findOne(pkey);
-        } catch(std::exception& e) {
-            throw std::runtime_error(e.what());
-        }
-    }
-private:
-    const Repository<DATA,PKEY>* repo;
-    PKEY pkey;
-};
 
 
 /**
