@@ -326,49 +326,62 @@ int test_mysql_connection_pool_B() {
 
 int test_MySQLTx() {
     puts("=== test_MySQLTx");
-    std::clock_t start = clock();
+    std::unique_ptr<sql::Connection> con    = nullptr;
+    const sql::Connection*           rawCon = nullptr;
+    std::unique_ptr<MySQLConnection> mcon   = nullptr;
     try {
-        sql::Driver* driver = MySQLDriver::getInstance().getDriver();
-        std::unique_ptr<sql::Connection> con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
-        if(con->isValid()) {
-            puts("connected ... ");
-            con->setSchema("cheshire");
-
-            std::unique_ptr<MySQLConnection> mcon = std::make_unique<MySQLConnection>(con.get()); 
-            std::unique_ptr<Repository<PersonData,std::size_t>> repo = std::make_unique<PersonRepository>(PersonRepository(mcon.get()));
+        if(cheshire::app_cp.empty()) {
+            sql::Driver* driver = MySQLDriver::getInstance().getDriver();
+            con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
+            if(con->isValid()) {
+                puts("connected ... ");
+                con->setSchema("cheshire");
+                mcon = std::make_unique<MySQLConnection>(con.get());
+            } else {
+                throw std::runtime_error("Invalid connection.");                
+            }
+        } else {
+            puts("It use connection pooling ... ");
+            rawCon = cheshire::app_cp.pop();
+            mcon = std::make_unique<MySQLConnection>(rawCon);
+        }
+        // コネクション取得後から計測を開始する
+        std::clock_t start = clock();
+        std::unique_ptr<Repository<PersonData,std::size_t>> repo = std::make_unique<PersonRepository>(PersonRepository(mcon.get()));
             
-            std::string expect_name("Alice");
-            std::string expect_email("alice@loki.org");
-            int expect_age = 12;
-            std::unique_ptr<RdbDataStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
-            DataField<std::string> name("name", expect_name);
-            DataField<std::string> email("email", expect_email);
-            DataField<int> age("age", expect_age);
-            PersonData alice(strategy.get(),name,email,age);
-            // std::optional<PersonData> after = repo->insert(alice);       // リポジトリの単体動作は OK だった。
-            // auto [id_nam, id_val] = after.value().getId().bind();
-            // ptr_lambda_debug<const char*, const decltype(id_val)&>("after id_val is ", id_val);
+        std::string expect_name("Alice");
+        std::string expect_email("alice@loki.org");
+        int expect_age = 12;
+        std::unique_ptr<RdbDataStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
+        DataField<std::string> name("name", expect_name);
+        DataField<std::string> email("email", expect_email);
+        DataField<int> age("age", expect_age);
+        PersonData alice(strategy.get(),name,email,age);
+        // std::optional<PersonData> after = repo->insert(alice);       // リポジトリの単体動作は OK だった。
+        // auto [id_nam, id_val] = after.value().getId().bind();
+        // ptr_lambda_debug<const char*, const decltype(id_val)&>("after id_val is ", id_val);
 
-            // こんなコーディングを見るとやっぱり、factory がほしくなるよね。
-            std::unique_ptr<RdbProcStrategy<PersonData>> proc_strategy = std::make_unique<MySQLCreateStrategy<PersonData,std::size_t>>(repo.get(), alice);
-            // MySQLTx(RdbConnection<sql::PreparedStatement>* _con, const RdbProcStrategy<DATA>* _strategy)
-            MySQLTx tx(mcon.get(), proc_strategy.get());
-            std::optional<PersonData> after = tx.executeTx();
-
-            // 検査
-            assert(after.has_value() == true);
-            auto [id_nam, id_val] = after.value().getId().bind();
-            printf("name is %s\t", id_nam.c_str());
-            ptr_lambda_debug<const char*, const decltype(id_val)&>("after id_val is ", id_val);
-            auto [name_nam, name_val] = after.value().getName().bind();
-            printf("name is %s\n", name_nam.c_str());
-            assert(name_val == expect_name);
-            auto [email_nam, email_val] = after.value().getEmail().bind();
-            printf("name is %s\n", email_nam.c_str());
-            assert(email_val == expect_email);
-            auto [age_nam, age_val] = after.value().getAge().value().bind();
-            printf("name is %s\n", age_nam.c_str());
-            assert(age_val == expect_age);
+        // こんなコーディングを見るとやっぱり、factory がほしくなるよね。
+        std::unique_ptr<RdbProcStrategy<PersonData>> proc_strategy = std::make_unique<MySQLCreateStrategy<PersonData,std::size_t>>(repo.get(), alice);
+        // MySQLTx(RdbConnection<sql::PreparedStatement>* _con, const RdbProcStrategy<DATA>* _strategy)
+        MySQLTx tx(mcon.get(), proc_strategy.get());
+        std::optional<PersonData> after = tx.executeTx();
+        // 検査
+        assert(after.has_value() == true);
+        auto [id_nam, id_val] = after.value().getId().bind();
+        printf("name is %s\t", id_nam.c_str());
+        ptr_lambda_debug<const char*, const decltype(id_val)&>("after id_val is ", id_val);
+        auto [name_nam, name_val] = after.value().getName().bind();
+        printf("name is %s\n", name_nam.c_str());
+        assert(name_val == expect_name);
+        auto [email_nam, email_val] = after.value().getEmail().bind();
+        printf("name is %s\n", email_nam.c_str());
+        assert(email_val == expect_email);
+        auto [age_nam, age_val] = after.value().getAge().value().bind();
+        printf("name is %s\n", age_nam.c_str());
+        assert(age_val == expect_age);
+        if(!cheshire::app_cp.empty()) {
+            cheshire::app_cp.push(rawCon);
         }
         std::clock_t end = clock();
         std::cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << std::endl;
@@ -728,6 +741,13 @@ int main(void) {
         assert(ret == 1);   // テスト内で明示的に exception を投げている
     }
     if(1.04) {
+        if(1.041) {
+            auto ret = 0;
+            ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysql_connection_pool_A());
+            assert(ret == 0);
+            ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysql_connection_pool_B());
+            assert(ret == 0);
+        }
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLTx());
         assert(ret == 0);
@@ -745,13 +765,6 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_PersonRepository_insert_no_age());
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_PersonRepository_remove());
-        assert(ret == 0);
-    }
-    if(1.06) {
-        auto ret = 0;
-        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysql_connection_pool_A());
-        assert(ret == 0);
-        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysql_connection_pool_B());
         assert(ret == 0);
     }
     if(0) {      // 2.00
