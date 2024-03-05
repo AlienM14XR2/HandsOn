@@ -232,21 +232,27 @@ void mysql_connection_pool(const std::string& server, const std::string& user, c
 }   // end namespace cheshire
 
 int test_mysql_connection_pool_A() {
-    puts("=== test_mysql_connection_pool");
+    puts("=== test_mysql_connection_pool_A");
     try {
-        cheshire::mysql_connection_pool("tcp://127.0.0.1:3306", "derek", "derek1234", 3);
+        cheshire::mysql_connection_pool("tcp://127.0.0.1:3306", "derek", "derek1234", 2);
+
         ptr_lambda_debug<const char*, const bool&>("empty ? ", cheshire::app_cp.empty());
         assert(cheshire::app_cp.empty() == 0);      // プールされていることを期待する
-
-        const sql::Connection* con = cheshire::app_cp.pop();
-        ptr_lambda_debug<const char*, const sql::Connection*>("con addr is ", con);
-        std::unique_ptr<MySQLConnection> mcon = std::make_unique<MySQLConnection>(con);
+        const sql::Connection* con_1 = cheshire::app_cp.pop();
+        ptr_lambda_debug<const char*, const sql::Connection*>("con_1 addr is ", con_1);
+        std::unique_ptr<MySQLConnection> mcon_1 = std::make_unique<MySQLConnection>(con_1);
         std::string sql("SELECT id, name, email, age FROM person WHERE id = ?");
-        std::unique_ptr<sql::PreparedStatement> prep_stmt(mcon->prepareStatement(sql));
+        std::unique_ptr<sql::PreparedStatement> prep_stmt_1(mcon_1->prepareStatement(sql));
         // ... do something
-
         // コネクションの利用が終わったら返却する
-        cheshire::app_cp.push(con);
+        cheshire::app_cp.push(con_1);
+
+        const sql::Connection* con_2 = cheshire::app_cp.pop();
+        ptr_lambda_debug<const char*, const sql::Connection*>("con_2 addr is ", con_2);
+        std::unique_ptr<MySQLConnection> mcon_2 = std::make_unique<MySQLConnection>(con_2);
+        std::unique_ptr<sql::PreparedStatement> prep_stmt_2(mcon_2->prepareStatement(sql));
+        // ... do something
+        cheshire::app_cp.push(con_2);
 
         /**
          * これを踏まえて テスト B を行ってみる。
@@ -258,6 +264,37 @@ int test_mysql_connection_pool_A() {
     }
 }
 
+int test_mysql_connection_pool_B() {
+    puts("=== test_mysql_connection_pool_B");
+    try {
+        ptr_lambda_debug<const char*, const bool&>("empty ? ", cheshire::app_cp.empty());
+        assert(cheshire::app_cp.empty() == 0);      // プールされていることを期待する
+        const sql::Connection* con_1 = cheshire::app_cp.pop();
+        ptr_lambda_debug<const char*, const sql::Connection*>("con_1 addr is ", con_1);
+        std::unique_ptr<MySQLConnection> mcon_1 = std::make_unique<MySQLConnection>(con_1);
+        std::string sql("SELECT id, name, email, age FROM person WHERE id = ?");
+        std::unique_ptr<sql::PreparedStatement> prep_stmt_1(mcon_1->prepareStatement(sql));
+        // ... do something
+        // コネクションの利用が終わったら返却する
+        cheshire::app_cp.push(con_1);
+
+        const sql::Connection* con_2 = cheshire::app_cp.pop();
+        ptr_lambda_debug<const char*, const sql::Connection*>("con_2 addr is ", con_2);
+        std::unique_ptr<MySQLConnection> mcon_2 = std::make_unique<MySQLConnection>(con_2);
+        std::unique_ptr<sql::PreparedStatement> prep_stmt_2(mcon_2->prepareStatement(sql));
+        // ... do something
+        cheshire::app_cp.push(con_2);
+        /**
+         * テスト A、B でコネクションのアドレスが同じであることが重要。
+         * 返却するタイミングでは、前後は異なると考える（ConnectionPool の内部では std::queue を利用している）。
+        */
+
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 
 
@@ -713,6 +750,8 @@ int main(void) {
     if(1.06) {
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysql_connection_pool_A());
+        assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysql_connection_pool_B());
         assert(ret == 0);
     }
     if(0) {      // 2.00
