@@ -37,6 +37,149 @@ The C++ connector for PostgreSQL
 
 https://pqxx.org/development/libpqxx/
 
+## libpqxx
+
+私が行ったことを羅列する、時間があれば整理する。
+
+### CMake
+
+libpqxx のソースをビルドするのに必要だった。
+
+https://ja.linux-console.net/?p=15565
+
+sudo apt -y install build-essential libssl-dev
+
+cd ~/downloads
+
+tar -zxvf cmake-3.28.3.tar.gz
+
+cd cmake-3.28.3/
+
+sudo ./bootstrap
+
+sudo make
+
+sudo make install
+
+cmake --version
+
+```
+sudo make uninstall
+```
+
+### PostgreSQL インストール
+
+https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-20-04-ja
+
+sudo apt install postgresql postgresql-contrib
+
+sudo -i -u postgres
+
+psql
+
+\q
+
+// sudo -i -u postgres ... postgres で Ubuntu login すること。
+createuser --interactive
+
+createdb derek
+
+// sudo 権限を持つユーザで実行すること
+sudo adduser derek
+
+sudo -i -u derek
+psql
+
+\conninfo
+
+postgres=# ALTER ROLE derek WITH PASSWORD 'derek1234';
+ALTER ROLE
+postgres=# /q
+
+$ psql -U derek -W
+
+derek=# CREATE DATABASE jabberwocky;
+CREATE DATABASE
+derek=# \d
+Did not find any relations.
+derek=# \l
+derek=# \c jabberwocky
+Password: 
+You are now connected to database "jabberwocky" as user "derek".
+jabberwocky=# 
+
+
+CREATE TABLE animal (
+    id SERIAL NOT NULL PRIMARY KEY
+    , name VARCHAR(128) NOT NULL
+);
+
+INSERT INTO animal (name) values ('Lion');
+
+// e.g. CREATE TABLE
+CREATE TABLE playground (
+    equip_id serial PRIMARY KEY,
+    type varchar (50) NOT NULL,
+    color varchar (25) NOT NULL,
+    location varchar(25) check (location in ('north', 'south', 'west', 'east', 'northeast', 'southeast', 'southwest', 'northwest')),
+    install_date date
+);
+
+### C++ client API for PostgreSQL
+
+https://pqxx.org/development/libpqxx/
+
+sudo apt install libpq-dev
+
+cd ~/dev/
+
+git clone -b master --recursive https://github.com/jtv/libpqxx.git
+
+cd libpqxx/
+
+./configure --disable-shared --with-postgres-include
+
+make
+
+sudo make install
+
+pg_config --libdir
+
+```
+sudo make uninstall
+```
+
+```
+ /usr/bin/mkdir -p '/usr/local/lib/pkgconfig'
+ /usr/bin/install -c -m 644 libpqxx.pc '/usr/local/lib/pkgconfig'
+
+less less /usr/local/lib/pkgconfig/libpqxx.pc
+
+prefix=/usr/local
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: libpqxx
+Description: C++ client API for the PostgreSQL database management system.
+Version: 7.9.0
+Libs: -L${libdir} -lpqxx
+Cflags: -I${includedir}
+
+
+~/dev/libpqxx$ ls -alh /usr/local/lib/
+合計 21M
+drwxr-xr-x  3 root root 4.0K  3月  6 07:25 .
+drwxr-xr-x 11 root root 4.0K  3月  6 07:25 ..
+-rw-r--r--  1 root root  21M  3月  6 07:25 libpqxx.a
+-rwxr-xr-x  1 root root  884  3月  6 07:25 libpqxx.la
+drwxr-xr-x  2 root root 4.0K  3月  6 07:25 pkgconfig
+```
+
+sudo -u postgres psql
+
+
+
 ## OSS ORM
 
 この課題が終わったら、次を見てみる（やはり既にあるよね：）。
