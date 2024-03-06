@@ -704,14 +704,19 @@ int test_pqxx_connect() {
     try {
         // pqxx::connection con{"postgresql://derek@localhost/jabberwocky"};
         pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
-        pqxx::work txn{con};
-
-        std::string name = txn.query_value<std::string>(
+        pqxx::work tx{con};
+        std::string name = tx.query_value<std::string>(
             "SELECT name "
             "FROM animal "
-            "WHERE id = 1"
+            "WHERE id = 0"
         );
         std::cout << "name is " << name << '\n';
+
+        int lastId = tx.query_value<int>(
+            "SELECT last_value from table_id_seq"
+        );
+        std::cout << "lastId is " << lastId << '\n';
+        tx.commit();
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
@@ -719,6 +724,48 @@ int test_pqxx_connect() {
     }
 }
 
+/**
+ * PostgreSQL における pkey Auto-Increment は次のようにすればよいと考えていた（SERIAL || BIGSERIAL）。
+ * 
+ * e.g. 
+CREATE TABLE animal (
+    id SERIAL NOT NULL PRIMARY KEY
+    , name VARCHAR(128) NOT NULL
+);
+ * 
+ * Repository で INSERT 後にレコードを返却する場合は、
+ * SELECT last_value from [your_sequence_name];
+ * で取得できるとも。つまり、MySQL と同じ処理順番でよいと。（MySQL は SELECT LAST_INSERT_ID()）
+ * 
+ * ただ、この両者は明確にその動作が異なると考えた。MySQL の LAST_INSERT_ID() はテーブルに一行 pkey 指定なしの
+ * INSERT 時にインクリメントされる値と同期する、つまり、テーブルの行ロック？と連動されるので、テーブルのINSERT 
+ * トランザクションが有効に働く（はず）。AUTO-INC ロックというらしい（@see https://qiita.com/ham0215/items/99679d499869365446ec）
+ * 
+ * しかし、Postgres では SERIAL や BIGSERIAL は Sequence に過ぎない。
+ * トランザクション内の INSERT 文と SELECT last_value from [your_sequence_name] の間に別のトランザクションで 
+ * INSERT 文がコミットされている可能性があり、信用することができない。したがって、Postgres では先に Sequence 
+ * から ID の値を払い受け、それを INSERT 文に含める。つまり、Sequence は利用するが、SERIAL、BIGSERIAL は利用
+ * しない。
+ * 
+CREATE TABLE animal (
+    id BIGINT NOT NULL PRIMARY KEY
+    , name VARCHAR(128) NOT NULL
+);
+// データベース内のテーブルで共通、あるいは個別利用でもいい。
+CREATE SEQUENCE table_id_seq;
+INSERT INTO animal (id, name) values (0, 'Lion');
+*/
+
+
+int test_pqxx_insert() {
+    puts("=== test_pqxx_insert");
+    try {
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 /**
  * 全くの別件だが、今回いろいろ C++ のビルド周りを調べた際に次のような情報を見つけた。
@@ -830,6 +877,9 @@ int main(void) {
     if(3.00){   // 3.00
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_pqxx_connect());
+        assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_pqxx_insert());
+        assert(ret == 0);
     }
     puts("===   Lost Chapter O/R Mapping END");
     return 0;
