@@ -45,7 +45,7 @@
  * ```
  * 
  * e.g. compile A.
- * g++ -O3 -DDEBUG -std=c++20 -I../inc/ -I/usr/include/mysql-cppconn-8/ -L/usr/lib/x86_64-linux-gnu/ -pedantic-errors -Wall -Werror main.cpp -lmysqlcppconn -lmysqlcppconn8 ./repository/PersonRepository.cpp ./sql_generator.cpp ./model/PersonStrategy.cpp ./data/PersonData.cpp ./driver/MySQLDriver.cpp ./test/test_1.cpp ./connection/MySQLConnection.cpp -o ../bin/main
+ * g++ -O3 -DDEBUG -std=c++20 -I../inc/ -I/usr/local/include/ -I/usr/include/mysql-cppconn-8/ -L/usr/local/lib/ -L/usr/lib/x86_64-linux-gnu/ -pedantic-errors -Wall -Werror main.cpp -lmysqlcppconn -lmysqlcppconn8 -lpqxx -lpq ./repository/PersonRepository.cpp ./sql_generator.cpp ./model/PersonStrategy.cpp ./data/PersonData.cpp ./driver/MySQLDriver.cpp ./test/test_1.cpp ./connection/MySQLConnection.cpp -o ../bin/main
  * 
  * e.g. compile B. 
  * 分割した方が少しだけコンパイル時間が短縮できるかな、体感値で申し訳ないが。
@@ -90,6 +90,8 @@
 #include "PersonRepository.hpp"
 #include "mysql/jdbc.h"
 #include "mysqlx/xdevapi.h"
+
+#include <pqxx/pqxx>
 
 int test_debug_and_error() {
     puts("=== test_debug_and_error");
@@ -691,6 +693,32 @@ int test_mysqlx_insert() {
     }
 }
 
+/**
+ * libpqxx PostgreSQL C++ Connection
+ * 
+ * 接続確認を行う。
+*/
+
+int test_pqxx_connect() {
+    puts("=== test_pqxx_connect");
+    try {
+        // pqxx::connection con{"postgresql://derek@localhost/jabberwocky"};
+        pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
+        pqxx::work txn{con};
+
+        std::string name = txn.query_value<std::string>(
+            "SELECT name "
+            "FROM animal "
+            "WHERE id = 1"
+        );
+        std::cout << "name is " << name << '\n';
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 
 /**
  * 全くの別件だが、今回いろいろ C++ のビルド周りを調べた際に次のような情報を見つけた。
@@ -798,6 +826,10 @@ int main(void) {
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_insert());
         assert(ret == 0);
+    }
+    if(3.00){   // 3.00
+        auto ret = 0;
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_pqxx_connect());
     }
     puts("===   Lost Chapter O/R Mapping END");
     return 0;
