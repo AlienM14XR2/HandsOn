@@ -790,6 +790,34 @@ int test_pqxx_insert() {
     }
 }
 
+int test_pqxx_resultset() {
+    puts("=== test_pqxx_resultset");
+    try {
+        pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
+        pqxx::work tx{con};
+        pqxx::result res = tx.exec("SELECT * FROM animal");
+        // std::cout << "Columns:\n";
+        // for (pqxx::row_size_type col = 0; col < res.columns(); ++col) {
+        //     std::cout << res.column_name(col) << '\n';
+        // }
+
+        // for(auto i = 0; i < res.size(); i++) {
+        //     auto [id, name] = res.at(i).as<long, std::string>();
+        //     ptr_lambda_debug<const char*, const decltype(id)&>("id is "    , id);
+        //     ptr_lambda_debug<const char*, const decltype(name)&>("name is ", name);
+        // }
+
+            auto [id, name] = res.at(res.size() -1).as<long, std::string>();
+            ptr_lambda_debug<const char*, const decltype(id)&>("id is "    , id);
+            ptr_lambda_debug<const char*, const decltype(name)&>("name is ", name);
+        tx.commit();
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 /**
  * 全くの別件だが、今回いろいろ C++ のビルド周りを調べた際に次のような情報を見つけた。
  * C++ と C のコードを混在させてコンパイル、ビルドする際は、以下のような記述が必要との
@@ -902,6 +930,8 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_pqxx_connect());
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_pqxx_insert());
+        assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_pqxx_resultset());
         assert(ret == 0);
     }
     puts("===   Lost Chapter O/R Mapping END");
