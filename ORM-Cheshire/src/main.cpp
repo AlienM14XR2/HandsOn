@@ -807,9 +807,9 @@ int test_pqxx_resultset() {
         //     ptr_lambda_debug<const char*, const decltype(name)&>("name is ", name);
         // }
 
-            auto [id, name] = res.at(res.size() -1).as<long, std::string>();
-            ptr_lambda_debug<const char*, const decltype(id)&>("id is "    , id);
-            ptr_lambda_debug<const char*, const decltype(name)&>("name is ", name);
+        auto [id, name] = res.at(res.size() -1).as<long, std::string>();
+        ptr_lambda_debug<const char*, const decltype(id)&>("id is "    , id);
+        ptr_lambda_debug<const char*, const decltype(name)&>("name is ", name);
         tx.commit();
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
