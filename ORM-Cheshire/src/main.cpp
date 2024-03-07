@@ -747,6 +747,7 @@ CREATE TABLE animal (
  * から ID の値を払い受け、それを INSERT 文に含める。つまり、Sequence は利用するが、SERIAL、BIGSERIAL は利用
  * しない。
  * 
+ 
 CREATE TABLE animal (
     id BIGINT NOT NULL PRIMARY KEY
     , name VARCHAR(128) NOT NULL
@@ -754,12 +755,34 @@ CREATE TABLE animal (
 // データベース内のテーブルで共通、あるいは個別利用でもいい。
 CREATE SEQUENCE table_id_seq;
 INSERT INTO animal (id, name) values (0, 'Lion');
+
 */
 
 
 int test_pqxx_insert() {
     puts("=== test_pqxx_insert");
     try {
+        pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
+        pqxx::work tx{con};
+        long nextId = tx.query_value<int>(
+            "SELECT nextval('table_id_seq')"
+        );
+
+        std::string expect_name("Cerberus");
+        std::string sql("INSERT INTO animal (id, name) values (");
+        sql.append(std::to_string(nextId)).append(", '").append(expect_name).append("')");
+        ptr_lambda_debug<const char*, const std::string&>("sql: ", sql);
+        tx.exec0(sql);
+
+        std::string select_sql("SELECT id, name FROM animal WHERE id = ");
+        select_sql.append(std::to_string(nextId));
+        ptr_lambda_debug<const char*, const std::string&>("select_sql: ", select_sql);
+        auto [ins_id, ins_name] = tx.query1<long, std::string>(select_sql);
+        ptr_lambda_debug<const char*, const decltype(ins_id)&>("ins_id is ", ins_id);
+        ptr_lambda_debug<const char*, const decltype(ins_name)&>("ins_name is ", ins_name);
+        assert(ins_id   == nextId);
+        assert(ins_name == expect_name);
+        tx.commit();
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
