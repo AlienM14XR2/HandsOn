@@ -761,6 +761,7 @@ INSERT INTO animal (id, name) values (0, 'Lion');
 
 int test_pqxx_insert() {
     puts("=== test_pqxx_insert");
+    std::clock_t start = clock();
     try {
         pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
         pqxx::work tx{con};
@@ -783,6 +784,8 @@ int test_pqxx_insert() {
         assert(ins_id   == nextId);
         assert(ins_name == expect_name);
         tx.commit();
+        std::clock_t end = clock();
+        std::cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << std::endl;
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
@@ -792,6 +795,7 @@ int test_pqxx_insert() {
 
 int test_pqxx_resultset() {
     puts("=== test_pqxx_resultset");
+    std::clock_t start = clock();
     try {
         pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
         pqxx::work tx{con};
@@ -811,6 +815,8 @@ int test_pqxx_resultset() {
         ptr_lambda_debug<const char*, const decltype(id)&>("id is "    , id);
         ptr_lambda_debug<const char*, const decltype(name)&>("name is ", name);
         tx.commit();
+        std::clock_t end = clock();
+        std::cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << std::endl;
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
