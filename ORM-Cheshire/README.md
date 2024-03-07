@@ -20,7 +20,7 @@ https://dev.mysql.com/doc/mysql-shell/8.0/ja/mysql-shell-install-linux-quick.htm
 
 https://dev.mysql.com/doc/mysql-apt-repo-quick-guide/en/#apt-repo-setup
 
-これで、旧来のライブラリとMySQL X DevAPI が利用できるライブラリ及びそれらのヘッダファイルがインストールされる（はず：）。
+これで、旧来の API と MySQL X DevAPI が利用できるライブラリ及びそれらのヘッダファイルがインストールされる（はず：）。
 
 次のコマンドでライブラリとヘッダファイルの場所がわかる。
 ```
