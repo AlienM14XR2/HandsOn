@@ -1,6 +1,8 @@
 /**
  * C++ JSON ライブラリ動作確認
  * 
+ * @see https://qiita.com/yohm/items/0f389ba5c5de4e2df9cf
+ * 
  * nlohmann-json
  * ```
  * sudo apt install nlohmann-json3-dev
@@ -83,6 +85,38 @@ void sample_2() {
     std::cout << j2 << std::endl;  // coutに渡せば出力できる。
 }
 
+void sample_parse_1() {
+    puts("=== sample_parse_1");
+    json j = R"({ "happy": true, "pi": 3.141 })"_json;
+    /**
+     * ここで_jsonという見慣れないサフィックスがあるが、これはC++11で導入されたユーザー定義リテラルというもの。
+     * ちなみにプレフィックスのRはC++11で導入された生文字列リテラル。"などの文字をエスケープする必要がなくなる。
+    */
+    for(auto v: j) {
+        ptr_lambda_debug<const char*, const decltype(v)&>("v is ", v);
+    }
+
+    auto happy = j.at("happy");
+    auto pi = j.at("pi");
+    ptr_lambda_debug<const char*, const decltype(happy)&>("happy is ", happy);
+    ptr_lambda_debug<const char*, const decltype(pi)&>("pi is ", pi);
+}
+
+void sample_parse_2() {
+    puts("=== sample_parse_2");
+    std::string s = R"({ "happy": true, "pi": 3.1411592 } )";
+    json j = json::parse(s);
+    for(auto v: j) {
+        ptr_lambda_debug<const char*, const decltype(v)&>("v is ", v);
+    }
+
+    auto happy = j.at("happy");
+    auto pi = j.at("pi");
+    ptr_lambda_debug<const char*, const decltype(happy)&>("happy is ", happy);
+    ptr_lambda_debug<const char*, const decltype(pi)&>("pi is ", pi);
+
+}
+
 int main(void) {
     puts("=== START C++ JSON ライブラリ動作確認");
     if(0.01) {
@@ -93,6 +127,8 @@ int main(void) {
     if(1.00) {
         sample_1();
         sample_2();
+        sample_parse_1();
+        sample_parse_2();
     }
     puts("C++ JSON ライブラリ動作確認   END ===");
 }
