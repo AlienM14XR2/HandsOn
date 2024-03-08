@@ -70,7 +70,7 @@ sudo tail -f /var/log/nginx/error.log
 
 int main()
 {
-    int count = 0;
+    int count = 0;      // これが答えだったか、何らかのオブジェクトを Pool するならここで行い
     while(FCGI_Accept() >= 0)
     {
         printf("content-type:text/html\r\n");
@@ -80,7 +80,7 @@ int main()
 
         printf("Request number %d running on host<i>%s</i>\n",++count,getenv("SERVER_NAME"));
     }
-
+    // while を抜けた際に、取得したメモリは解放する
     return 0;
 }
 
