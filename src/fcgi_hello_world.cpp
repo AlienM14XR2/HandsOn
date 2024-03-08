@@ -78,85 +78,27 @@ int main()
         printf("<title>Fast CGI Hello</title>");
         printf("<h1>fast CGI hello</h1>");
 
+        printf("request uri is %s\n", getenv("REQUEST_URI"));   // これをもとに各処理に分岐できる、REST API のエンドポイントとして充分使えそう。
         printf("Request number %d running on host<i>%s</i>\n",++count,getenv("SERVER_NAME"));
     }
     // while を抜けた際に、取得したメモリは解放する
     return 0;
 }
 
-// EXTERNAL
-// #include "fcgio.h"
-// // STD
-// #include <iostream>
-// #include <memory>
-// #include <functional>
-// #include <string>
-// #include <cstring>
-// #include <fcgi_config.h>
-// #include <fcgi_stdio.h>
-
-// auto main() -> int
-// {
-//   // 元の標準入出力系の streambuf 群をバックアップ＆カスタムデリーターによるリストア処理の予約
-//   using streambuf_restorer_signature_type = auto ( std::streambuf* ) -> void;
-//   using streambuf_restorer_functor_type = std::function< streambuf_restorer_signature_type >;
-//   using streambuf_restorer_type = std::unique_ptr< std::streambuf, streambuf_restorer_functor_type >;
-
-//   const auto cin_restorer  = streambuf_restorer_type( std::cin.rdbuf(), []( auto in ) { std::cin.rdbuf( in ); } );
-//   const auto cout_restorer = streambuf_restorer_type( std::cout.rdbuf(), []( auto in ) { std::cout.rdbuf( in ); } );
-//   const auto cerr_restorer = streambuf_restorer_type( std::cerr.rdbuf(), []( auto in ) { std::cerr.rdbuf( in ); } );
-
-//   FCGX_Request request;
-
-//   FCGX_Init();
-//   FCGX_InitRequest( &request, 0, 0 );
-
-//   while ( FCGX_Accept_r( &request ) == 0 )
-//   {
-//     auto cin_buffer  = fcgi_streambuf( request.in );
-//     auto cout_buffer = fcgi_streambuf( request.out );
-//     auto cerr_buffer = fcgi_streambuf( request.err );
-
-//     std::cin.rdbuf( &cin_buffer );
-//     std::cout.rdbuf( &cout_buffer );
-//     std::cerr.rdbuf( &cerr_buffer );
-
-//     std::string content_header_part = R"(Content-type: text/html
-// <html>
-//   <head>
-//     <title>Hello, World!</title>
-//   </head>
-//   <body>
-// )";
-
-//     std::string content_footer_part = R"(  </body>
-// </html>
-// )";
-
-//     // リクエストにいわゆる POST で投げられたデータがあるか CONTENT_LENGTH で確認
-//     const auto in_content_length_string = FCGX_GetParam( "CONTENT_LENGTH", request.envp );
-//     const auto in_content_length = std::strlen( in_content_length_string )
-//       ? std::stoull( std::string( in_content_length_string ) )
-//       : 0ull
-//       ;
-
-//     // リクエストの CONTENT_LENGTH だけリクエストボディーを読み出す
-//     std::string in_content;
-//     in_content.resize( in_content_length );
-//     std::cin.read( &in_content[0], in_content_length );
-
-//     // レスポンスを出力する
-//     std::cout
-//       << content_header_part
-//       << "    <h1>Hello, World!</h>\n"
-//          "    <p>REQUEST_URI: " << FCGX_GetParam( "REQUEST_URI", request.envp ) << "</p>\n"
-//          "    <p>REQUEST CONTENT_LENGTH: " << in_content_length << "</p>\n"
-//          "    <p>REQUEST CONTENT: " << in_content << "</p>\n"
-//       << content_footer_part
-//       ;
-
-//     // スコープの終了により明示的に std::flush して居なくても fcgi_streambuf のデストラクターでフラッシュされる
-//   }
-
-//   // スコープの終了により標準入出力系の streambuf 群は自動的にバックアップからリストアされる
-// }
+/**
+ * URI で if 文書きたくない。
+ * 
+ * 単純に考えれば
+ * 
+ * if(uir == "/api/insert/person/") {
+ * 
+ * } 
+ * else if(...) {
+ * }
+ * else if(...) {
+ * }
+ * ...
+ * のようになるが、必要な処理を行うオブジェクトを生成する側で勝手に判断してほしいということ。
+ * 例えば、必要な処理を定義するクラスの static に factory を用意して、その factory 内でその
+ * オブジェクトを生成するか否かの判断ができるはず。
+*/
