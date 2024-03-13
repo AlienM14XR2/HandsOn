@@ -131,6 +131,285 @@ int test_mysql_connection_pool_B() {
     }
 }
 
+int test_MySQLTx() {
+    puts("=== test_MySQLTx");
+    std::unique_ptr<sql::Connection> con    = nullptr;
+    sql::Connection*                 rawCon = nullptr;
+    std::unique_ptr<MySQLConnection> mcon   = nullptr;
+    try {
+        if(app_cp.empty()) {
+            sql::Driver* driver = MySQLDriver::getInstance().getDriver();
+            con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
+            if(con->isValid()) {
+                puts("connected ... ");
+                con->setSchema("cheshire");
+                mcon = std::make_unique<MySQLConnection>(con.get());
+            } else {
+                throw std::runtime_error("Invalid connection.");                
+            }
+        } else {
+            puts("It use connection pooling ... ");
+            rawCon = app_cp.pop();
+            mcon = std::make_unique<MySQLConnection>(rawCon);
+        }
+        // コネクション取得後から計測を開始する
+        std::clock_t start = clock();
+        std::unique_ptr<Repository<PersonData,std::size_t>> repo = std::make_unique<PersonRepository>(PersonRepository(mcon.get()));
+            
+        std::string expect_name("Alice");
+        std::string expect_email("alice@loki.org");
+        int expect_age = 12;
+        std::unique_ptr<RdbDataStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
+        DataField<std::string> name("name", expect_name);
+        DataField<std::string> email("email", expect_email);
+        DataField<int> age("age", expect_age);
+        PersonData alice(strategy.get(),name,email,age);
+        // std::optional<PersonData> after = repo->insert(alice);       // リポジトリの単体動作は OK だった。
+        // auto [id_nam, id_val] = after.value().getId().bind();
+        // ptr_lambda_debug<const char*, const decltype(id_val)&>("after id_val is ", id_val);
+
+        // こんなコーディングを見るとやっぱり、factory がほしくなるよね。
+        std::unique_ptr<RdbProcStrategy<PersonData>> proc_strategy = std::make_unique<MySQLCreateStrategy<PersonData,std::size_t>>(repo.get(), alice);
+        // MySQLTx(RdbConnection<sql::PreparedStatement>* _con, const RdbProcStrategy<DATA>* _strategy)
+        MySQLTx tx(mcon.get(), proc_strategy.get());
+        std::optional<PersonData> after = tx.executeTx();
+        if(rawCon) {
+            app_cp.push(rawCon);
+        }
+        // 検査
+        assert(after.has_value() == true);
+        auto [id_nam, id_val] = after.value().getId().bind();
+        printf("name is %s\t", id_nam.c_str());
+        ptr_lambda_debug<const char*, const decltype(id_val)&>("after id_val is ", id_val);
+        auto [name_nam, name_val] = after.value().getName().bind();
+        printf("name is %s\n", name_nam.c_str());
+        assert(name_val == expect_name);
+        auto [email_nam, email_val] = after.value().getEmail().bind();
+        printf("name is %s\n", email_nam.c_str());
+        assert(email_val == expect_email);
+        auto [age_nam, age_val] = after.value().getAge().value().bind();
+        printf("name is %s\n", age_nam.c_str());
+        assert(age_val == expect_age);
+        std::clock_t end = clock();
+        std::cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << std::endl;
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+int test_MySQLTx_rollback() {
+    puts("=== test_MySQLTx_rollback");
+    try {
+        sql::Driver* driver = MySQLDriver::getInstance().getDriver();
+        std::unique_ptr<sql::Connection> con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
+        if(con->isValid()) {
+            puts("connected ... ");
+            con->setSchema("cheshire");
+
+            std::unique_ptr<MySQLConnection> mcon = std::make_unique<MySQLConnection>(con.get()); 
+            std::unique_ptr<Repository<PersonData,std::size_t>> repo = std::make_unique<PersonRepository>(PersonRepository(mcon.get()));
+            
+            std::string expect_name("Alice2rollback");
+            std::string expect_email("alice@loki.org");     // これが 一意制約に抵触する
+            int expect_age = 12;
+            std::unique_ptr<RdbDataStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>(PersonStrategy());
+            DataField<std::string> name("name", expect_name);
+            DataField<std::string> email("email", expect_email);
+            DataField<int> age("age", expect_age);
+            PersonData alice(strategy.get(),name,email,age);
+            // こんなコーディングを見るとやっぱり、factory がほしくなるよね。
+            std::unique_ptr<RdbProcStrategy<PersonData>> proc_strategy = std::make_unique<MySQLCreateStrategy<PersonData,std::size_t>>(repo.get(), alice);
+            // MySQLTx(RdbConnection<sql::PreparedStatement>* _con, const RdbProcStrategy<DATA>* _strategy)
+            MySQLTx tx(mcon.get(), proc_strategy.get());
+            std::optional<PersonData> after = tx.executeTx();
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+int test_MySQLTx_Create(std::size_t* insId) {
+    puts("=== test_MySQLTx_Create");
+    sql::Connection*                                            rawCon = nullptr;
+    try {
+        if(!app_cp.empty()) {
+            std::clock_t start = clock();
+                                                                rawCon = app_cp.pop();
+            std::unique_ptr<MySQLConnection>                    mcon = std::make_unique<MySQLConnection>(rawCon);
+            std::unique_ptr<Repository<PersonData,std::size_t>> repo = std::make_unique<PersonRepository>(PersonRepository(mcon.get()));                
+            std::string expect_name("Dante");
+            std::string expect_email("dante@loki.org");
+            int expect_age = 39;
+            std::unique_ptr<RdbDataStrategy<PersonData>> strategy = std::make_unique<PersonStrategy>();
+            DataField<std::string> name("name", expect_name);
+            DataField<std::string> email("email", expect_email);
+            DataField<int> age("age", expect_age);
+            PersonData dante(strategy.get(),name,email,age);
+
+            std::unique_ptr<RdbProcStrategy<PersonData>> proc_strategy = std::make_unique<MySQLCreateStrategy<PersonData,std::size_t>>(repo.get(), dante);
+            MySQLTx tx(mcon.get(), proc_strategy.get());
+            std::optional<PersonData> after = tx.executeTx();
+            // この仕組みは再考の余地がある、エラーが起きた時は、誰がどこで、コネクションを返却するのか？
+            if(rawCon) {
+                app_cp.push(rawCon);
+            }
+            // 検査
+            assert(after.has_value() == true);
+            auto [id_nam, id_val] = after.value().getId().bind();
+            *insId = id_val;
+            printf("name is %s\t", id_nam.c_str());
+            ptr_lambda_debug<const char*, const decltype(id_val)&>("after id_val is ", id_val);
+            auto [name_nam, name_val] = after.value().getName().bind();
+            printf("name is %s\t value is %s\n", name_nam.c_str(), name_val.c_str());
+            assert(name_val == expect_name);
+            auto [email_nam, email_val] = after.value().getEmail().bind();
+            printf("name is %s\t value is %s\n", email_nam.c_str(), email_val.c_str());
+            assert(email_val == expect_email);
+            auto [age_nam, age_val] = after.value().getAge().value().bind();
+            printf("name is %s\t value is %d\n", age_nam.c_str(), age_val);
+            assert(age_val == expect_age);
+
+            std::clock_t end = clock();
+            std::cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << std::endl;
+        } else {
+            throw std::runtime_error("No connection pooling.");
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+int test_MySQLTx_Read(std::size_t* insId) {
+    puts("=== test_MySQLTx_Read");
+    std::size_t danteId = *insId;
+    ptr_lambda_debug<const char*, std::size_t&>("danteId is ", danteId);
+    sql::Connection*                                            rawCon = nullptr;
+    try {
+        if(!app_cp.empty()) {
+            std::clock_t start = clock();
+                                                                rawCon = app_cp.pop();
+            std::unique_ptr<MySQLConnection>                    mcon = std::make_unique<MySQLConnection>(rawCon);
+            std::unique_ptr<Repository<PersonData,std::size_t>> repo = std::make_unique<PersonRepository>(PersonRepository(mcon.get()));                
+            std::unique_ptr<RdbProcStrategy<PersonData>> proc_strategy = std::make_unique<MySQLReadStrategy<PersonData,std::size_t>>(repo.get(), danteId);
+            MySQLTx tx(mcon.get(), proc_strategy.get());
+            std::optional<PersonData> after = tx.executeTx();
+            // この仕組みは再考の余地がある、エラーが起きた時は、誰がどこで、コネクションを返却するのか？
+            if(rawCon) {
+                app_cp.push(rawCon);
+            }
+            // 検証
+            assert(after.has_value() == true);
+            ptr_lambda_debug<const char*, const std::size_t&>("id is ", after.value().getId().getValue());
+            ptr_lambda_debug<const char*, const std::string&>("name is ", after.value().getName().getValue());
+            ptr_lambda_debug<const char*, const std::string&>("email is ", after.value().getEmail().getValue());
+            ptr_lambda_debug<const char*, const int&>("age is ", after.value().getAge().value().getValue());
+            
+            std::clock_t end = clock();
+            std::cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << std::endl;
+        } else {
+            throw std::runtime_error("No connection pooling.");
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+int test_MySQLTx_Update(std::size_t* insId) {
+    puts("=== test_MySQLTx_Update");
+    std::size_t danteId = *insId;
+    ptr_lambda_debug<const char*, std::size_t&>("danteId is ", danteId);
+    sql::Connection*                                            rawCon = nullptr;
+    try {
+        if(!app_cp.empty()) {
+            std::clock_t start = clock();
+            std::unique_ptr<RdbDataStrategy<PersonData>> dataStrategy = std::make_unique<PersonStrategy>();
+            std::string expect_name  = "Dante Updated";
+            std::string expect_email = "derek_updated@loki.org";
+            int         expect_age   = 40;
+            DataField<std::size_t> id("id"  , danteId);
+            DataField<std::string> name("name"  , expect_name);
+            DataField<std::string> email("email", expect_email);
+            DataField<int>         age("age"  , expect_age);
+            PersonData data(dataStrategy.get(), id, name, email, age);
+
+                                                                rawCon        = app_cp.pop();
+            std::unique_ptr<MySQLConnection>                    mcon          = std::make_unique<MySQLConnection>(rawCon);
+            std::unique_ptr<Repository<PersonData,std::size_t>> repo          = std::make_unique<PersonRepository>(PersonRepository(mcon.get()));                
+            std::unique_ptr<RdbProcStrategy<PersonData>>        proc_strategy = std::make_unique<MySQLUpdateStrategy<PersonData,std::size_t>>(repo.get(), data);
+            MySQLTx tx(mcon.get(), proc_strategy.get());
+            std::optional<PersonData> after = tx.executeTx();
+            // この仕組みは再考の余地がある、エラーが起きた時は、誰がどこで、コネクションを返却するのか？
+            if(rawCon) {
+                app_cp.push(rawCon);
+            }
+
+            // 検証
+            assert(after.has_value() == true);
+            assert(after.value().getId().getValue()          == danteId);
+            assert(after.value().getName().getValue()        == expect_name);
+            assert(after.value().getEmail().getValue()       == expect_email);
+            assert(after.value().getAge().value().getValue() == expect_age);
+            ptr_lambda_debug<const char*, const std::size_t&>("id value is ", after.value().getId().getValue());
+            ptr_lambda_debug<const char*, const std::string&>("name value is ", after.value().getName().getValue());
+            ptr_lambda_debug<const char*, const std::string&>("email value is ", after.value().getEmail().getValue());
+            ptr_lambda_debug<const char*, const int&>("age value is ", after.value().getAge().value().getValue());
+            
+            std::clock_t end = clock();
+            std::cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << std::endl;
+        } else {
+            throw std::runtime_error("No connection pooling.");
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+int test_MySQLTx_Delete(std::size_t* insId) {
+    puts("=== test_MySQLTx_Delete");
+    std::size_t danteId = *insId;
+    ptr_lambda_debug<const char*, std::size_t&>("danteId is ", danteId);
+    sql::Connection*                                            rawCon = nullptr;
+    try {
+        if(!app_cp.empty()) {
+            std::clock_t start = clock();
+                                                                rawCon          = app_cp.pop();
+            std::unique_ptr<MySQLConnection>                    mcon            = std::make_unique<MySQLConnection>(rawCon);
+            std::unique_ptr<Repository<PersonData,std::size_t>> repo            = std::make_unique<PersonRepository>(PersonRepository(mcon.get()));                
+            std::unique_ptr<RdbProcStrategy<PersonData>>        proc_strategy_d = std::make_unique<MySQLDeleteStrategy<PersonData,std::size_t>>(repo.get(), danteId);
+            MySQLTx tx(mcon.get(), proc_strategy_d.get());
+            tx.executeTx();     // これも戻り値があるが、強制的に空の optional を返却しているので、検証に使用するのは妥当ではない。
+            std::clock_t end = clock();
+            std::cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << std::endl;
+
+            // 検証
+            std::unique_ptr<RdbProcStrategy<PersonData>> proc_strategy_r = std::make_unique<MySQLReadStrategy<PersonData,std::size_t>>(repo.get(), danteId);
+            MySQLTx tx_r(mcon.get(), proc_strategy_r.get());
+            std::optional<PersonData> after = tx_r.executeTx();
+            // この仕組みは再考の余地がある、エラーが起きた時は、誰がどこで、コネクションを返却するのか？
+            if(rawCon) {
+                app_cp.push(rawCon);
+            }
+            assert(after.has_value() == false);
+        } else {
+            throw std::runtime_error("No connection pooling.");
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    } 
+}
+
 int test_DataField() {
     puts("=== test_DataField");
     try {

@@ -18,6 +18,12 @@
 #include "../inc/ConnectionPool.hpp"
 #include "../inc/sql_generator.hpp"
 #include "../inc/PersonRepository.hpp"
+#include "../inc/RdbProcStrategy.hpp"
+#include "../inc/MySQLCreateStrategy.hpp"
+#include "../inc/MySQLReadStrategy.hpp"
+#include "../inc/MySQLUpdateStrategy.hpp"
+#include "../inc/MySQLDeleteStrategy.hpp"
+#include "../inc/MySQLTx.hpp"                       // src 相対にしている
 #include "/usr/include/mysql-cppconn-8/mysql/jdbc.h"
 #include "/usr/include/mysql-cppconn-8/mysqlx/xdevapi.h"
 
@@ -39,6 +45,12 @@ int test_ConnectionPool();
 void mysql_connection_pool(const std::string& server, const std::string& user, const std::string& password, const int& sum);
 int test_mysql_connection_pool_A();
 int test_mysql_connection_pool_B();
+int test_MySQLTx();
+int test_MySQLTx_rollback();
+int test_MySQLTx_Create(std::size_t* insId);
+int test_MySQLTx_Read(std::size_t* insId);
+int test_MySQLTx_Update(std::size_t* insId);
+int test_MySQLTx_Delete(std::size_t* insId);
 
 int test_insert_person();
 int test_PersonRepository_findOne();
