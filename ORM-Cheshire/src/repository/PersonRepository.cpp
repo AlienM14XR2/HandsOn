@@ -27,34 +27,42 @@ std::optional<PersonData> PersonRepository::insert(const PersonData& data) const
     while(res->next()) {
         puts("------ A");
         auto id = res->getInt64(1);
-        ptr_lambda_debug<const char*, const decltype(id)&>("id is ", id);
-        ptr_lambda_debug<const char*, const std::string&>("id type is ", typeid(id).name());
-        auto sql_2 = makeFindOneSql(data.getTableName(), id_nam, data.getColumns());
-        ptr_lambda_debug<const char*,const decltype(sql_2)&>("sql_2: ", sql_2);
-        std::unique_ptr<sql::PreparedStatement> prep_stmt_2(con->prepareStatement(sql_2));
-        prep_stmt_2->setBigInt(1, std::to_string(id));
-        std::unique_ptr<sql::ResultSet> res_2( prep_stmt_2->executeQuery() );       // SELECT ... 登録されたデータを取得する
-        while(res_2->next()) {
-            puts("------ B");
-            // デバッグ
-            auto res_id    = res_2->getUInt64(1);
-            auto res_name  = res_2->getString(2);
-            auto res_email = res_2->getString(3);
-            ptr_lambda_debug<const char*,const decltype(res_id)&>("res_id: ", res_id);
-            ptr_lambda_debug<const char*,const decltype(res_name)&>("res_name: ", res_name);
-            ptr_lambda_debug<const char*,const decltype(res_email)&>("res_email: ", res_email);
-            if(data.getAge().has_value()){              // std::optional と RDB 上の Null を許可したカラムについてはもっとテストと考察が必要、現状では煩雑過ぎる。
-                auto res_age   = res_2->getInt(4);
-                ptr_lambda_debug<const char*,const decltype(res_age)&>("res_age: ", res_age);
-                return PersonData::factory(res_2.get(), data.getDataStrategy());
-            } else {
-                return PersonData::factoryNoAge(res_2.get(), data.getDataStrategy());
-            }
-            /**
-             * std::optional が複数あるデータの場合は、上記のような factory を用いずに、データから ResultSet の有無を推論する仕組み
-             * の方がより自然で汎用性が高いと思う。
-            */
+        DataField<std::size_t> d_id("id", id);
+        DataField<std::string> d_name("name", data.getName().getValue());
+        DataField<std::string> d_email("email", data.getEmail().getValue());
+        std::optional<DataField<int>> d_age = std::nullopt;
+        if(data.getAge().has_value()) {
+            d_age = DataField<int>("age", data.getAge().value().getValue());
         }
+        return PersonData(data.getDataStrategy(), d_id, d_name, d_email, d_age);
+        // ptr_lambda_debug<const char*, const decltype(id)&>("id is ", id);
+        // ptr_lambda_debug<const char*, const std::string&>("id type is ", typeid(id).name());
+        // auto sql_2 = makeFindOneSql(data.getTableName(), id_nam, data.getColumns());
+        // ptr_lambda_debug<const char*,const decltype(sql_2)&>("sql_2: ", sql_2);
+        // std::unique_ptr<sql::PreparedStatement> prep_stmt_2(con->prepareStatement(sql_2));
+        // prep_stmt_2->setBigInt(1, std::to_string(id));
+        // std::unique_ptr<sql::ResultSet> res_2( prep_stmt_2->executeQuery() );       // SELECT ... 登録されたデータを取得する
+        // while(res_2->next()) {
+        //     puts("------ B");
+        //     // デバッグ
+        //     auto res_id    = res_2->getUInt64(1);
+        //     auto res_name  = res_2->getString(2);
+        //     auto res_email = res_2->getString(3);
+        //     ptr_lambda_debug<const char*,const decltype(res_id)&>("res_id: ", res_id);
+        //     ptr_lambda_debug<const char*,const decltype(res_name)&>("res_name: ", res_name);
+        //     ptr_lambda_debug<const char*,const decltype(res_email)&>("res_email: ", res_email);
+        //     if(data.getAge().has_value()){              // std::optional と RDB 上の Null を許可したカラムについてはもっとテストと考察が必要、現状では煩雑過ぎる。
+        //         auto res_age   = res_2->getInt(4);
+        //         ptr_lambda_debug<const char*,const decltype(res_age)&>("res_age: ", res_age);
+        //         return PersonData::factory(res_2.get(), data.getDataStrategy());
+        //     } else {
+        //         return PersonData::factoryNoAge(res_2.get(), data.getDataStrategy());
+        //     }
+        //     /**
+        //      * std::optional が複数あるデータの場合は、上記のような factory を用いずに、データから ResultSet の有無を推論する仕組み
+        //      * の方がより自然で汎用性が高いと思う。
+        //     */
+        // }
     }
     return std::nullopt;
 }
