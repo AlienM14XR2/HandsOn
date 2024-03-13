@@ -37,6 +37,8 @@ int test_ConnectionPool();
 
 // extern    ConnectionPool<sql::Connection> app_cp;
 void mysql_connection_pool(const std::string& server, const std::string& user, const std::string& password, const int& sum);
+int test_mysql_connection_pool_A();
+int test_mysql_connection_pool_B();
 
 int test_insert_person();
 int test_PersonRepository_findOne();
