@@ -667,9 +667,10 @@ int test_mysqlx_connect() {
 
 int test_mysqlx_insert() {
     puts("=== test_mysqlx_insert");
-    std::clock_t start = clock();
+    std::clock_t start_1 = clock();
     try {
         mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+        std::clock_t start_2 = clock();
         mysqlx::Schema db = sess.getSchema("cheshire");
         mysqlx::Table person = db.getTable("person");
         mysqlx::Result res = person.insert("name", "email", "age")
@@ -685,7 +686,8 @@ int test_mysqlx_insert() {
         //     std::cout <<  id << std::endl;
         // }
         std::clock_t end = clock();
-        std::cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << std::endl;
+        std::cout << "passed " << (double)(end-start_1)/CLOCKS_PER_SEC << " sec." << std::endl;
+        std::cout << "passed " << (double)(end-start_2)/CLOCKS_PER_SEC << " sec." << std::endl;
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
@@ -930,14 +932,14 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLTx_Delete(insId.get()));
         assert(ret == 0);
     }
-    if(0) {      // 2.00
+    if(2.00) {      // 2.00
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_connect());
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_insert());
         assert(ret == 0);
     }
-    if(3.00){   // 3.00
+    if(0){   // 3.00
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_pqxx_connect());
         assert(ret == 0);
