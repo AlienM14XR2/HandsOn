@@ -31,6 +31,10 @@ int test_makeDeleteSql();
 int test_makeFindOneSql();
 int test_makeCreateTableSql();
 int test_MySQLDriver();
+
+// int test_mysql_connect();
+int test_ConnectionPool();
+
 int test_insert_person();
 int test_PersonRepository_findOne();
 int test_PersonRepository_update();

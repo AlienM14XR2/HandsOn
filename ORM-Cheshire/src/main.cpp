@@ -110,14 +110,6 @@ int test_debug_and_error() {
 }
 
 
-class Widget {
-public:
-    Widget(const int& _value): value(_value) 
-    {}
-    int getValue() const { return value; }
-private:
-    int value;
-};
 
 /**
  * 設計及び実装はここから。
@@ -131,15 +123,13 @@ private:
  * 秒を切る、jdbc.h を利用したものと比較すると、約 3 倍速い（シャアザク：）C/C++ を利用するから
  * にはやはり、実行速度こそが、正義だと思う。
  * 
- * まずはソースを整理するために、main.cpp 上のテスト関数を test.cpp に移行する
+ * まずはソースを整理するために、main.cpp 上のテスト関数を test_1.cpp に移行する
  * （動かなくなりそうだな：）。
 */
 
 
 
-
-
-int test_mysql_connect() {
+int test_mysql_connect() {              // これが test_1.cpp に移設できない orz
     puts("=== test_mysql_connect");
     sql::Driver* driver = nullptr;
     sql::Connection*          con    = nullptr;
@@ -182,46 +172,12 @@ int test_mysql_connect() {
         // }
         return EXIT_FAILURE;
     }
-
 }
 
 
 
-/**
- * 次は Connection 管理の仕組みを考えてみる。
- * 
- * 既にどこかにあると思うが、Pool する仕組みをイメージしている。
- * トランザクションを考えると、read-only と更新系で 2 つ Pool するオブジェクトを用意する必要があるかもしれない。
- * read-only でも begin と commit を明示してコーディングに含めれば 1 つでもいい。
-*/
 
-int test_ConnectionPool() {
-    puts("=== test_ConnectionPool");
-    try {
-        Widget* wp1 = new Widget(21);
-        Widget* wp2 = new Widget(24);
-        Widget* wp3 = new Widget(27);
 
-        ConnectionPool<Widget> cp;
-        cp.push(wp1);
-        cp.push(wp2);
-        cp.push(wp3);
-
-        const Widget* wp = cp.pop();
-        ptr_lambda_debug<const char*, const int&>("value is ", wp->getValue()); 
-        wp = cp.pop();
-        ptr_lambda_debug<const char*, const int&>("value is ", wp->getValue()); 
-        wp = cp.pop();
-        ptr_lambda_debug<const char*, const int&>("value is ", wp->getValue()); 
-        ptr_lambda_debug<const char*, const bool&>("cp is empty ? ", cp.empty()); 
-
-        wp = cp.pop();          // これは nullptr
-        return EXIT_SUCCESS;
-    } catch(std::exception& e) {
-        ptr_print_error<const decltype(e)&>(e);
-        return EXIT_FAILURE;
-    }
-}
 
 
 namespace cheshire {
