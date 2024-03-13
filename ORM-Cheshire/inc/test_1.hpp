@@ -35,6 +35,9 @@ int test_MySQLDriver();
 // int test_mysql_connect();
 int test_ConnectionPool();
 
+// extern    ConnectionPool<sql::Connection> app_cp;
+void mysql_connection_pool(const std::string& server, const std::string& user, const std::string& password, const int& sum);
+
 int test_insert_person();
 int test_PersonRepository_findOne();
 int test_PersonRepository_update();

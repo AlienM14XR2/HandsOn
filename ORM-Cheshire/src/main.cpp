@@ -175,55 +175,34 @@ int test_mysql_connect() {              // これが test_1.cpp に移設でき�
 }
 
 
-
-
-
-
-
-namespace cheshire {
+// namespace cheshire
+// {
+// }   // namespace cheshire
 
 ConnectionPool<sql::Connection> app_cp;
-
-void mysql_connection_pool(const std::string& server, const std::string& user, const std::string& password, const int& sum) 
-{
-    sql::Driver* driver = MySQLDriver::getInstance().getDriver();
-    for(int i=0; i<sum; i++) {
-        sql::Connection* con = driver->connect(server, user, password);
-        if(con->isValid()) {
-            puts("connected ... ");
-            con->setSchema("cheshire");
-            // auto commit は true としておく、Tx が必要な場合はリポジトリで明確にすること。あるいは MySQLTx を利用すること。
-            app_cp.push(con);
-        } else {
-            puts("connection is invalid ... ");            
-        }
-    }
-}
-
-}   // end namespace cheshire
 
 int test_mysql_connection_pool_A() {
     puts("=== test_mysql_connection_pool_A");
     try {
-        cheshire::mysql_connection_pool("tcp://127.0.0.1:3306", "derek", "derek1234", 2);
+        mysql_connection_pool("tcp://127.0.0.1:3306", "derek", "derek1234", 2);
 
-        ptr_lambda_debug<const char*, const bool&>("empty ? ", cheshire::app_cp.empty());
-        assert(cheshire::app_cp.empty() == 0);      // プールされていることを期待する
-        sql::Connection* con_1 = cheshire::app_cp.pop();
+        ptr_lambda_debug<const char*, const bool&>("empty ? ", app_cp.empty());
+        assert(app_cp.empty() == 0);      // プールされていることを期待する
+        sql::Connection* con_1 = app_cp.pop();
         ptr_lambda_debug<const char*, const sql::Connection*>("con_1 addr is ", con_1);
         std::unique_ptr<MySQLConnection> mcon_1 = std::make_unique<MySQLConnection>(con_1);
         std::string sql("SELECT id, name, email, age FROM person WHERE id = ?");
         std::unique_ptr<sql::PreparedStatement> prep_stmt_1(mcon_1->prepareStatement(sql));
         // ... do something
         // コネクションの利用が終わったら返却する
-        cheshire::app_cp.push(con_1);
+        app_cp.push(con_1);
 
-        sql::Connection* con_2 = cheshire::app_cp.pop();
+        sql::Connection* con_2 = app_cp.pop();
         ptr_lambda_debug<const char*, const sql::Connection*>("con_2 addr is ", con_2);
         std::unique_ptr<MySQLConnection> mcon_2 = std::make_unique<MySQLConnection>(con_2);
         std::unique_ptr<sql::PreparedStatement> prep_stmt_2(mcon_2->prepareStatement(sql));
         // ... do something
-        cheshire::app_cp.push(con_2);
+        app_cp.push(con_2);
 
         /**
          * これを踏まえて テスト B を行ってみる。
@@ -238,23 +217,23 @@ int test_mysql_connection_pool_A() {
 int test_mysql_connection_pool_B() {
     puts("=== test_mysql_connection_pool_B");
     try {
-        ptr_lambda_debug<const char*, const bool&>("empty ? ", cheshire::app_cp.empty());
-        assert(cheshire::app_cp.empty() == 0);      // プールされていることを期待する
-        sql::Connection* con_1 = cheshire::app_cp.pop();
+        ptr_lambda_debug<const char*, const bool&>("empty ? ", app_cp.empty());
+        assert(app_cp.empty() == 0);      // プールされていることを期待する
+        sql::Connection* con_1 = app_cp.pop();
         ptr_lambda_debug<const char*, const sql::Connection*>("con_1 addr is ", con_1);
         std::unique_ptr<MySQLConnection> mcon_1 = std::make_unique<MySQLConnection>(con_1);
         std::string sql("SELECT id, name, email, age FROM person WHERE id = ?");
         std::unique_ptr<sql::PreparedStatement> prep_stmt_1(mcon_1->prepareStatement(sql));
         // ... do something
         // コネクションの利用が終わったら返却する
-        cheshire::app_cp.push(con_1);
+        app_cp.push(con_1);
 
-        sql::Connection* con_2 = cheshire::app_cp.pop();
+        sql::Connection* con_2 = app_cp.pop();
         ptr_lambda_debug<const char*, const sql::Connection*>("con_2 addr is ", con_2);
         std::unique_ptr<MySQLConnection> mcon_2 = std::make_unique<MySQLConnection>(con_2);
         std::unique_ptr<sql::PreparedStatement> prep_stmt_2(mcon_2->prepareStatement(sql));
         // ... do something
-        cheshire::app_cp.push(con_2);
+        app_cp.push(con_2);
         /**
          * テスト A、B でコネクションのアドレスが同じであることが重要。
          * 返却するタイミングでは、前後は異なると考える（ConnectionPool の内部では std::queue を利用している）。
@@ -308,7 +287,7 @@ int test_MySQLTx() {
     sql::Connection*                 rawCon = nullptr;
     std::unique_ptr<MySQLConnection> mcon   = nullptr;
     try {
-        if(cheshire::app_cp.empty()) {
+        if(app_cp.empty()) {
             sql::Driver* driver = MySQLDriver::getInstance().getDriver();
             con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
             if(con->isValid()) {
@@ -320,7 +299,7 @@ int test_MySQLTx() {
             }
         } else {
             puts("It use connection pooling ... ");
-            rawCon = cheshire::app_cp.pop();
+            rawCon = app_cp.pop();
             mcon = std::make_unique<MySQLConnection>(rawCon);
         }
         // コネクション取得後から計測を開始する
@@ -345,7 +324,7 @@ int test_MySQLTx() {
         MySQLTx tx(mcon.get(), proc_strategy.get());
         std::optional<PersonData> after = tx.executeTx();
         if(rawCon) {
-            cheshire::app_cp.push(rawCon);
+            app_cp.push(rawCon);
         }
         // 検査
         assert(after.has_value() == true);
@@ -407,9 +386,9 @@ int test_MySQLTx_Create(std::size_t* insId) {
     puts("=== test_MySQLTx_Create");
     sql::Connection*                                            rawCon = nullptr;
     try {
-        if(!cheshire::app_cp.empty()) {
+        if(!app_cp.empty()) {
             std::clock_t start = clock();
-                                                                rawCon = cheshire::app_cp.pop();
+                                                                rawCon = app_cp.pop();
             std::unique_ptr<MySQLConnection>                    mcon = std::make_unique<MySQLConnection>(rawCon);
             std::unique_ptr<Repository<PersonData,std::size_t>> repo = std::make_unique<PersonRepository>(PersonRepository(mcon.get()));                
             std::string expect_name("Dante");
@@ -426,7 +405,7 @@ int test_MySQLTx_Create(std::size_t* insId) {
             std::optional<PersonData> after = tx.executeTx();
             // この仕組みは再考の余地がある、エラーが起きた時は、誰がどこで、コネクションを返却するのか？
             if(rawCon) {
-                cheshire::app_cp.push(rawCon);
+                app_cp.push(rawCon);
             }
             // 検査
             assert(after.has_value() == true);
@@ -462,9 +441,9 @@ int test_MySQLTx_Read(std::size_t* insId) {
     ptr_lambda_debug<const char*, std::size_t&>("danteId is ", danteId);
     sql::Connection*                                            rawCon = nullptr;
     try {
-        if(!cheshire::app_cp.empty()) {
+        if(!app_cp.empty()) {
             std::clock_t start = clock();
-                                                                rawCon = cheshire::app_cp.pop();
+                                                                rawCon = app_cp.pop();
             std::unique_ptr<MySQLConnection>                    mcon = std::make_unique<MySQLConnection>(rawCon);
             std::unique_ptr<Repository<PersonData,std::size_t>> repo = std::make_unique<PersonRepository>(PersonRepository(mcon.get()));                
             std::unique_ptr<RdbProcStrategy<PersonData>> proc_strategy = std::make_unique<MySQLReadStrategy<PersonData,std::size_t>>(repo.get(), danteId);
@@ -472,7 +451,7 @@ int test_MySQLTx_Read(std::size_t* insId) {
             std::optional<PersonData> after = tx.executeTx();
             // この仕組みは再考の余地がある、エラーが起きた時は、誰がどこで、コネクションを返却するのか？
             if(rawCon) {
-                cheshire::app_cp.push(rawCon);
+                app_cp.push(rawCon);
             }
             // 検証
             assert(after.has_value() == true);
@@ -499,7 +478,7 @@ int test_MySQLTx_Update(std::size_t* insId) {
     ptr_lambda_debug<const char*, std::size_t&>("danteId is ", danteId);
     sql::Connection*                                            rawCon = nullptr;
     try {
-        if(!cheshire::app_cp.empty()) {
+        if(!app_cp.empty()) {
             std::clock_t start = clock();
             std::unique_ptr<RdbDataStrategy<PersonData>> dataStrategy = std::make_unique<PersonStrategy>();
             std::string expect_name  = "Dante Updated";
@@ -511,7 +490,7 @@ int test_MySQLTx_Update(std::size_t* insId) {
             DataField<int>         age("age"  , expect_age);
             PersonData data(dataStrategy.get(), id, name, email, age);
 
-                                                                rawCon        = cheshire::app_cp.pop();
+                                                                rawCon        = app_cp.pop();
             std::unique_ptr<MySQLConnection>                    mcon          = std::make_unique<MySQLConnection>(rawCon);
             std::unique_ptr<Repository<PersonData,std::size_t>> repo          = std::make_unique<PersonRepository>(PersonRepository(mcon.get()));                
             std::unique_ptr<RdbProcStrategy<PersonData>>        proc_strategy = std::make_unique<MySQLUpdateStrategy<PersonData,std::size_t>>(repo.get(), data);
@@ -519,7 +498,7 @@ int test_MySQLTx_Update(std::size_t* insId) {
             std::optional<PersonData> after = tx.executeTx();
             // この仕組みは再考の余地がある、エラーが起きた時は、誰がどこで、コネクションを返却するのか？
             if(rawCon) {
-                cheshire::app_cp.push(rawCon);
+                app_cp.push(rawCon);
             }
 
             // 検証
@@ -551,9 +530,9 @@ int test_MySQLTx_Delete(std::size_t* insId) {
     ptr_lambda_debug<const char*, std::size_t&>("danteId is ", danteId);
     sql::Connection*                                            rawCon = nullptr;
     try {
-        if(!cheshire::app_cp.empty()) {
+        if(!app_cp.empty()) {
             std::clock_t start = clock();
-                                                                rawCon          = cheshire::app_cp.pop();
+                                                                rawCon          = app_cp.pop();
             std::unique_ptr<MySQLConnection>                    mcon            = std::make_unique<MySQLConnection>(rawCon);
             std::unique_ptr<Repository<PersonData,std::size_t>> repo            = std::make_unique<PersonRepository>(PersonRepository(mcon.get()));                
             std::unique_ptr<RdbProcStrategy<PersonData>>        proc_strategy_d = std::make_unique<MySQLDeleteStrategy<PersonData,std::size_t>>(repo.get(), danteId);
@@ -568,7 +547,7 @@ int test_MySQLTx_Delete(std::size_t* insId) {
             std::optional<PersonData> after = tx_r.executeTx();
             // この仕組みは再考の余地がある、エラーが起きた時は、誰がどこで、コネクションを返却するのか？
             if(rawCon) {
-                cheshire::app_cp.push(rawCon);
+                app_cp.push(rawCon);
             }
             assert(after.has_value() == false);
         } else {

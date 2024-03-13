@@ -46,6 +46,27 @@ int test_ConnectionPool() {
 }
 
 
+// namespace cheshire {
+    extern    ConnectionPool<sql::Connection> app_cp;
+    void mysql_connection_pool(const std::string& server, const std::string& user, const std::string& password, const int& sum) 
+    {
+        sql::Driver* driver = MySQLDriver::getInstance().getDriver();
+        for(int i=0; i<sum; i++) {
+            sql::Connection* con = driver->connect(server, user, password);
+            if(con->isValid()) {
+                puts("connected ... ");
+                con->setSchema("cheshire");
+                // auto commit は true としておく、Tx が必要な場合はリポジトリで明確にすること。あるいは MySQLTx を利用すること。
+                app_cp.push(con);
+            } else {
+                puts("connection is invalid ... ");            
+            }
+        }
+    }
+
+// }   // end namespace cheshire
+
+
 int test_DataField() {
     puts("=== test_DataField");
     try {
