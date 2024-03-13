@@ -763,19 +763,21 @@ INSERT INTO animal (id, name) values (0, 'Lion');
 
 int test_pqxx_insert() {
     puts("=== test_pqxx_insert");
-    std::clock_t start = clock();
+    std::clock_t start_1 = clock();
     try {
         pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
+        std::clock_t start_2 = clock();
         pqxx::work tx{con};
         long nextId = tx.query_value<int>(
             "SELECT nextval('table_id_seq')"
         );
-
         std::string expect_name("Cerberus");
         std::string sql("INSERT INTO animal (id, name) values (");
         sql.append(std::to_string(nextId)).append(", '").append(expect_name).append("')");
         ptr_lambda_debug<const char*, const std::string&>("sql: ", sql);
         tx.exec0(sql);
+        std::clock_t end_2 = clock();
+        std::cout << "passed " << (double)(end_2-start_2)/CLOCKS_PER_SEC << " sec." << std::endl;
 
         std::string select_sql("SELECT id, name FROM animal WHERE id = ");
         select_sql.append(std::to_string(nextId));
@@ -786,8 +788,8 @@ int test_pqxx_insert() {
         assert(ins_id   == nextId);
         assert(ins_name == expect_name);
         tx.commit();
-        std::clock_t end = clock();
-        std::cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << std::endl;
+        std::clock_t end_1 = clock();
+        std::cout << "passed " << (double)(end_1-start_1)/CLOCKS_PER_SEC << " sec." << std::endl;
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
@@ -939,7 +941,7 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_insert());
         assert(ret == 0);
     }
-    if(0){   // 3.00
+    if(3.00){   // 3.00
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_pqxx_connect());
         assert(ret == 0);
