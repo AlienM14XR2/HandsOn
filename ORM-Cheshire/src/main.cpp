@@ -176,16 +176,33 @@ namespace ormx {
 class PersonData {
 };
 
-class PersonRepository {
+class PersonRepository final : public Repository<PersonData, std::size_t> {
+public:
+    PersonRepository(mysqlx::Session* _session): session(_session)
+    {}
+    virtual std::optional<PersonData> insert(const PersonData& data) const override {
+        // TODO 実装
+        return std::nullopt;
+    }
+    virtual std::optional<PersonData> update(const PersonData& data) const override {
+        // TODO 実装
+        return std::nullopt;        
+    }
+    virtual void remove(const std::size_t& pkey) const override {
+        // TODO 実装
+    }
+    virtual std::optional<PersonData> findOne(const std::size_t& pkey) const override {
+        // TODO 実装
+        return std::nullopt;        
+    }
+private:
+    mysqlx::Session* session;
 };
-
-// class SessionPool { // これはいらない。
-// };
 
 template <class DATA>
 class MySQLXTx final : public RdbTransaction<DATA> {
 public:
-    MySQLXTx(const mysqlx::Session* _session, const RdbProcStrategy<DATA>* _strategy): session(_session), strategy(_strategy)
+    MySQLXTx(mysqlx::Session* _session, const RdbProcStrategy<DATA>* _strategy): session(_session), strategy(_strategy)
     {}
     // ...
     virtual void begin() const override {
@@ -211,18 +228,6 @@ private:
  * 細かな疑問がある、Tx は スキーマやテーブルの取得前に startTransaction() できるのか？
  * これをハッキリさせないと、Tx の流用が可能なのか分からない。
 */
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 int test_mysqlx_insert() {
