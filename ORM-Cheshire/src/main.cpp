@@ -179,14 +179,30 @@ class PersonData {
 class PersonRepository {
 };
 
-class SessionPool {
-};
+// class SessionPool { // これはいらない。
+// };
 
 template <class DATA>
 class MySQLXTx final : public RdbTransaction<DATA> {
 public:
-    MySQLXTx()
+    MySQLXTx(const mysqlx::Session* _session, const RdbProcStrategy<DATA>* _strategy): session(_session), strategy(_strategy)
     {}
+    // ...
+    virtual void begin() const override {
+        session->startTransaction();
+    }
+    virtual void commit() const override {
+        session->commit();
+    }
+    virtual void rollback() const override {
+        session->rollback();
+    }
+    virtual std::optional<DATA> proc() const override {
+        return strategy->proc();
+    }
+private:
+    mysqlx::Session* session;
+    const RdbProcStrategy<DATA>* strategy;
 };
 
 }   // namespace ormx
