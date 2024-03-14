@@ -160,9 +160,30 @@ ConnectionPool<sql::Connection> app_cp;
  * てみたい。
  * 
  * サンプルを実装した時に感じた疑問点をまず解決すべきかもしれない。
- * - トランザクション（begin commit rollback）はどうなっているのか。
+ * - Q．トランザクション（begin commit rollback）はどうなっているのか。
+ * - A．mysqlx::Session に startTransaction()、commit()、rollback() があるね。
+ * 
 */
 
+namespace ormx {
+
+/**
+ * 今回最低限必要な概念をクラスにしてみる。
+*/
+
+class PersonData {
+};
+
+class PersonRepository {
+};
+
+class SessionPool {
+};
+
+class MySQLXTx {
+};
+
+}   // namespace ormx
 
 
 
@@ -186,6 +207,7 @@ int test_mysqlx_insert() {
         std::clock_t start_2 = clock();
         mysqlx::Schema db = sess.getSchema("cheshire");
         mysqlx::Table person = db.getTable("person");
+        
         mysqlx::Result res = person.insert("name", "email", "age")
                 .values("Jabberwocky", "Jabberwocky@loki.org", nullptr)
                 .values("Rabbit Foot", "rabbit@loki.org", 1)
