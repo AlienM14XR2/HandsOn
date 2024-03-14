@@ -169,6 +169,8 @@ namespace ormx {
 
 /**
  * 今回最低限必要な概念をクラスにしてみる。
+ * 
+ * Tx と Repository 、RdbProcStrategy は前のものをそのまま利用できるはず。
 */
 
 class PersonData {
@@ -180,11 +182,19 @@ class PersonRepository {
 class SessionPool {
 };
 
-class MySQLXTx {
+template <class DATA>
+class MySQLXTx final : public RdbTransaction<DATA> {
+public:
+    MySQLXTx()
+    {}
 };
 
 }   // namespace ormx
 
+/**
+ * 細かな疑問がある、Tx は スキーマやテーブルの取得前に startTransaction() できるのか？
+ * これをハッキリさせないと、Tx の流用が可能なのか分からない。
+*/
 
 
 
@@ -230,6 +240,40 @@ int test_mysqlx_insert() {
     }
 }
 
+/**
+ * mysql> use information_schema;
+ * mysql> select table_schema, table_name, engine from tables where table_name = 'person';
+ * 
+ * | cheshire     | person     | InnoDB |
+ * 
+ * 勿論上記を確認した。
+*/
+
+int test_mysqlx_tx_insert() {
+    puts("=== test_mysqlx_tx_insert");
+    mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+    try {
+        sess.startTransaction();
+        mysqlx::Schema db = sess.getSchema("cheshire");
+        mysqlx::Table person = db.getTable("person");
+        
+        mysqlx::Result res = person.insert("name", "email", "age")
+                .values("MajorX", "majorx@loki.org", 24)
+                .execute();
+throw std::runtime_error("It's rollback test.");
+/**
+ * 公式サンプル通りではなくとも Tx は有効のようだ。
+ * 同一セッションであれば問題ないと思われる、コネクション同様これは少し注意しよう。
+ * https://dev.mysql.com/doc/x-devapi-userguide/en/transaction-handling.html
+*/
+        sess.commit();
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        sess.rollback();
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 
 
@@ -346,8 +390,10 @@ int main(void) {
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_insert());
         assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_tx_insert());
+        assert(ret == 1);
     }
-    if(3.00){   // 3.00
+    if(0){   // 3.00
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_pqxx_connect());
         assert(ret == 0);
