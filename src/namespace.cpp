@@ -6,6 +6,8 @@
  * ヘッダファイル（宣言）では namespace [TAG_NAME] { ... } と記述し
  * ソースファイル（定義）では [TAG_NAME]::[メンバ関数名] のように記述する。
  * 
+ * 本来は何らかのプロジェクト単位、あるいはモジュール単位で使うべきなのだろうと思った。
+ * 
  * e.g. compile.
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror -I../inc/ Circle.cpp namespace.cpp -o ../bin/main
 */
