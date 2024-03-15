@@ -8,13 +8,19 @@
 template <class T>
 class ConnectionPool final {
 public:
+    ConnectionPool() : credit(std::move("none."))
+    {}
+    ConnectionPool(const std::string& _credit) : credit(std::move(_credit))
+    {}
     ~ConnectionPool() {     // その役割が任意のポインタの Pool なので、解放は本クラスで行う必要がある。
         while(!q.empty()) {
             const T* pt = q.front();
             q.pop();
             delete pt;
         }
-        puts("...... Done ConnectionPool Destructor.");
+        std::string message(R"(...... Done ConnectionPool Destructor credit is )");
+        message.append(credit);
+        puts(message.c_str());
     }
     bool empty() {
         return q.empty();
@@ -36,6 +42,7 @@ public:
         return ret;     // TODO nullptr の場合は、何らかの exception としたいが、やりすぎかな。
     }
 private:
+    const std::string credit;
     mutable std::mutex m;
     mutable std::queue<T*> q;
 };

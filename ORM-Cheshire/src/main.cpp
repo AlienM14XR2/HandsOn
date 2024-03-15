@@ -165,12 +165,33 @@ ConnectionPool<sql::Connection> app_cp;
  * - Q．トランザクション（begin commit rollback）はどうなっているのか。
  * - A．mysqlx::Session に startTransaction()、commit()、rollback() があるね。
  * 
+ * sql::Connection ではなく mysqlx::Session をプールするものが必要。
 */
 
+ConnectionPool<mysqlx::Session> app_sp("mysql::Session.");     // アプリケーションのセッションプール
 
+void mysqlx_session_pool(const std::string& server, const int& port, const std::string& user, const std::string& passwd, const int& sum) {
+    puts("=== mysqlx_session_pool");
+    for(int i=0; i<sum; i++) {
+        puts("connected ... ");
+        app_sp.push(new mysqlx::Session(server, port, user, passwd));
+    }
+}
 
-
-
+int test_mysqlx_session_pool() {
+    puts("=== test_mysqlx_session_pool");
+    try {
+        std::string server("localhost");
+        int port = 33060;
+        std::string user("derek");
+        std::string passwd("derek1234");
+        mysqlx_session_pool(server, port, user, passwd, 3);
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 
 
@@ -255,13 +276,14 @@ throw std::runtime_error("It's rollback test.");
 int test_ormx_PersonRepository_insert() {
     puts("=== test_ormx_PersonRepository_insert");
     // TODO セッションはプールしたものを利用すること
-    mysqlx::Session session("localhost", 33060, "derek", "derek1234");
+    // mysqlx::Session session("localhost", 33060, "derek", "derek1234");
+    mysqlx::Session* session = app_sp.pop();
     try {
         std::string expect_name("Major");
         std::string expect_email("major@loki.org");
         int         expect_age = 24;
         ormx::PersonData major(expect_name, expect_email, expect_age);
-        ormx::PersonRepository repo(&session);
+        ormx::PersonRepository repo(session);
         std::optional<ormx::PersonData> result = repo.insert(major);
         assert( result.has_value() == 1 );
         if(result.has_value()) {
@@ -282,6 +304,7 @@ int test_ormx_PersonRepository_insert() {
             assert(result_2.value().getEmail()       == expect_email_2);
             assert(result_2.value().getAge().has_value() == 0);
         }
+        app_sp.push(session);
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
@@ -292,15 +315,16 @@ int test_ormx_PersonRepository_insert() {
 int test_MySQLXCreateStrategy() {
     puts("=== test_MySQLXCreateStrategy");
     // TODO セッションはプールしたものを利用すること
-    mysqlx::Session session("localhost", 33060, "derek", "derek1234");
+    // mysqlx::Session session("localhost", 33060, "derek", "derek1234");
+    mysqlx::Session* session = app_sp.pop();
     try {
         std::string expect_name("Togusa");
         std::string expect_email("togusa@loki.org");
         int         expect_age = 36;
         ormx::PersonData togusa(expect_name, expect_email, expect_age);
-        std::unique_ptr<Repository<ormx::PersonData, std::size_t>>        repo = std::make_unique<ormx::PersonRepository>(&session);
+        std::unique_ptr<Repository<ormx::PersonData, std::size_t>>        repo = std::make_unique<ormx::PersonRepository>(session);
         std::unique_ptr<RdbProcStrategy<ormx::PersonData>>        procStrategy = std::make_unique<ormx::MySQLXCreateStrategy<ormx::PersonData, std::size_t>>(repo.get(), togusa);
-        ormx::MySQLXTx tx(&session, procStrategy.get());
+        ormx::MySQLXTx tx(session, procStrategy.get());
         std::optional<ormx::PersonData> result = tx.executeTx();
         assert( result.has_value() == 1 );
         if(result.has_value()) {
@@ -308,6 +332,7 @@ int test_MySQLXCreateStrategy() {
             assert(result.value().getEmail()       == expect_email);
             assert(result.value().getAge().value() == expect_age);
         }
+        app_sp.push(session);
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
@@ -428,6 +453,8 @@ int main(void) {
     if(2.00) {      // 2.00
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_connect());
+        assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_session_pool());
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_insert());
         assert(ret == 0);
