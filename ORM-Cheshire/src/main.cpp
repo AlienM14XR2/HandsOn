@@ -89,6 +89,7 @@ NG 今この中間ファイルでは正しく動作しない、このコンパ�
 #include "MySQLTx.hpp"
 #include "PersonRepository.hpp"
 #include "MySQLXTx.hpp"
+#include "MySQLXCreateStrategy.hpp"
 #include "mysql/jdbc.h"
 #include "mysqlx/xdevapi.h"
 #include <pqxx/pqxx>
@@ -166,7 +167,6 @@ ConnectionPool<sql::Connection> app_cp;
  * 
 */
 
-namespace ormx {
 
 
 
@@ -176,26 +176,7 @@ namespace ormx {
 
 
 
-template<class DATA, class PKEY>
-class MySQLXCreateStrategy final : public RdbProcStrategy<DATA> {
-public:
-    MySQLXCreateStrategy(const Repository<DATA, PKEY>* _repo, const DATA& _data): repo(_repo), data(_data)
-    {}
-    // ...
-    virtual std::optional<DATA> proc() const override {
-        puts("------ ormx::MySQLXCreateStrategy::proc()");
-        try {
-            return repo->insert(data);
-        } catch(std::exception& e) {
-            throw std::runtime_error(e.what());
-        }
-    }
-private:
-    const Repository<DATA, PKEY>* repo;
-    DATA data;
-};
 
-}   // namespace ormx
 
 
 
