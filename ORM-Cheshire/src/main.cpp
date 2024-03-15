@@ -254,15 +254,19 @@ public:
     {}
     // ...
     virtual void begin() const override {
+        puts("------ ormx::MySQLXTx::begin()");
         session->startTransaction();
     }
     virtual void commit() const override {
+        puts("------ ormx::MySQLXTx::commit()");
         session->commit();
     }
     virtual void rollback() const override {
+        puts("------ ormx::MySQLXTx::rollback()");
         session->rollback();
     }
     virtual std::optional<DATA> proc() const override {
+        puts("------ ormx::MySQLXTx::proc()");
         return strategy->proc();
     }
 private:
@@ -277,7 +281,7 @@ public:
     {}
     // ...
     virtual std::optional<DATA> proc() const override {
-        puts("------ MySQLXCreateStrategy::proc()");
+        puts("------ ormx::MySQLXCreateStrategy::proc()");
         try {
             return repo->insert(data);
         } catch(std::exception& e) {
@@ -402,6 +406,35 @@ int test_ormx_PersonRepository_insert() {
     }
 }
 
+int test_MySQLXCreateStrategy() {
+    puts("=== test_MySQLXCreateStrategy");
+    // TODO セッションはプールしたものを利用すること
+    mysqlx::Session session("localhost", 33060, "derek", "derek1234");
+    try {
+        std::string expect_name("Togusa");
+        std::string expect_email("togusa@loki.org");
+        int         expect_age = 36;
+        ormx::PersonData togusa(expect_name, expect_email, expect_age);
+        std::unique_ptr<Repository<ormx::PersonData, std::size_t>>        repo = std::make_unique<ormx::PersonRepository>(&session);
+        std::unique_ptr<RdbProcStrategy<ormx::PersonData>>        procStrategy = std::make_unique<ormx::MySQLXCreateStrategy<ormx::PersonData, std::size_t>>(repo.get(), togusa);
+        ormx::MySQLXTx tx(&session, procStrategy.get());
+        std::optional<ormx::PersonData> result = tx.executeTx();
+        assert( result.has_value() == 1 );
+        if(result.has_value()) {
+            assert(result.value().getName()        == expect_name);
+            assert(result.value().getEmail()       == expect_email);
+            assert(result.value().getAge().value() == expect_age);
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+    /**
+     * これが出来ればまずは OK、CRUD の Create のみを REST-API に導入する手順に入れる。
+     * namespace ormx を宣言と定義（ヘッダとソース）に分離する作業に入る。
+    */
+}
 
 /**
  * libpqxx や X DevAPI はコネクションプールの仕組みは利用できても、先に設計した、トランザクションの仕組みは利用できないと感じた。
@@ -518,6 +551,8 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_tx_insert());
         assert(ret == 1);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_ormx_PersonRepository_insert());
+        assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLXCreateStrategy());
         assert(ret == 0);
     }
     if(0){   // 3.00
