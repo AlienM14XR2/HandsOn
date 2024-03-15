@@ -77,4 +77,36 @@ private:
     std::optional<DataField<int>>         age;
 };
 
+namespace ormx {
+class PersonData {
+public:
+    PersonData(const std::size_t& _id
+                                , const std::string& _name
+                                , const std::string& _email
+                                , const int&         _age
+    );
+    PersonData(const std::size_t& _id
+                            , const std::string& _name
+                            , const std::string& _email
+    );
+    PersonData(const std::string& _name
+                            , const std::string& _email
+                            , const int&         _age
+    );
+    PersonData(const std::string& _name
+                            , const std::string& _email
+    );
+    // ...
+    std::size_t        getId()    const;
+    std::string        getName()  const;
+    std::string        getEmail() const;
+    std::optional<int> getAge()   const;
+private:
+    std::size_t id;
+    std::string name;
+    std::string email;
+    std::optional<int> age;
+};
+}   // namespace ormx
+
 #endif

@@ -173,39 +173,8 @@ namespace ormx {
  * Tx と Repository 、RdbProcStrategy は前のものをそのまま利用できるはず。
 */
 
-class PersonData {
-public:
-    PersonData(const std::size_t& _id
-             , const std::string& _name
-             , const std::string& _email
-             , const int&         _age
-    ): id(_id), name(_name), email(_email), age(_age) 
-    {}
-    PersonData(const std::size_t& _id
-             , const std::string& _name
-             , const std::string& _email
-    ): id(_id), name(_name), email(_email), age(std::nullopt)
-    {}
-    PersonData(const std::string& _name
-            ,  const std::string& _email
-            ,  const int&         _age
-    ): name(_name), email(_email), age(_age)
-    {}
-    PersonData(const std::string& _name
-            ,  const std::string& _email
-    ): name(_name), email(_email), age(std::nullopt)
-    {}
-    // ...
-    std::size_t        getId()    const { return id; }
-    std::string        getName()  const { return name; }
-    std::string        getEmail() const { return email; }
-    std::optional<int> getAge()   const { return age; }
-private:
-    std::size_t id;
-    std::string name;
-    std::string email;
-    std::optional<int> age;
-};
+
+
 
 class PersonRepository final : public Repository<ormx::PersonData, std::size_t> {
 public:

@@ -128,3 +128,36 @@ void                                  PersonData::setDataStrategy(RdbDataStrateg
 void                                  PersonData::setName(DataField<std::string> _name) { name = _name; }
 void                                  PersonData::setEmail(DataField<std::string> _email) { email = _email; }
 void                                  PersonData::setAge(DataField<int> _age) { age = _age; }
+
+
+
+/**
+ * 以下 namespace ormx
+*/
+
+
+ormx::PersonData::PersonData(const std::size_t& _id
+                            , const std::string& _name
+                            , const std::string& _email
+                            , const int&         _age
+): id(_id), name(_name), email(_email), age(_age) 
+{}
+ormx::PersonData::PersonData(const std::size_t& _id
+                            , const std::string& _name
+                            , const std::string& _email
+): id(_id), name(_name), email(_email), age(std::nullopt)
+{}
+ormx::PersonData::PersonData(const std::string& _name
+                            , const std::string& _email
+                            , const int&         _age
+): name(_name), email(_email), age(_age)
+{}
+ormx::PersonData::PersonData(const std::string& _name
+                            , const std::string& _email
+): name(_name), email(_email), age(std::nullopt)
+{}
+// ...
+std::size_t        ormx::PersonData::getId()    const { return id; }
+std::string        ormx::PersonData::getName()  const { return name; }
+std::string        ormx::PersonData::getEmail() const { return email; }
+std::optional<int> ormx::PersonData::getAge()   const { return age; }
