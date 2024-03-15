@@ -79,6 +79,9 @@ private:
 
 namespace ormx {
 class PersonData {
+private:
+    // ダミーとして使うこと
+    PersonData();
 public:
     PersonData(const std::size_t& _id
                                 , const std::string& _name
@@ -97,6 +100,7 @@ public:
                             , const std::string& _email
     );
     // ...
+    static ormx::PersonData dummy();
     std::size_t        getId()    const;
     std::string        getName()  const;
     std::string        getEmail() const;

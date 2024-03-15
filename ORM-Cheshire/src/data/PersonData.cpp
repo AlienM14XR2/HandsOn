@@ -156,7 +156,17 @@ ormx::PersonData::PersonData(const std::string& _name
                             , const std::string& _email
 ): name(_name), email(_email), age(std::nullopt)
 {}
+ormx::PersonData::PersonData():
+    id(0ul)
+    , name("")
+    , email("")
+    , age(0)
+{}
+
 // ...
+ormx::PersonData ormx::PersonData::dummy() {
+    return ormx::PersonData();
+}
 std::size_t        ormx::PersonData::getId()    const { return id; }
 std::string        ormx::PersonData::getName()  const { return name; }
 std::string        ormx::PersonData::getEmail() const { return email; }
