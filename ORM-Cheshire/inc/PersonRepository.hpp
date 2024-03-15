@@ -8,9 +8,10 @@
 #include "RdbDataStrategy.hpp"
 #include "PersonStrategy.hpp"
 #include "sql_generator.hpp"
-#include "/usr/include/mysql-cppconn-8/mysql/jdbc.h"
 #include <optional>
 #include <memory>
+#include "/usr/include/mysql-cppconn-8/mysql/jdbc.h"
+#include "/usr/include/mysql-cppconn-8/mysqlx/xdevapi.h"
 
 /**
  * PersonRepository クラス
@@ -29,5 +30,19 @@ public:
 private:
     const MySQLConnection* con;
 };
+
+namespace ormx {
+class PersonRepository final : public Repository<ormx::PersonData, std::size_t> {
+public:
+    PersonRepository(mysqlx::Session* _session);
+    virtual std::optional<ormx::PersonData> insert(const ormx::PersonData& data) const override;
+    virtual std::optional<ormx::PersonData> update(const ormx::PersonData& data) const override;
+    virtual void                            remove(const std::size_t& pkey)      const override;
+    virtual std::optional<ormx::PersonData> findOne(const std::size_t& pkey)     const override;
+private:
+    mysqlx::Session* session;
+};
+
+}   // namespace ormx
 
 #endif

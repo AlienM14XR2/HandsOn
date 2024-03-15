@@ -133,3 +133,45 @@ std::optional<PersonData> PersonRepository::findOne(const std::size_t& pkey) con
     }
     return std::nullopt;
 }
+
+/**
+ * 以下
+ * namespace ormx
+*/
+
+ormx::PersonRepository::PersonRepository(mysqlx::Session* _session): session(_session)
+{}
+std::optional<ormx::PersonData> ormx::PersonRepository::insert(const ormx::PersonData& data) const
+{
+    puts("------ ormx::PersonRepository::insert()");
+    // 実装
+    mysqlx::Schema cheshire = session->getSchema("cheshire");
+    mysqlx::Table person = cheshire.getTable("person");
+        
+    mysqlx::Result res;
+    if( data.getAge().has_value() ) {
+        res = person.insert("name", "email", "age")
+                    .values(data.getName(), data.getEmail(), data.getAge().value())
+                    .execute();
+        std::cout <<  res.getAutoIncrementValue() << std::endl;     // 最初に Insert したレコードの pkey (AUTO INCREMENT) の値
+        return ormx::PersonData(res.getAutoIncrementValue(), data.getName(), data.getEmail(), data.getAge().value());
+    } else {
+        res = person.insert("name", "email")
+                    .values(data.getName(), data.getEmail())
+                    .execute();
+        std::cout <<  res.getAutoIncrementValue() << std::endl;     // 最初に Insert したレコードの pkey (AUTO INCREMENT) の値
+        return ormx::PersonData(res.getAutoIncrementValue(), data.getName(), data.getEmail());
+    }
+}
+std::optional<ormx::PersonData> ormx::PersonRepository::update(const ormx::PersonData& data) const {
+    // TODO 実装
+    return std::nullopt;
+}
+void ormx::PersonRepository::remove(const std::size_t& pkey) const {
+    // TODO 実装
+}
+std::optional<ormx::PersonData> ormx::PersonRepository::findOne(const std::size_t& pkey) const {
+    // TODO 実装
+    return std::nullopt;        
+}
+

@@ -167,54 +167,12 @@ ConnectionPool<sql::Connection> app_cp;
 
 namespace ormx {
 
-/**
- * 今回最低限必要な概念をクラスにしてみる。
- * 
- * Tx と Repository 、RdbProcStrategy は前のものをそのまま利用できるはず。
-*/
 
 
 
 
-class PersonRepository final : public Repository<ormx::PersonData, std::size_t> {
-public:
-    PersonRepository(mysqlx::Session* _session): session(_session)
-    {}
-    virtual std::optional<ormx::PersonData> insert(const ormx::PersonData& data) const override {
-        puts("------ ormx::PersonRepository::insert()");
-        // TODO 実装
-        mysqlx::Schema cheshire = session->getSchema("cheshire");
-        mysqlx::Table person = cheshire.getTable("person");
-        
-        mysqlx::Result res;
-        if( data.getAge().has_value() ) {
-            res = person.insert("name", "email", "age")
-                        .values(data.getName(), data.getEmail(), data.getAge().value())
-                        .execute();
-            std::cout <<  res.getAutoIncrementValue() << std::endl;     // 最初に Insert したレコードの pkey (AUTO INCREMENT) の値
-            return ormx::PersonData(res.getAutoIncrementValue(), data.getName(), data.getEmail(), data.getAge().value());
-        } else {
-            res = person.insert("name", "email")
-                        .values(data.getName(), data.getEmail())
-                        .execute();
-            std::cout <<  res.getAutoIncrementValue() << std::endl;     // 最初に Insert したレコードの pkey (AUTO INCREMENT) の値
-            return ormx::PersonData(res.getAutoIncrementValue(), data.getName(), data.getEmail());
-        }
-    }
-    virtual std::optional<ormx::PersonData> update(const ormx::PersonData& data) const override {
-        // TODO 実装
-        return std::nullopt;        
-    }
-    virtual void remove(const std::size_t& pkey) const override {
-        // TODO 実装
-    }
-    virtual std::optional<ormx::PersonData> findOne(const std::size_t& pkey) const override {
-        // TODO 実装
-        return std::nullopt;        
-    }
-private:
-    mysqlx::Session* session;
-};
+
+
 
 template <class DATA>
 class MySQLXTx final : public RdbTransaction<DATA> {
