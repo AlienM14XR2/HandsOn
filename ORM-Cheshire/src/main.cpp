@@ -174,24 +174,72 @@ namespace ormx {
 */
 
 class PersonData {
+public:
+    PersonData(const std::size_t& _id
+             , const std::string& _name
+             , const std::string& _email
+             , const int&         _age
+    ): id(_id), name(_name), email(_email), age(_age) 
+    {}
+    PersonData(const std::size_t& _id
+             , const std::string& _name
+             , const std::string& _email
+    ): id(_id), name(_name), email(_email), age(std::nullopt)
+    {}
+    PersonData(const std::string& _name
+            ,  const std::string& _email
+            ,  const int&         _age
+    ): name(_name), email(_email), age(_age)
+    {}
+    PersonData(const std::string& _name
+            ,  const std::string& _email
+    ): name(_name), email(_email), age(std::nullopt)
+    {}
+    // ...
+    std::size_t        getId()    const { return id; }
+    std::string        getName()  const { return name; }
+    std::string        getEmail() const { return email; }
+    std::optional<int> getAge()   const { return age; }
+private:
+    std::size_t id;
+    std::string name;
+    std::string email;
+    std::optional<int> age;
 };
 
-class PersonRepository final : public Repository<PersonData, std::size_t> {
+class PersonRepository final : public Repository<ormx::PersonData, std::size_t> {
 public:
     PersonRepository(mysqlx::Session* _session): session(_session)
     {}
-    virtual std::optional<PersonData> insert(const PersonData& data) const override {
+    virtual std::optional<ormx::PersonData> insert(const ormx::PersonData& data) const override {
+        puts("------ ormx::PersonRepository::insert()");
         // TODO 実装
-        return std::nullopt;
+        mysqlx::Schema cheshire = session->getSchema("cheshire");
+        mysqlx::Table person = cheshire.getTable("person");
+        
+        mysqlx::Result res;
+        if( data.getAge().has_value() ) {
+            res = person.insert("name", "email", "age")
+                        .values(data.getName(), data.getEmail(), data.getAge().value())
+                        .execute();
+            std::cout <<  res.getAutoIncrementValue() << std::endl;     // 最初に Insert したレコードの pkey (AUTO INCREMENT) の値
+            return ormx::PersonData(res.getAutoIncrementValue(), data.getName(), data.getEmail(), data.getAge().value());
+        } else {
+            res = person.insert("name", "email")
+                        .values(data.getName(), data.getEmail())
+                        .execute();
+            std::cout <<  res.getAutoIncrementValue() << std::endl;     // 最初に Insert したレコードの pkey (AUTO INCREMENT) の値
+            return ormx::PersonData(res.getAutoIncrementValue(), data.getName(), data.getEmail());
+        }
     }
-    virtual std::optional<PersonData> update(const PersonData& data) const override {
+    virtual std::optional<ormx::PersonData> update(const ormx::PersonData& data) const override {
         // TODO 実装
         return std::nullopt;        
     }
     virtual void remove(const std::size_t& pkey) const override {
         // TODO 実装
     }
-    virtual std::optional<PersonData> findOne(const std::size_t& pkey) const override {
+    virtual std::optional<ormx::PersonData> findOne(const std::size_t& pkey) const override {
         // TODO 実装
         return std::nullopt;        
     }
@@ -224,10 +272,8 @@ private:
 
 }   // namespace ormx
 
-/**
- * 細かな疑問がある、Tx は スキーマやテーブルの取得前に startTransaction() できるのか？
- * これをハッキリさせないと、Tx の流用が可能なのか分からない。
-*/
+
+
 
 
 int test_mysqlx_insert() {
@@ -261,7 +307,11 @@ int test_mysqlx_insert() {
     }
 }
 
+
 /**
+ * 細かな疑問がある、Tx は スキーマやテーブルの取得前に startTransaction() できるのか？
+ * これをハッキリさせないと、Tx の流用が可能なのか分からない。
+ * 
  * mysql> use information_schema;
  * mysql> select table_schema, table_name, engine from tables where table_name = 'person';
  * 
@@ -296,7 +346,29 @@ throw std::runtime_error("It's rollback test.");
     }
 }
 
-
+int test_ormx_PersonRepository_insert() {
+    puts("=== test_ormx_PersonRepository_insert");
+    // TODO セッションはプールしたものを利用すること
+    mysqlx::Session session("localhost", 33060, "derek", "derek1234");
+    try {
+        std::string expect_name("Major");
+        std::string expect_email("major@loki.org");
+        int         expect_age = 24;
+        ormx::PersonData major(expect_name, expect_email, expect_age);
+        ormx::PersonRepository repo(&session);
+        std::optional<ormx::PersonData> result = repo.insert(major);
+        assert( result.has_value() == 1 );
+        if(result.has_value()) {
+            assert(result.value().getName() == expect_name);
+            assert(result.value().getEmail() == expect_email);
+            assert(result.value().getAge().value() == expect_age);
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 
 /**
@@ -413,6 +485,8 @@ int main(void) {
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_tx_insert());
         assert(ret == 1);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_ormx_PersonRepository_insert());
+        assert(ret == 0);
     }
     if(0){   // 3.00
         auto ret = 0;
