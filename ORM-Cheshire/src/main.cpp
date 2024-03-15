@@ -359,9 +359,22 @@ int test_ormx_PersonRepository_insert() {
         std::optional<ormx::PersonData> result = repo.insert(major);
         assert( result.has_value() == 1 );
         if(result.has_value()) {
-            assert(result.value().getName() == expect_name);
-            assert(result.value().getEmail() == expect_email);
+            // PersonRepository の内部で findOne は実行していない。
+            assert(result.value().getName()        == expect_name);
+            assert(result.value().getEmail()       == expect_email);
             assert(result.value().getAge().value() == expect_age);
+        }
+
+        std::string expect_name_2("Batou");
+        std::string expect_email_2("batou@loki.org");
+        ormx::PersonData batou(expect_name_2, expect_email_2);
+        std::optional<ormx::PersonData> result_2 = repo.insert(batou);
+        assert( result_2.has_value() == 1 );
+        if(result.has_value()) {
+            // PersonRepository の内部で findOne は実行していない。
+            assert(result_2.value().getName()        == expect_name_2);
+            assert(result_2.value().getEmail()       == expect_email_2);
+            assert(result_2.value().getAge().has_value() == 0);
         }
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
