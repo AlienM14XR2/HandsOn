@@ -168,7 +168,7 @@ ConnectionPool<sql::Connection> app_cp;
  * sql::Connection ではなく mysqlx::Session をプールするものが必要。
 */
 
-ConnectionPool<mysqlx::Session> app_sp("mysql::Session.");     // アプリケーションのセッションプール
+ConnectionPool<mysqlx::Session> app_sp("mysqlx::Session.");     // アプリケーションのセッションプール
 
 void mysqlx_session_pool(const std::string& server, const int& port, const std::string& user, const std::string& passwd, const int& sum) {
     puts("=== mysqlx_session_pool");
