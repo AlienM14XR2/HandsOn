@@ -458,7 +458,122 @@ int test_pqxx_rollback() {
     }
 }
 
+/**
+ * 私が当初考えた仕組みに合わせて pqxx を利用したデータアクセスの実装を進めてみる。
+ * 最初はコメントコーディングで必要な概念を列挙する。
+*/
 
+// CREATE TABLE company ( id BIGINT NOT NULL PRIMARY KEY, name VARCHAR(128) NOT NULL, address VARCHAR(256) NOT NULL );
+// Table（campany）
+
+class CompanyData {
+public:
+    CompanyData(const std::size_t& _id, const std::string& _name, const std::string& _address) : id(_id), name(_name), address(_address)
+    {}
+    // ...
+    std::size_t getId()      const { return id; }
+    std::string getName()    const { return name; }
+    std::string getAddress() const { return address; }
+private:
+    std::size_t id;
+    std::string name;
+    std::string address;
+};
+
+
+// Repository の派生クラス
+
+class CompanyRepository final : public Repository<CompanyData, std::size_t> {
+public:
+    virtual std::optional<CompanyData> insert(const CompanyData& data)   const override
+    {
+        // TODO 実装
+        return std::nullopt;
+    }
+    virtual std::optional<CompanyData> update(const CompanyData&)   const override
+    {
+        // TODO 実装
+        return std::nullopt;
+    }
+    virtual void remove(const std::size_t&)   const override
+    {
+        // TODO 実装
+    }
+    virtual std::optional<CompanyData> findOne(const std::size_t&)  const override
+    {
+        // TODO 実装
+        return std::nullopt;
+    }
+
+};
+
+
+// RdbTransaction の派生クラス
+
+template <class DATA>
+class PGSQLTx final : public RdbTransaction<DATA> {
+public:
+    PGSQLTx(pqxx::work* _tx, const RdbProcStrategy<DATA>* _strategy): tx(_tx), strategy(_strategy)
+    {}
+    virtual void begin()    const override
+    {
+        puts("------ PGSQLTx::begin()");
+        // none.
+    }
+    virtual void commit()   const override
+    {
+        puts("------ PGSQLTx::commit()");
+        tx->commit();
+    }
+    virtual void rollback() const override
+    {
+        puts("------ PGSQLTx::rollback()");
+        // none. pqxx::work は例外が発生して commit() が呼ばれなければ、勝手に rollback するという認識です（間違ってるかも：）。
+    }
+    virtual std::optional<DATA> proc() const override
+    {
+        puts("------ PGSQLTx::proc()");
+        return strategy->proc();
+    }
+private:
+    pqxx::work* tx;
+    const RdbProcStrategy<DATA>* strategy;
+};
+
+// RdbProcStrategy の派生クラス（Create）
+
+template<class DATA, class PKEY>
+class PGSQLCreateStrategy final : public RdbProcStrategy<DATA> {
+public:
+    PGSQLCreateStrategy(const Repository<DATA, PKEY>* _repo, const DATA& _data): repo(_repo), data(_data)
+    {}
+    virtual std::optional<DATA> proc() const override
+    {
+        puts("------ PGSQLCreateStrategy::proc()");
+        try {
+            return repo->insert(data);
+        } catch(std::exception& e) {
+            throw std::runtime_error(e.what());
+        }
+    }
+private:
+    const Repository<DATA, PKEY>* repo;
+    DATA data;
+
+};
+
+/**
+ * 時間を置いてから見直しても、いい設計だと思う。
+ * テーブルに関するクラスは絶対に必要、リポジトリも然り。
+ * その中で、CRUD の共通項を取り出し、それをトランザクションに当てはめる設計。
+ * RdbProcStrategy は CRUD の数分、つまり 4 つ定義すれば、すべてのリポジトリ
+ * に対応でき、データの型にも左右されない。制約は、RDBMS 単位で必要という点。
+ * 自画自賛か：）できればね、Spring Data のように Proxy ですべて動的にリポジ
+ * トリ及び 最低限の CRUD を自動生成させたいよね。インタフェースの定義だけで
+ * 実態は Proxy のクラスという仕組み、今度はこれを考えてみようかな。これは、
+ * Proxy パターンなのだろうか。C++ でのコードの自動生成ということになるんだ
+ * よな、きっと、違うのかな。あぁ、話が逸れた。
+*/
 
 
 
