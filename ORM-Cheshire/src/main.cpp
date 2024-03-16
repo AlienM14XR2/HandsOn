@@ -365,7 +365,7 @@ int test_pqxx_create_table() {
         const char* createAnimalTableSql = R"(
             CREATE TABLE animal ( 
                 id BIGINT NOT NULL PRIMARY KEY
-                , name VARCHAR(128) NOT NULL 
+                , name VARCHAR(128) NOT NULL UNIQUE 
             )
         )";
         const char* createCompanyTableSql = R"(
@@ -402,7 +402,59 @@ int test_pqxx_create_table() {
     }
 }
 
+int test_pqxx_sql_injection() {
+    puts("=== test_pqxx_sql_injection");
+    try {
+        pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
+        pqxx::work tx{con};
+        long nextId = tx.query_value<int>(
+            "SELECT nextval('table_id_seq')"
+        );
+        std::string expect_name(";DROP Table company;");
+        std::string sql("INSERT INTO animal (id, name) values (");
+        sql.append(std::to_string(nextId)).append(", '").append(expect_name).append("')");
+        ptr_lambda_debug<const char*, const std::string&>("sql: ", sql);
+        tx.exec0(sql);
+        tx.commit();
+        /**
+         * これで company が消えなければ、SQL Injection の対策は pqxx で対処している。
+         * といえるのかな。
+        */
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
+int test_pqxx_rollback() {
+    puts("=== test_pqxx_rollback");
+    try {
+        pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
+        pqxx::work tx{con};
+        long nextId = tx.query_value<int>(
+            "SELECT nextval('table_id_seq')"
+        );
+        std::string expect_name("Little DOG");
+        std::string sql("INSERT INTO animal (id, name) values (");
+        sql.append(std::to_string(nextId)).append(", '").append(expect_name).append("')");
+        ptr_lambda_debug<const char*, const std::string&>("sql: ", sql);
+        tx.exec0(sql);
+        throw std::runtime_error("It's pqxx rollback test.");   // コミット前にランタイム・エラーを発生させる。
+        tx.commit();
+        /**
+         * commit() を明示的に行わなければ、テーブルには反映されない。
+        */
+        return EXIT_SUCCESS;
+    } catch(pqxx::sql_error& e) {
+        std::cerr << "SQL error: " << e.what() << std::endl;
+        std::cerr << "Query was: " << e.query() << std::endl;
+        return EXIT_FAILURE;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 
 
@@ -534,6 +586,10 @@ int main(void) {
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_pqxx_resultset());
         assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_pqxx_sql_injection());
+        assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_pqxx_rollback());
+        assert(ret == 1);
     }
     puts("===   Lost Chapter O/R Mapping END");
     return 0;
