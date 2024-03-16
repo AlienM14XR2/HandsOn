@@ -410,7 +410,9 @@ int test_pqxx_sql_injection() {
         long nextId = tx.query_value<int>(
             "SELECT nextval('table_id_seq')"
         );
-        std::string expect_name(";DROP Table company;");
+        // コンソールで次を実行すると、DROP も成功する。
+        // INSERT INTO animal (id, name) values (20, '');DROP Table company;');
+        std::string expect_name("');DROP Table company;");
         std::string sql("INSERT INTO animal (id, name) values (");
         sql.append(std::to_string(nextId)).append(", '").append(expect_name).append("')");
         ptr_lambda_debug<const char*, const std::string&>("sql: ", sql);
@@ -587,7 +589,7 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_pqxx_resultset());
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_pqxx_sql_injection());
-        assert(ret == 0);
+        assert(ret == 1);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_pqxx_rollback());
         assert(ret == 1);
     }
