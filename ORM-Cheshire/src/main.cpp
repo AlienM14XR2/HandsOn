@@ -193,16 +193,6 @@ int test_mysqlx_session_pool() {
     }
 }
 
-
-
-
-
-
-
-
-
-
-
 int test_mysqlx_insert() {
     puts("=== test_mysqlx_insert");
     std::clock_t start_1 = clock();
@@ -348,7 +338,76 @@ int test_MySQLXCreateStrategy() {
  * libpqxx や X DevAPI はコネクションプールの仕組みは利用できても、先に設計した、トランザクションの仕組みは利用できないと感じた。
  * （使ってもいいが、いらないという意味）Too Much なものになってしまうから。
  * リポジトリは同様に定義できてもそれを利用するのは Tx ではなく、サービスになると思う。今回の Lost Chapter はこれで終了とする。
+ * 
+ * うん、前言撤回だ、O\R Mapping としてどこまでできるのか、PostgreSQL でも極力 MySQL と同じインタフェースで行けるのか、自分の設計
+ * が間違っていないのか、それを確かめなければ、C++ の学習としては不完全だと感じた。MySQL は jdbc.h、xdevapi.h 双方に対応できたの
+ * だから、できるところまでやってみる。
+ * 余談だが、MySQL は xdevapi.h（mysqlx） を利用し Nginx + FastCGI の構成で、person Table に INSERT する API で 1 ミリ秒を切ること
+ * が、この旧式マシンでも確認できた。PostgreSQL では REST API は用意するつもりはない。
+ * 
+ * では、pqxx のトランザクションの調査からはじめる。
+ * pqxx::work に commit() はあるが、begin() と rollback() が見当たらない。
+ * https://pqxx.org/development/libpqxx/
+ * 公式のリファレスンスでも begin rollback が見当たらない：）
+ * 実験するのが手っ取り早いかな。
+ * 
+ * 段階的に確認する。
+ * - CREATE TABLE を コーディングする（テストを楽にするため）
+ * - SQL インジェクションの可否
+ * - Tx の確認
 */
+
+int test_pqxx_create_table() {
+    try {
+        puts("=== test_pqxx_create_table");
+        pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
+        pqxx::work tx{con};
+        const char* createAnimalTableSql = R"(
+            CREATE TABLE animal ( 
+                id BIGINT NOT NULL PRIMARY KEY
+                , name VARCHAR(128) NOT NULL 
+            )
+        )";
+        const char* createCompanyTableSql = R"(
+            CREATE TABLE company ( 
+                id BIGINT NOT NULL PRIMARY KEY
+                , name VARCHAR(128) NOT NULL
+                , address VARCHAR(256) NOT NULL 
+            )
+        )";
+        const char* createSequenceSql       = R"(CREATE SEQUENCE table_id_seq)";
+        const char* dropAnimalTableSql      = R"(DROP TABLE IF EXISTS animal)";
+        const char* dropCompanyTableSql     = R"(DROP TABLE IF EXISTS company)";
+        const char* dropSequenceSql         = R"(DROP SEQUENCE IF EXISTS table_id_seq)";
+        const char* insertSql               = R"(INSERT INTO animal (id, name) values (0, 'Lion'))";
+        std::string sql = dropSequenceSql;
+        tx.query(sql);
+        sql             = dropAnimalTableSql;
+        tx.query(sql);
+        sql             = dropCompanyTableSql;
+        tx.query(sql);
+        sql             = createAnimalTableSql;
+        tx.query(sql);
+        sql             = createCompanyTableSql;
+        tx.query(sql);
+        sql             = createSequenceSql;
+        tx.query(sql);
+        sql             = insertSql;
+        tx.exec0(sql);
+        tx.commit();
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+
+
+
+
+
+
 
 /**
  * 全くの別件だが、今回いろいろ C++ のビルド周りを調べた際に次のような情報を見つけた。
@@ -450,7 +509,7 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLTx_Delete(insId.get()));
         assert(ret == 0);
     }
-    if(2.00) {      // 2.00
+    if(0) {      // 2.00
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_connect());
         assert(ret == 0);
@@ -465,8 +524,10 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLXCreateStrategy());
         assert(ret == 0);
     }
-    if(0){   // 3.00
+    if(3.00){   // 3.00
         auto ret = 0;
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_pqxx_create_table());
+        assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_pqxx_connect());
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_pqxx_insert());
