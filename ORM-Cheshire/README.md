@@ -178,6 +178,40 @@ drwxr-xr-x  2 root root 4.0K  3月  6 07:25 pkgconfig
 
 sudo -u postgres psql
 
+## mongo-cxx-driver
+
+@see https://www.mongodb.com/docs/languages/cpp/drivers/current/installation/linux/#std-label-cpp-installation-linux
+
+r3.10.1 現時点（2024-03-16）での最新バージョン
+
+```
+curl -OL https://github.com/mongodb/mongo-cxx-driver/releases/download/r3.10.1/mongo-cxx-driver-r3.10.1.tar.gz
+
+tar -xzf mongo-cxx-driver-r3.10.1.tar.gz
+cd mongo-cxx-driver-r3.10.1/build
+```
+
+```
+cmake ..                                \
+    -DCMAKE_BUILD_TYPE=Release          \
+    -DMONGOCXX_OVERRIDE_DEFAULT_INSTALL_PREFIX=OFF
+```
+
+```
+cmake --build .
+sudo cmake --build . --target install
+```
+
+最終的に次のような出力になった。
+
+```
+-- Installing: /usr/local/lib/libmongocxx.so
+-- Installing: /usr/local/lib/pkgconfig/libmongocxx.pc  // これを見れば詳細が分かるかも。
+-- Installing: /usr/local/share/mongo-cxx-driver/LICENSE
+-- Installing: /usr/local/share/mongo-cxx-driver/README.md
+-- Installing: /usr/local/share/mongo-cxx-driver/THIRD-PARTY-NOTICES
+-- Installing: /usr/local/share/mongo-cxx-driver/uninstall.sh
+```
 
 
 ## OSS ORM
