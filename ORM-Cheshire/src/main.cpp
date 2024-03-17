@@ -488,7 +488,7 @@ private:
 
 // Repository の派生クラス
 
-class CompanyRepository final : public Repository<CompanyData, std::size_t> {
+class CompanyRepository final : public Repository<CompanyData, long> {
 public:
     CompanyRepository(pqxx::work* _tx): tx(_tx)
     {}
@@ -512,11 +512,11 @@ public:
         // TODO 実装
         return std::nullopt;
     }
-    virtual void remove(const std::size_t&)   const override
+    virtual void remove(const long&)   const override
     {
         // TODO 実装
     }
-    virtual std::optional<CompanyData> findOne(const std::size_t&)  const override
+    virtual std::optional<CompanyData> findOne(const long&)  const override
     {
         // TODO 実装
         return std::nullopt;
@@ -598,6 +598,33 @@ int test_CompanyRepository_insert() {
     }
 }
 
+int test_PGSQLTx_Create() {
+    puts("=== test_PGSQLTx_Create");
+    try {
+        pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
+        std::clock_t start = clock();
+        pqxx::work tx{con};
+
+        std::string expectName    = "LOKI co.,ltd";
+        std::string expectAddress = "Tokyo, Japan.";
+        CompanyData data(0u, expectName, expectAddress);
+        std::unique_ptr<Repository<CompanyData, long>> repo = std::make_unique<CompanyRepository>(&tx);
+        std::unique_ptr<RdbProcStrategy<CompanyData>> strategy = std::make_unique<PGSQLCreateStrategy<CompanyData, long>>(repo.get(), data);
+        PGSQLTx<CompanyData> pgtx(&tx, strategy.get());
+        std::optional<CompanyData> result = pgtx.executeTx();
+        assert(result.has_value() == true);
+        if(result.has_value()) {
+            assert(result.value().getName()    == expectName);
+            assert(result.value().getAddress() == expectAddress);
+        }
+        std::clock_t end = clock();
+        std::cout << "passed " << (double)(end-start)/CLOCKS_PER_SEC << " sec." << std::endl;
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 /**
  * 時間を置いてから見直しても、いい設計だと思う。
@@ -745,6 +772,8 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_pqxx_rollback());
         assert(ret == 1);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_CompanyRepository_insert());
+        assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_PGSQLTx_Create());
         assert(ret == 0);
     }
     puts("===   Lost Chapter O/R Mapping END");
