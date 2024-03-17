@@ -458,6 +458,11 @@ int test_pqxx_rollback() {
     }
 }
 
+
+
+
+
+
 /**
  * 私が当初考えた仕組みに合わせて pqxx を利用したデータアクセスの実装を進めてみる。
  * 最初はコメントコーディングで必要な概念を列挙する。
@@ -468,14 +473,14 @@ int test_pqxx_rollback() {
 
 class CompanyData {
 public:
-    CompanyData(const std::size_t& _id, const std::string& _name, const std::string& _address) : id(_id), name(_name), address(_address)
+    CompanyData(const long& _id, const std::string& _name, const std::string& _address) : id(_id), name(_name), address(_address)
     {}
     // ...
-    std::size_t getId()      const { return id; }
+    long getId()      const { return id; }
     std::string getName()    const { return name; }
     std::string getAddress() const { return address; }
 private:
-    std::size_t id;
+    long id;
     std::string name;
     std::string address;
 };
@@ -485,10 +490,22 @@ private:
 
 class CompanyRepository final : public Repository<CompanyData, std::size_t> {
 public:
+    CompanyRepository(pqxx::work* _tx): tx(_tx)
+    {}
     virtual std::optional<CompanyData> insert(const CompanyData& data)   const override
     {
-        // TODO 実装
-        return std::nullopt;
+        // 実装
+        puts("------ CompanyRepository::insert()");
+        // 次のクエリは 今後、DRY の原則に引っかかると思われる。
+        long nextId = tx->query_value<long>(
+            "SELECT nextval('table_id_seq')"
+        );
+        std::string sql("INSERT INTO company (id, name, address) values (");
+        sql.append(std::to_string(nextId)).append(", '").append(data.getName()).append("', '").append(data.getAddress()).append("')");
+        ptr_lambda_debug<const char*, const std::string&>("sql: ", sql);
+        tx->exec0(sql);
+        CompanyData result(nextId, data.getName(), data.getAddress());
+        return result;
     }
     virtual std::optional<CompanyData> update(const CompanyData&)   const override
     {
@@ -504,7 +521,8 @@ public:
         // TODO 実装
         return std::nullopt;
     }
-
+private:
+    pqxx::work* tx;
 };
 
 
@@ -561,6 +579,25 @@ private:
     DATA data;
 
 };
+
+int test_CompanyRepository_insert() {
+    puts("=== test_CompanyRepository_insert");
+    try {
+        pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
+        pqxx::work tx{con};
+
+        CompanyData data(0u, "ACB 総研", "東京都");
+        CompanyRepository repo(&tx);
+        std::optional<CompanyData> ret = repo.insert(data);
+        tx.commit();
+        assert( ret.has_value() == true );
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 
 /**
  * 時間を置いてから見直しても、いい設計だと思う。
@@ -707,6 +744,8 @@ int main(void) {
         assert(ret == 1);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_pqxx_rollback());
         assert(ret == 1);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_CompanyRepository_insert());
+        assert(ret == 0);
     }
     puts("===   Lost Chapter O/R Mapping END");
     return 0;

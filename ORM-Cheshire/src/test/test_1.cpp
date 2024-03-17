@@ -579,7 +579,7 @@ int test_pqxx_insert() {
         pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
         std::clock_t start_2 = clock();
         pqxx::work tx{con};
-        long nextId = tx.query_value<int>(
+        long nextId = tx.query_value<long>(
             "SELECT nextval('table_id_seq')"
         );
         std::string expect_name("Cerberus");
