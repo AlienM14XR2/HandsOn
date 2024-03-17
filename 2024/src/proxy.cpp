@@ -11,6 +11,8 @@
 #include <iostream>
 #include <cassert>
 #include <chrono>
+#include <map>
+#include <vector>
 
 template <typename M, typename D>
 void (*ptr_debug)(M, D) = [](const auto message, const auto debug) -> void {
@@ -78,8 +80,44 @@ public:
  * 
  * 具体的な処理は MySQL のドライバや PostgreSQL のドライバになるので、それはひとまず別もの
  * として考えておく。
+ * 
+ * 突き詰めれば、Key（カラム名）と Value（その値）の Map でいいのかな。
+ * mysqlx を例に具体的な試作を行ってみる。
+ * 
+ * mysqlx::Result res = person.insert("name", "email", "age")               // Key
+ *                 .values("Jabberwocky", "Jabberwocky@loki.org", nullptr)  // Value、 RDBMS で NULL を許可している場合は、Key にとともに含めなければいい。
+ *                 .execute();
+ * 
 */
 
+/**
+ * C++ で map を使ってみる
+ * 
+ * std::map
+*/
+
+int test_map() {
+    puts("=== test_map");
+    try {
+        std::vector<std::string> keys;
+        std::map<std::string, std::string> m {
+            {"id", "33"}
+            , {"name", "ABC"}
+            , {"address", "N.Y."}
+        };
+        for(const auto& obj: m) {
+            std::cout << obj.first << ", " << obj.second << std::endl;
+            keys.emplace_back(obj.first);
+        }
+        for(const auto& key: keys) {
+            ptr_debug<const char*, const decltype(key)&>("key is ", key);
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 
 int main(void) 
@@ -88,6 +126,11 @@ int main(void)
     if(0.01) {
         auto ret = 0;
         ptr_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_debug_error());
+        assert(ret == 0);
+    }
+    if(1.00) {
+        auto ret = 0;
+        ptr_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_map());
         assert(ret == 0);
     }
     puts("=== Proxy パターン（であっているのかそれは分からない） END");
