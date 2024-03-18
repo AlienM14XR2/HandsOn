@@ -227,6 +227,30 @@ int test_mysqlx_insert() {
     }
 }
 
+int test_mysqlx_update() {
+    puts("=== test_mysqlx_update");
+    try {
+        // std::optional<int> age = std::nullopt;
+        // // やっぱり次のはエラーになるのか。
+        // std::cout <<  age.value() << std::endl;
+        
+        mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+        mysqlx::Schema db = sess.getSchema("cheshire");
+        mysqlx::Table person = db.getTable("person");
+        person.update()
+                .set("name", "FOO").set("email", "foo@loki.org").set("age", 3)
+                .where("id = 8")
+                .execute();
+        person.update()
+                .set("name", "FOO").set("email", "foo@loki.org").set("age", 3)
+                .where("id = ;DELETE FROM person;")
+                .execute();
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 /**
  * 細かな疑問がある、Tx は スキーマやテーブルの取得前に startTransaction() できるのか？
@@ -759,6 +783,8 @@ int main(void) {
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLXCreateStrategy());
         assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_update());
+        assert(ret == 1);
     }
     if(0){   // 3.00
         auto ret = 0;
