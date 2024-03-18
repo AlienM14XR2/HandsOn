@@ -275,6 +275,34 @@ int test_mysqlx_select() {
     }
 }
 
+int test_mysqlx_delete() {
+    puts("=== test_mysqlx_delete");
+    try {
+        mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+        mysqlx::Schema db = sess.getSchema("cheshire");
+        mysqlx::Table person = db.getTable("person");
+
+        person.remove().where("id = 8").execute();
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+/**
+ * C++ でどれくらい自分が設計、コーディングができるのかという点に注力してきたので
+ * 実際の mysql/jdbc.h や mysqlx/xdevapi.h の違いを深く考えずにきた。問題にした点
+ * は実行速度であり、その内部の作りや、使い方ではなかった。ただ mysqlx は ビルダ
+ * パターン？ で SQL を構築するので、もし、素の SQL 文がそのまま利用することができ
+ * ないと、複雑なSQL の構築には手を焼くのではないのかという疑念がある。私は DBA で
+ * はないので、SQL に関しては大して知見はないが、SQL の肝は SELECT 文にあると思う。
+ * タスクの大半はその実装になることもある、そう考えると、更新系は xdevapi.h 検索系
+ * は jdbc.h という使い方もあり得るのか、それとも xdevapi.h ですべて賄えるのか。
+ * この点は、よくよく検証する必要があるだろう。まぁ本気で利用するなら。
+*/
+
+
 /**
  * 細かな疑問がある、Tx は スキーマやテーブルの取得前に startTransaction() できるのか？
  * これをハッキリさせないと、Tx の流用が可能なのか分からない。
@@ -809,6 +837,8 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_update());
         assert(ret == 1);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_select());
+        assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_delete());
         assert(ret == 0);
     }
     if(0){   // 3.00
