@@ -63,8 +63,10 @@ template <class DATA>
 class MySQLXData {
 public:
     virtual ~MySQLXData() = default;
-    virtual DATA insertQuery(mysqlx::Session*) const = 0;
-    virtual DATA updateQuery(mysqlx::Session*) const = 0;
+    virtual DATA insertQuery(mysqlx::Session*)  const = 0;
+    virtual DATA findOneQuery(mysqlx::Session*) const = 0;
+    virtual DATA updateQuery(mysqlx::Session*)  const = 0;
+    virtual void removeQuery(mysqlx::Session*)  const = 0;
 };
 
 class PersonData final : public MySQLXData<PersonData> {
@@ -110,31 +112,77 @@ public:
         puts("------ PersonData::insertQuery()");
         mysqlx::Schema db = sess->getSchema("cheshire");
         mysqlx::Table person = db.getTable("person");
-        mysqlx::Result res = person.insert("name", "email", "age")
-                                    .values(name, email, age.value())
-                                    .execute();
+        mysqlx::TableInsert tblIns = person.insert("name", "email", "age");
+        mysqlx::Result res;
+        if(age.has_value()) {
+            res = tblIns.values(name, email, age.value()).execute();
+        } else {
+            res = tblIns.values(name, email, nullptr).execute();
+        }                 
         PersonData result(res.getAutoIncrementValue(), name, email);
         if(age.has_value()){
             result.setAge(age.value());
         }
         return result;
     }
-
-    virtual PersonData updateQuery(mysqlx::Session* sess) const override
+    virtual PersonData findOneQuery(mysqlx::Session* sess) const override
     {
-        puts("------ PersonData::updateQuery()");
-        // TODO 実装
+        puts("------ PersonData::findOneQuery()");
         mysqlx::Schema db = sess->getSchema("cheshire");
         mysqlx::Table person = db.getTable("person");
         std::string cond("id = ");
         cond.append(std::to_string(id));
-        // person.update("name", "email", "age").where(cond)
+
+        mysqlx::RowResult rowRes = person.select("name", "email" , "age").where(cond).execute();
+        std::string r_name;
+        std::string r_email;
+        std::optional<int> r_age = std::nullopt;
+        for(auto d: rowRes) {
+            std::cout << d.get(0) << '\t' << d.get(1) << '\t' << d.get(2) << std::endl;
+            r_name  = d.get(0).get<std::string>();
+            r_email = d.get(1).get<std::string>();
+            if(!d.get(2).isNull()) {
+                r_age = d.get(2).get<int>();
+            }
+        }
+        if(r_age.has_value()) {
+            return PersonData(id, r_name, r_email, r_age.value());
+        } else {
+            return PersonData(id, r_name, r_email);
+        }
+    }
+    virtual PersonData updateQuery(mysqlx::Session* sess) const override
+    {
+        puts("------ PersonData::updateQuery()");
+        mysqlx::Schema db = sess->getSchema("cheshire");
+        mysqlx::Table person = db.getTable("person");
+        std::string cond("id = ");
+        cond.append(std::to_string(id));
+
+        if(age.has_value()) {
+            person.update().set("name", name).set("email", email).set("age", age.value())
+                    .where(cond).execute();
+        } else {
+            person.update().set("name", name).set("email", email)
+                    .where(cond).execute();
+        }
+
         PersonData result(id, name, email);
         if(age.has_value()){
             result.setAge(age.value());
         }
         return result;
     }
+    virtual void removeQuery(mysqlx::Session* sess)  const override
+    {
+        mysqlx::Schema db = sess->getSchema("cheshire");
+        mysqlx::Table person = db.getTable("person");
+        std::string cond("id = ");
+        cond.append(std::to_string(id));
+
+        person.remove().where(cond).execute();
+    }
+
 
     std::size_t getId()         const { return id; }
     std::string getName()       const { return name; }
@@ -173,10 +221,24 @@ public:
         const MySQLXData<DATA>* pdata = static_cast<const DATA*>(&data);
         return pdata->insertQuery(session);
     }
-    // virtual DATA update(const DATA&)  const
-    // {
-    //     puts("------ MySQLXBasicRepository::update()");
-    // }
+    virtual DATA update(const DATA& data)  const
+    {
+        puts("------ MySQLXBasicRepository::update()");
+        const MySQLXData<DATA>* pdata = static_cast<const DATA*>(&data);
+        return pdata->updateQuery(session);
+    }
+    virtual DATA findOne(const DATA& data) const
+    {
+        puts("------ MySQLXBasicRepository::findOne()");
+        const MySQLXData<DATA>* pdata = static_cast<const DATA*>(&data);
+        return pdata->findOneQuery(session);
+    }
+    virtual void remove(const DATA& data) const
+    {
+        puts("------ MySQLXBasicRepository::remove()");
+        const MySQLXData<DATA>* pdata = static_cast<const DATA*>(&data);
+        return pdata->removeQuery(session);
+    }
     /**
      * 単なるテンプレート型に過ぎない DATA をどのようにインスタンス化するのか。
      * これが、できない限り私が望む理想的な Proxy にはならない。
@@ -198,20 +260,23 @@ private:
     mysqlx::Session* session;
 };
 
-int test_MySQLXBasicRepository_insert() {
+int test_MySQLXBasicRepository_insert(std::size_t* pkey) {
     puts("=== test_MySQLXBasicRepository_insert");
     try {
         std::string expectName("Alice_01");
         std::string expectEmail("alice_01@loki.org");
-        int expectAge = 12;
-        PersonData alice(expectName, expectEmail, expectAge);
+        // int expectAge = 12;
+        // PersonData alice(expectName, expectEmail, expectAge);
+        PersonData alice(expectName, expectEmail);
         mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
 
         MySQLXBasicRepository<PersonData> basicRepo(&sess);
         PersonData ret = basicRepo.insert(alice);
+        ptr_debug<const char*, const std::size_t&>("id is ", ret.getId());
         assert(ret.getName()        == expectName);
         assert(ret.getEmail()       == expectEmail);
-        assert(ret.getAge().value() == expectAge);
+        // assert(ret.getAge().value() == expectAge);
+        *pkey = ret.getId();
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_error<const decltype(e)&>(e);
@@ -219,6 +284,52 @@ int test_MySQLXBasicRepository_insert() {
     }
 }
 
+int test_MySQLXBasicRepository_update(std::size_t* pkey) {
+    puts("=== test_MySQLXBasicRepository_update");
+    try {
+        std::string expectName("ALICE_02");
+        std::string expectEmail("alice_02@loki.org");
+        // int expectAge = 12;
+        PersonData alice(*pkey, expectName, expectEmail);
+        mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+        MySQLXBasicRepository<PersonData> basicRepo(&sess);
+        PersonData ret = basicRepo.update(alice);
+        ptr_debug<const char*, const std::size_t&>("id is ", ret.getId());
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+int test_MySQLXBasicRepository_findOne(std::size_t* pkey) {
+    puts("=== test_MySQLXBasicRepository_findOne");
+    try {
+        PersonData alice(*pkey, "", "");
+        mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+        MySQLXBasicRepository<PersonData> basicRepo(&sess);
+        PersonData ret = basicRepo.findOne(alice);
+        ptr_debug<const char*, const std::string&>("name is ", ret.getName());
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+int test_MySQLXBasicRepository_remove(std::size_t* pkey) {
+    puts("=== test_MySQLXBasicRepository_remove");
+    try {
+        PersonData alice(*pkey, "", "");
+        mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+        MySQLXBasicRepository<PersonData> basicRepo(&sess);
+        basicRepo.remove(alice);
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 /**
  * 実際に重要なのは、DATA のシグネチャやインタフェースにあると思う。
@@ -319,7 +430,15 @@ int main(void)
         assert(ret == 0);
         ptr_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_PersonData_Step_1());
         assert(ret == 0);
-        ptr_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLXBasicRepository_insert());
+        std::size_t id = 0;
+        std::size_t* pkey = &id;
+        ptr_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLXBasicRepository_insert(pkey));
+        assert(ret == 0);
+        ptr_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLXBasicRepository_update(pkey));
+        assert(ret == 0);
+        ptr_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLXBasicRepository_findOne(pkey));
+        assert(ret == 0);
+        ptr_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLXBasicRepository_remove(pkey));
         assert(ret == 0);
     }
     puts("=== Proxy パターン（にはおそらくならない：）  END");
