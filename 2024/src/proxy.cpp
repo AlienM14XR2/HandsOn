@@ -60,13 +60,14 @@ int test_debug_error()
 */
 
 template <class DATA>
-class ORMData {
+class MySQLXData {
 public:
-    virtual ~ORMData() = default;
+    virtual ~MySQLXData() = default;
     virtual DATA insertQuery(mysqlx::Session*) const = 0;
+    virtual DATA updateQuery(mysqlx::Session*) const = 0;
 };
 
-class PersonData final : public ORMData<PersonData> {
+class PersonData final : public MySQLXData<PersonData> {
 public:
     PersonData(const std::size_t& _id
             , const std::string& _name
@@ -104,7 +105,8 @@ public:
     //     return m;
     // }
 
-    virtual PersonData insertQuery(mysqlx::Session* sess) const override {
+    virtual PersonData insertQuery(mysqlx::Session* sess) const override
+    {
         puts("------ PersonData::insertQuery()");
         mysqlx::Schema db = sess->getSchema("cheshire");
         mysqlx::Table person = db.getTable("person");
@@ -112,6 +114,22 @@ public:
                                     .values(name, email, age.value())
                                     .execute();
         PersonData result(res.getAutoIncrementValue(), name, email);
+        if(age.has_value()){
+            result.setAge(age.value());
+        }
+        return result;
+    }
+
+    virtual PersonData updateQuery(mysqlx::Session* sess) const override
+    {
+        puts("------ PersonData::updateQuery()");
+        // TODO 実装
+        mysqlx::Schema db = sess->getSchema("cheshire");
+        mysqlx::Table person = db.getTable("person");
+        std::string cond("id = ");
+        cond.append(std::to_string(id));
+        // person.update("name", "email", "age").where(cond)
+        PersonData result(id, name, email);
         if(age.has_value()){
             result.setAge(age.value());
         }
@@ -152,9 +170,13 @@ public:
     virtual DATA insert(const DATA& data)  const
     {
         puts("------ MySQLXBasicRepository::insert()");
-        const ORMData<DATA>* pdata = static_cast<const DATA*>(&data);
+        const MySQLXData<DATA>* pdata = static_cast<const DATA*>(&data);
         return pdata->insertQuery(session);
     }
+    // virtual DATA update(const DATA&)  const
+    // {
+    //     puts("------ MySQLXBasicRepository::update()");
+    // }
     /**
      * 単なるテンプレート型に過ぎない DATA をどのようにインスタンス化するのか。
      * これが、できない限り私が望む理想的な Proxy にはならない。
@@ -171,9 +193,6 @@ public:
      * 
      * これで、リポジトリはストレージに左右されないものにはなった（はず：）
     */
-    // virtual std::string updateSql(const DATA& data)  const = 0;
-    // virtual std::string removeSql(const DATA& data, const std::string& pkeyName)  const = 0;
-    // virtual std::string findOne(const DATA& data, const std::string& pkeyName) const = 0;
 
 private:
     mysqlx::Session* session;
