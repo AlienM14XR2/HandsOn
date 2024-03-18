@@ -14,6 +14,7 @@
 #include <optional>
 #include <map>
 #include <vector>
+#include "mysqlx/xdevapi.h"
 
 template <typename M, typename D>
 void (*ptr_debug)(M, D) = [](const auto message, const auto debug) -> void {
@@ -58,19 +59,23 @@ int test_debug_error()
  * Repository をインタフェースとして、ProxyRepo と SubjectRepo がある。
 */
 
+template <class DATA>
 class ORMData {
 public:
     virtual ~ORMData() = default;
-    virtual std::string getTableName() const = 0;
-    virtual std::map<std::string, std::string> toMap() const = 0;
+    virtual DATA insertQuery(mysqlx::Session*) const = 0;
 };
 
-class PersonData final : public ORMData {
+class PersonData final : public ORMData<PersonData> {
 public:
     PersonData(const std::size_t& _id
             , const std::string& _name
             , const std::string& _email
             , const int& _age ): id(_id), name(_name), email(_email), age(_age)
+    {}
+    PersonData(const std::size_t& _id
+            , const std::string& _name
+            , const std::string& _email): id(_id), name(_name), email(_email), age(std::nullopt)
     {}
     PersonData(const std::string& _name
             , const std::string& _email
@@ -80,31 +85,47 @@ public:
             , const std::string& _email ): id(0ul), name(_name), email(_email), age(std::nullopt)
     {}
     // ...
-    virtual std::string getTableName() const override
-    {
-        return "person";
-    }
-    virtual std::map<std::string, std::string> toMap() const override
-    {
-        // TODO 次の点を踏まえて、PKEY の std::optional を考慮してくれ。
-        // INSERT 文 で Auto-Increment を採用している場合は、PKEY は Key Value には不要なんだよな。
-        std::map<std::string, std::string> m{
-            {"id", std::to_string(id)}
-            , {"name", name}
-            , {"email", email}
-        };
-        if(age.has_value()) {
-            m.insert(std::make_pair("age", std::to_string(age.value())));
+    // virtual std::string getTableName() const override
+    // {
+    //     return "person";
+    // }
+    // virtual std::map<std::string, std::string> toMap() const override
+    // {
+    //     // TODO 次の点を踏まえて、PKEY の std::optional を考慮してくれ。
+    //     // INSERT 文 で Auto-Increment を採用している場合は、PKEY は Key Value には不要なんだよな。
+    //     std::map<std::string, std::string> m{
+    //         {"id", std::to_string(id)}
+    //         , {"name", name}
+    //         , {"email", email}
+    //     };
+    //     if(age.has_value()) {
+    //         m.insert(std::make_pair("age", std::to_string(age.value())));
+    //     }
+    //     return m;
+    // }
+
+    virtual PersonData insertQuery(mysqlx::Session* sess) const override {
+        puts("------ PersonData::insertQuery()");
+        mysqlx::Schema db = sess->getSchema("cheshire");
+        mysqlx::Table person = db.getTable("person");
+        mysqlx::Result res = person.insert("name", "email", "age")
+                                    .values(name, email, age.value())
+                                    .execute();
+        PersonData result(res.getAutoIncrementValue(), name, email);
+        if(age.has_value()){
+            result.setAge(age.value());
         }
-        return m;
+        return result;
     }
 
     std::size_t getId()         const { return id; }
     std::string getName()       const { return name; }
     std::string getEmail()      const { return email; }
     std::optional<int> getAge() const { return age; }
+    void setAge(const int& _age)      { age = _age; }
 private:
     // TODO PKEY に該当するデータも std::optional の方が扱い易くないか、考えてみる。
+    // DONE. データが SQL の処理を実行する設計では、意味がないと判断した。
     std::size_t        id;
     std::string        name;
     std::string        email;
@@ -124,23 +145,15 @@ public:
 };
 
 template<class DATA>
-concept DataConcept = requires(DATA& data) {
-    data.getTableName();
-    data.toMap();
-};
-template<class DATA>
-requires DataConcept<DATA>
-class BasicRepository {
+class MySQLXBasicRepository {
 public:
-    virtual std::string insertSql(const DATA& data)  const
+    MySQLXBasicRepository(mysqlx::Session* _session): session(_session)
+    {}
+    virtual DATA insert(const DATA& data)  const
     {
-        puts("------ BasicRepository::insertSql()");
-        ptr_debug<const char*, const std::string&>("table is ", data.getTableName());
-        std::map<std::string, std::string> m = data.toMap();
-        for(auto p: m) {
-            std::cout << p.first << "\t: " << p.second << std::endl;
-        }
-        return std::string();
+        puts("------ MySQLXBasicRepository::insert()");
+        const ORMData<DATA>* pdata = static_cast<const DATA*>(&data);
+        return pdata->insertQuery(session);
     }
     /**
      * 単なるテンプレート型に過ぎない DATA をどのようにインスタンス化するのか。
@@ -155,18 +168,31 @@ public:
      * 側のビルダパターンでの実現方法が見えなかった。したがって、これは バリエーション・ポイント
      * として、DATA 側に丸投げした方が設計上きれいになると考える。DATA::toMap() は止めて、CRUD 
      * に対応したSQLのビルダを DATA に行ってもらうということだ。
+     * 
+     * これで、リポジトリはストレージに左右されないものにはなった（はず：）
     */
     // virtual std::string updateSql(const DATA& data)  const = 0;
     // virtual std::string removeSql(const DATA& data, const std::string& pkeyName)  const = 0;
     // virtual std::string findOne(const DATA& data, const std::string& pkeyName) const = 0;
+
+private:
+    mysqlx::Session* session;
 };
 
-int test_BasicRepository() {
-    puts("=== test_BasicRepository");
+int test_MySQLXBasicRepository_insert() {
+    puts("=== test_MySQLXBasicRepository_insert");
     try {
-        PersonData alice("Alice", "alice@loki.org", 12);
-        BasicRepository<PersonData> basicRepo;
-        basicRepo.insertSql(alice);
+        std::string expectName("Alice_01");
+        std::string expectEmail("alice_01@loki.org");
+        int expectAge = 12;
+        PersonData alice(expectName, expectEmail, expectAge);
+        mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+
+        MySQLXBasicRepository<PersonData> basicRepo(&sess);
+        PersonData ret = basicRepo.insert(alice);
+        assert(ret.getName()        == expectName);
+        assert(ret.getEmail()       == expectEmail);
+        assert(ret.getAge().value() == expectAge);
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_error<const decltype(e)&>(e);
@@ -206,21 +232,21 @@ int test_BasicRepository() {
 int test_PersonData_Step_1() {
     puts("=== test_PersonData_Step_1");
     try {
-        PersonData alice("Alice", "alice@loki.org", 12);
-        PersonData cheshire("Cheshire", "cheshire@loki.org");
+        // PersonData alice("Alice", "alice@loki.org", 12);
+        // PersonData cheshire("Cheshire", "cheshire@loki.org");
         
-        std::map<std::string, std::string> map_a = alice.toMap();
-        puts("--- Alice Data");
-        ptr_debug<const char*, const std::string&>("table is ", alice.getTableName());
-        for(auto p: map_a) {
-            std::cout << p.first << "\t: " << p.second << std::endl;
-        }
-        puts("--- Cheshire Data");
-        ptr_debug<const char*, const std::string&>("table is ", cheshire.getTableName());
-        std::map<std::string, std::string> map_c = cheshire.toMap();
-        for(auto p: map_c) {
-            std::cout << p.first << "\t: " << p.second << std::endl;
-        }
+        // std::map<std::string, std::string> map_a = alice.toMap();
+        // puts("--- Alice Data");
+        // ptr_debug<const char*, const std::string&>("table is ", alice.getTableName());
+        // for(auto p: map_a) {
+        //     std::cout << p.first << "\t: " << p.second << std::endl;
+        // }
+        // puts("--- Cheshire Data");
+        // ptr_debug<const char*, const std::string&>("table is ", cheshire.getTableName());
+        // std::map<std::string, std::string> map_c = cheshire.toMap();
+        // for(auto p: map_c) {
+        //     std::cout << p.first << "\t: " << p.second << std::endl;
+        // }
 
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
@@ -262,7 +288,7 @@ int test_map() {
 
 int main(void) 
 {
-    puts("START Proxy パターン（であっているのかそれは分からない） ===");
+    puts("START Proxy パターン（にはおそらくならない：） ===");
     if(0.01) {
         auto ret = 0;
         ptr_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_debug_error());
@@ -274,8 +300,8 @@ int main(void)
         assert(ret == 0);
         ptr_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_PersonData_Step_1());
         assert(ret == 0);
-        ptr_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_BasicRepository());
+        ptr_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLXBasicRepository_insert());
         assert(ret == 0);
     }
-    puts("=== Proxy パターン（であっているのかそれは分からない）  END");
+    puts("=== Proxy パターン（にはおそらくならない：）  END");
 }
