@@ -70,6 +70,7 @@ NG 今この中間ファイルでは正しく動作しない、このコンパ�
 #include <optional>
 #include <set>
 #include <chrono>
+#include <array>
 #include "Debug.hpp"
 #include "DataField.hpp"
 #include "RdbDataStrategy.hpp"
@@ -202,8 +203,10 @@ int test_mysqlx_insert() {
         mysqlx::Schema db = sess.getSchema("cheshire");
         mysqlx::Table person = db.getTable("person");
         
-        mysqlx::Result res = person.insert("name", "email", "age")
-                .values("Jabberwocky", "Jabberwocky@loki.org", nullptr)
+        std::array<std::string, 3> cols{"name","email","age"};
+        // mysqlx::Result res = person.insert("name", "email", "age")
+        mysqlx::Result res = person.insert(cols)
+                .values("Jabberwocky", "Jabberwocky@loki.org", nullptr)     // TODO 異なる型の値の保持、受け渡し方法、これを実装できないとダメだ。
                 .values("Rabbit Foot", "rabbit@loki.org", 1)
                 .values(";DELETE FROM person;", "ace@loki.org", nullptr)    // SQL Injection はできなかった
                 .execute();
@@ -742,7 +745,7 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLTx_Delete(insId.get()));
         assert(ret == 0);
     }
-    if(0) {      // 2.00
+    if(2.00) {      // 2.00
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_connect());
         assert(ret == 0);
@@ -757,7 +760,7 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLXCreateStrategy());
         assert(ret == 0);
     }
-    if(3.00){   // 3.00
+    if(0){   // 3.00
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_pqxx_create_table());
         assert(ret == 0);
