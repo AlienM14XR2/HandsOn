@@ -150,6 +150,11 @@ public:
      * あぁ、DataConcept で factory があればいいのかな。factory の仮引数に std::map があり、
      * 各 DATA で std::map をもとに、自身を作る。そうすることで、リポジトリを汚染することは
      * 回避できるかもしれない。
+     * 
+     * 値の受け渡し方法、これはいい方法が浮かばなかった、std::variant の利用も考えたが RDBMS 
+     * 側のビルダパターンでの実現方法が見えなかった。したがって、これは バリエーション・ポイント
+     * として、DATA 側に丸投げした方が設計上きれいになると考える。DATA::toMap() は止めて、CRUD 
+     * に対応したSQLのビルダを DATA に行ってもらうということだ。
     */
     // virtual std::string updateSql(const DATA& data)  const = 0;
     // virtual std::string removeSql(const DATA& data, const std::string& pkeyName)  const = 0;
