@@ -191,7 +191,7 @@ public:
 };
 
 template<class DATA, class PKEY>
-class MySQLXBasicRepository {
+class MySQLXBasicRepository final : public Repository<DATA, PKEY> {
 public:
     MySQLXBasicRepository(mysqlx::Session* _session, const DATA& _data): session(_session), d(_data)
     {}
