@@ -31,7 +31,14 @@ objects:
 	$(CC) $(CFLAGS_N) $(INCDIR) -c ./repository/PersonRepository.cpp -o ../bin/PersonRepository.o
 
 target:
-	$(CC) $(CFLAGS_N) $(INCDIR) $(LIBDIR) ./test/test_1.cpp main.cpp $(LIBS) ../bin/PersonRepository.o ../bin/sql_generator.o ../bin/PersonStrategy.o ../bin/PersonData.o ../bin/MySQLDriver.o ../bin/MySQLConnection.o -o $(TARGET)
+	$(CC) $(CFLAGS_N) $(INCDIR) $(LIBDIR) ./test/test_1.cpp main.cpp $(LIBS) \
+	../bin/PersonRepository.o \
+	../bin/sql_generator.o \
+	../bin/PersonStrategy.o \
+	../bin/PersonData.o \
+	../bin/MySQLDriver.o \
+	../bin/MySQLConnection.o -o \
+	$(TARGET)
 
 clean:
 	-rm -f ../bin/*.o $(TARGET)
