@@ -19,6 +19,9 @@ LIBS    = -lmysqlcppconn -lmysqlcppconn8 -lpqxx -lpq
 # 実行ファイル名
 TARGET  = ../bin/main
 
+bindir:
+	-mkdir ../bin/
+
 objects:
 	$(CC) $(CFLAGS_N) $(INCDIR) -c ./data/PersonData.cpp -o ../bin/PersonData.o
 	$(CC) $(CFLAGS_N) $(INCDIR) -c ./model/PersonStrategy.cpp -o ../bin/PersonStrategy.o
