@@ -276,10 +276,10 @@ void mysqlx_session_pool(const std::string& server, const int& port, const std::
 int test_mysqlx_session_pool() {
     puts("=== test_mysqlx_session_pool");
     try {
-        std::string server("localhost");
-        int port = 33060;
-        std::string user("derek");
-        std::string passwd("derek1234");
+        std::string server(appProp.myx.uri);
+        int port = appProp.myx.port;
+        std::string user(appProp.myx.user);
+        std::string passwd(appProp.myx.password);
         mysqlx_session_pool(server, port, user, passwd, 3);
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
@@ -292,7 +292,8 @@ int test_mysqlx_insert() {
     puts("=== test_mysqlx_insert");
     std::clock_t start_1 = clock();
     try {
-        mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+        // mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+        mysqlx::Session sess(appProp.myx.uri, appProp.myx.port, appProp.myx.user, appProp.myx.password);
         std::clock_t start_2 = clock();
         mysqlx::Schema db = sess.getSchema("cheshire");
         mysqlx::Table person = db.getTable("person");
@@ -333,7 +334,7 @@ int test_mysqlx_update() {
         // // やっぱり次のはエラーになるのか。
         // std::cout <<  age.value() << std::endl;
         
-        mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+        mysqlx::Session sess(appProp.myx.uri, appProp.myx.port, appProp.myx.user, appProp.myx.password);
         mysqlx::Schema db = sess.getSchema("cheshire");
         mysqlx::Table person = db.getTable("person");
         person.update()
@@ -354,7 +355,7 @@ int test_mysqlx_update() {
 int test_mysqlx_select() {
     puts("=== test_mysqlx_select");
     try {
-        mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+        mysqlx::Session sess(appProp.myx.uri, appProp.myx.port, appProp.myx.user, appProp.myx.password);
         mysqlx::Schema db = sess.getSchema("cheshire");
         mysqlx::Table person = db.getTable("person");
 
@@ -372,7 +373,7 @@ int test_mysqlx_select() {
 int test_mysqlx_delete() {
     puts("=== test_mysqlx_delete");
     try {
-        mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+        mysqlx::Session sess(appProp.myx.uri, appProp.myx.port, appProp.myx.user, appProp.myx.password);
         mysqlx::Schema db = sess.getSchema("cheshire");
         mysqlx::Table person = db.getTable("person");
 
@@ -411,7 +412,7 @@ int test_mysqlx_delete() {
 
 int test_mysqlx_tx_insert() {
     puts("=== test_mysqlx_tx_insert");
-    mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+    mysqlx::Session sess(appProp.myx.uri, appProp.myx.port, appProp.myx.user, appProp.myx.password);
     try {
         sess.startTransaction();
         mysqlx::Schema db = sess.getSchema("cheshire");
