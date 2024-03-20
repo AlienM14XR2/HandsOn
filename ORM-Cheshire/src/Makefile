@@ -31,7 +31,7 @@ objects:
 	$(CC) $(CFLAGS_N) $(INCDIR) -c ./repository/PersonRepository.cpp -o ../bin/PersonRepository.o
 
 target:
-	$(CC) $(CFLAGS_N) $(INCDIR) $(LIBDIR) ./test/test_1.cpp main.cpp $(LIBS) \
+	$(CC) $(CFLAGS_D) $(INCDIR) $(LIBDIR) ./test/test_1.cpp main.cpp $(LIBS) \
 	../bin/PersonRepository.o \
 	../bin/sql_generator.o \
 	../bin/PersonStrategy.o \

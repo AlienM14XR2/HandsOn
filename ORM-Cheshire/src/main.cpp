@@ -63,6 +63,7 @@ NG 今この中間ファイルでは正しく動作しない、このコンパ�
 */
 
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <cassert>
 #include <vector>
@@ -71,6 +72,7 @@ NG 今この中間ファイルでは正しく動作しない、このコンパ�
 #include <set>
 #include <chrono>
 #include <array>
+#include <nlohmann/json.hpp>
 #include "Debug.hpp"
 #include "DataField.hpp"
 #include "RdbDataStrategy.hpp"
@@ -124,6 +126,98 @@ int test_debug_and_error() {
 
 
 ConnectionPool<sql::Connection> app_cp;
+
+
+
+struct AppProp {
+    struct mysql {
+        std::string uri;
+        int port;
+        std::string user;
+        std::string password;
+    };
+    struct mysqlx {
+        std::string uri;
+        int port;
+        std::string user;
+        std::string password;
+    };
+    struct pqxx {
+        std::string uri;
+        int port;
+        std::string dbname;
+        std::string user;
+        std::string password;
+    };
+    AppProp::mysql my;
+    AppProp::mysqlx myx;
+    AppProp::pqxx pqx;
+};
+
+AppProp appProp;
+
+bool read_app_prop() {
+    try {
+        std::string line;
+        std::string s;
+        // TODO これ環境変数にしたい。
+        std::ifstream appPropJson("/home/jack/dev/c++/HandsOn/ORM-Cheshire/src/appProp.json");
+        if(appPropJson.is_open()) {
+            while(std::getline(appPropJson, line)) {
+                std::cout << line << '\n';
+                s.append(line);
+            }
+            appPropJson.close();
+            nlohmann::json j = nlohmann::json::parse(s);;
+            std::cout << j << std::endl;
+            for(auto& el: j) {
+                auto mysql = el.at("/mysql"_json_pointer);
+                std::cout << mysql << std::endl;
+                appProp.my.uri = mysql.at("uri");
+                appProp.my.port = mysql.at("port");
+                appProp.my.user = mysql.at("user");
+                appProp.my.password = mysql.at("password");
+                std::cout << "mysql is "<< appProp.my.uri << ": " << appProp.my.port << ": " << appProp.my.user << ": " << appProp.my.password << '\n';
+
+                auto mysqlx = el.at("/mysqlx"_json_pointer);
+                std::cout << mysqlx << std::endl;
+                appProp.myx.uri = mysqlx.at("uri");
+                appProp.myx.port = mysqlx.at("port");
+                appProp.myx.user = mysqlx.at("user");
+                appProp.myx.password = mysqlx.at("password");
+                std::cout << "mysqlx is "<< appProp.myx.uri << ": " << appProp.myx.port << ": " << appProp.myx.user << ": " << appProp.myx.password << '\n';
+
+                auto pqxx = el.at("/pqxx"_json_pointer);
+                std::cout << pqxx << std::endl;
+                appProp.pqx.uri = pqxx.at("uri");
+                appProp.pqx.port = pqxx.at("port");
+                appProp.pqx.dbname = pqxx.at("dbname");
+                appProp.pqx.user = pqxx.at("user");
+                appProp.pqx.password = pqxx.at("password");
+                std::cout << "pqxx is "<< appProp.pqx.uri << ": " << appProp.pqx.port << ": " << appProp.pqx.dbname << ": " << appProp.pqx.user << ": " << appProp.pqx.password << '\n';
+            }
+        } else {
+            std::cout << "Unable to open file." << std::endl;
+            return false;
+        }
+        return true;
+    } catch(std::exception& e) {
+        throw std::runtime_error(e.what());
+    }
+}
+
+int test_read_appProp() {
+    puts("=== test_read_appProp");
+    try {
+        bool ret = read_app_prop();
+        assert(ret == true);
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 
 
 /**
@@ -769,6 +863,8 @@ int main(void) {
     }
     if(1.02) {
         auto ret = 0;
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_read_appProp());
+        assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_makeCreateTableSql());
         assert(ret == 0);
     }
