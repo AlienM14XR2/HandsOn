@@ -1,0 +1,11 @@
+{
+  "app": {
+    "mysqlx": {
+      "uri": "localhost",
+      "port": 33060,
+      "user": "derek",
+      "password": "derek1234"
+    }
+  }
+}
+

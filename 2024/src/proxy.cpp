@@ -14,6 +14,8 @@
 #include <optional>
 #include <map>
 #include <vector>
+#include <fstream>
+#include <nlohmann/json.hpp>
 #include "mysqlx/xdevapi.h"
 
 template <typename M, typename D>
@@ -62,7 +64,77 @@ int test_debug_error()
  * 読み込みをやってみる。
  * 
  * mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+ * 
+ * e.g.
+ * {
+ *   "app": {
+ *     "mysqlx": {
+ *       "uri": "localhost",
+ *       "port": 33060,
+ *       "user": "derek",
+ *       "password": "derek1234"
+ *     }
+ *   }
+ * }
+ * 
 */
+
+struct AppProp {
+    struct mysqlx {
+        std::string uri;
+        int port;
+        std::string user;
+        std::string password;
+    };
+    AppProp::mysqlx myx;
+};
+
+AppProp appProp;
+
+int test_read_appProp() {
+    puts("=== test_read_appProp");
+    try {
+        std::string line;
+        std::string s;
+        std::ifstream appPropJson("/home/jack/dev/c++/HandsOn/2024/src/appProp.json");
+        if(appPropJson.is_open()) {
+            while(std::getline(appPropJson, line)) {
+                std::cout << line << '\n';
+                s.append(line);
+            }
+            appPropJson.close();
+            nlohmann::json j = nlohmann::json::parse(s);;
+            std::cout << j << std::endl;
+            // for (auto& el : j.items()) {
+            //     std::cout << el.key() << " : " << el.value() << "\n";
+            // }
+            for(auto& el: j) {
+                nlohmann::json mysqlx = el;
+                for(auto& mxp: mysqlx) {
+                    auto uri  = mxp.at("uri");
+                    auto port = mxp.at("port");
+                    auto user = mxp.at("user");
+                    auto password = mxp.at("password");
+                    std::cout << uri << ": " << port << ": " << user << ": " << password << '\n';
+                    appProp.myx.uri = uri;
+                    appProp.myx.port = port;
+                    appProp.myx.user = user;
+                    appProp.myx.password = password;
+                    std::cout << appProp.myx.uri << ": " << appProp.myx.port << ": " << appProp.myx.user << ": " << appProp.myx.password << '\n';
+                    break;
+                }
+                break;
+            }
+        } else {
+            std::cout << "Unable to open file." << std::endl;
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 
 
 /**
@@ -432,6 +504,11 @@ int main(void)
         ptr_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLXBasicRepository_findOne(pkey));
         assert(ret == 0);
         ptr_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLXBasicRepository_remove(pkey));
+        assert(ret == 0);
+    }
+    if(1.01) {
+        auto ret = 0;
+        ptr_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_read_appProp());
         assert(ret == 0);
     }
     puts("=== Proxy パターン（にはおそらくならない：）  END");
