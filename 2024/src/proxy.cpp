@@ -338,10 +338,9 @@ int test_MySQLXBasicRepository_insert(std::size_t* pkey) {
     try {
         std::string expectName("Alice_01");
         std::string expectEmail("alice_01@loki.org");
-        // int expectAge = 12;
-        // PersonData alice(expectName, expectEmail, expectAge);
         PersonData alice(expectName, expectEmail);
-        mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+        // mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+        mysqlx::Session sess(appProp.myx.uri, appProp.myx.port, appProp.myx.user, appProp.myx.password);
 
         MySQLXBasicRepository<PersonData, std::size_t> basicRepo(&sess, alice);
         PersonData ret = basicRepo.insert(alice);
@@ -364,7 +363,7 @@ int test_MySQLXBasicRepository_update(std::size_t* pkey) {
         std::string expectEmail("alice_02@loki.org");
         // int expectAge = 12;
         PersonData alice(*pkey, expectName, expectEmail);
-        mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+        mysqlx::Session sess(appProp.myx.uri, appProp.myx.port, appProp.myx.user, appProp.myx.password);
         MySQLXBasicRepository<PersonData, std::size_t> basicRepo(&sess, alice);
         PersonData ret = basicRepo.update(alice);
         ptr_debug<const char*, const std::size_t&>("id is ", ret.getId());
@@ -379,7 +378,7 @@ int test_MySQLXBasicRepository_findOne(std::size_t* pkey) {
     puts("=== test_MySQLXBasicRepository_findOne");
     try {
         PersonData alice(*pkey, "", "");
-        mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+        mysqlx::Session sess(appProp.myx.uri, appProp.myx.port, appProp.myx.user, appProp.myx.password);
         MySQLXBasicRepository<PersonData, std::size_t> basicRepo(&sess, alice);
         PersonData ret = basicRepo.findOne(*pkey);
         ptr_debug<const char*, const std::string&>("name is ", ret.getName());
@@ -394,7 +393,7 @@ int test_MySQLXBasicRepository_remove(std::size_t* pkey) {
     puts("=== test_MySQLXBasicRepository_remove");
     try {
         PersonData alice(*pkey, "", "");
-        mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
+        mysqlx::Session sess(appProp.myx.uri, appProp.myx.port, appProp.myx.user, appProp.myx.password);
         MySQLXBasicRepository<PersonData, std::size_t> basicRepo(&sess, alice);
         basicRepo.remove(*pkey);
         return EXIT_SUCCESS;
