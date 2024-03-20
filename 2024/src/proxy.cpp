@@ -80,13 +80,28 @@ int test_debug_error()
 */
 
 struct AppProp {
+    struct mysql {
+        std::string uri;
+        int port;
+        std::string user;
+        std::string password;
+    };
     struct mysqlx {
         std::string uri;
         int port;
         std::string user;
         std::string password;
     };
+    struct pqxx {
+        std::string uri;
+        int port;
+        std::string dbname;
+        std::string user;
+        std::string password;
+    };
+    AppProp::mysql my;
     AppProp::mysqlx myx;
+    AppProp::pqxx pqx;
 };
 
 AppProp appProp;
@@ -106,20 +121,30 @@ bool read_app_prop() {
             nlohmann::json j = nlohmann::json::parse(s);;
             std::cout << j << std::endl;
             for(auto& el: j) {
-                nlohmann::json mysqlx = el;
-                for(auto& mxp: mysqlx) {
-                    auto uri  = mxp.at("uri");
-                    auto port = mxp.at("port");
-                    auto user = mxp.at("user");
-                    auto password = mxp.at("password");
-                    appProp.myx.uri = uri;
-                    appProp.myx.port = port;
-                    appProp.myx.user = user;
-                    appProp.myx.password = password;
-                    std::cout << appProp.myx.uri << ": " << appProp.myx.port << ": " << appProp.myx.user << ": " << appProp.myx.password << '\n';
-                    break;
-                }
-                break;
+                auto mysql = el.at("/mysql"_json_pointer);
+                std::cout << mysql << std::endl;
+                appProp.my.uri = mysql.at("uri");
+                appProp.my.port = mysql.at("port");
+                appProp.my.user = mysql.at("user");
+                appProp.my.password = mysql.at("password");
+                std::cout << "mysql is "<< appProp.my.uri << ": " << appProp.my.port << ": " << appProp.my.user << ": " << appProp.my.password << '\n';
+
+                auto mysqlx = el.at("/mysqlx"_json_pointer);
+                std::cout << mysqlx << std::endl;
+                appProp.myx.uri = mysqlx.at("uri");
+                appProp.myx.port = mysqlx.at("port");
+                appProp.myx.user = mysqlx.at("user");
+                appProp.myx.password = mysqlx.at("password");
+                std::cout << "mysqlx is "<< appProp.myx.uri << ": " << appProp.myx.port << ": " << appProp.myx.user << ": " << appProp.myx.password << '\n';
+
+                auto pqxx = el.at("/pqxx"_json_pointer);
+                std::cout << pqxx << std::endl;
+                appProp.pqx.uri = pqxx.at("uri");
+                appProp.pqx.port = pqxx.at("port");
+                appProp.pqx.dbname = pqxx.at("dbname");
+                appProp.pqx.user = pqxx.at("user");
+                appProp.pqx.password = pqxx.at("password");
+                std::cout << "pqxx is "<< appProp.pqx.uri << ": " << appProp.pqx.port << ": " << appProp.pqx.dbname << ": " << appProp.pqx.user << ": " << appProp.pqx.password << '\n';
             }
         } else {
             std::cout << "Unable to open file." << std::endl;

@@ -1,8 +1,21 @@
 {
   "app": {
+    "mysql":{
+      "uri": "localhost",
+      "port": 3306,
+      "user": "derek",
+      "password": "derek1234"
+    },
     "mysqlx": {
       "uri": "localhost",
       "port": 33060,
+      "user": "derek",
+      "password": "derek1234"
+    },
+    "pqxx": {
+      "uri": "localhost",
+      "port": 5432,
+      "dbname": "jabberwocky",
       "user": "derek",
       "password": "derek1234"
     }
