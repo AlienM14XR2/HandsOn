@@ -91,11 +91,11 @@ struct AppProp {
 
 AppProp appProp;
 
-int test_read_appProp() {
-    puts("=== test_read_appProp");
+bool read_app_prop() {
     try {
         std::string line;
         std::string s;
+        // TODO これ環境変数にしたい。
         std::ifstream appPropJson("/home/jack/dev/c++/HandsOn/2024/src/appProp.json");
         if(appPropJson.is_open()) {
             while(std::getline(appPropJson, line)) {
@@ -105,9 +105,6 @@ int test_read_appProp() {
             appPropJson.close();
             nlohmann::json j = nlohmann::json::parse(s);;
             std::cout << j << std::endl;
-            // for (auto& el : j.items()) {
-            //     std::cout << el.key() << " : " << el.value() << "\n";
-            // }
             for(auto& el: j) {
                 nlohmann::json mysqlx = el;
                 for(auto& mxp: mysqlx) {
@@ -115,7 +112,6 @@ int test_read_appProp() {
                     auto port = mxp.at("port");
                     auto user = mxp.at("user");
                     auto password = mxp.at("password");
-                    std::cout << uri << ": " << port << ": " << user << ": " << password << '\n';
                     appProp.myx.uri = uri;
                     appProp.myx.port = port;
                     appProp.myx.user = user;
@@ -127,7 +123,19 @@ int test_read_appProp() {
             }
         } else {
             std::cout << "Unable to open file." << std::endl;
+            return false;
         }
+        return true;
+    } catch(std::exception& e) {
+        throw std::runtime_error(e.what());
+    }
+}
+
+int test_read_appProp() {
+    puts("=== test_read_appProp");
+    try {
+        bool ret = read_app_prop();
+        assert(ret == true);
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_error<const decltype(e)&>(e);
@@ -489,6 +497,11 @@ int main(void)
         ptr_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_debug_error());
         assert(ret == 0);
     }
+    if(0.02) {
+        auto ret = 0;
+        ptr_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_read_appProp());
+        assert(ret == 0);
+    }
     if(1.00) {
         auto ret = 0;
         ptr_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_map());
@@ -504,11 +517,6 @@ int main(void)
         ptr_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLXBasicRepository_findOne(pkey));
         assert(ret == 0);
         ptr_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_MySQLXBasicRepository_remove(pkey));
-        assert(ret == 0);
-    }
-    if(1.01) {
-        auto ret = 0;
-        ptr_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_read_appProp());
         assert(ret == 0);
     }
     puts("=== Proxy パターン（にはおそらくならない：）  END");
