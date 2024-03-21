@@ -24,6 +24,7 @@
 #include "../inc/MySQLUpdateStrategy.hpp"
 #include "../inc/MySQLDeleteStrategy.hpp"
 #include "../inc/MySQLTx.hpp"                       // src 相対にしている
+#include "../inc/AppProp.hpp"
 #include "/usr/include/mysql-cppconn-8/mysql/jdbc.h"
 #include "/usr/include/mysql-cppconn-8/mysqlx/xdevapi.h"
 #include "/usr/local/include/pqxx/pqxx"

@@ -48,30 +48,33 @@ int test_ConnectionPool() {
 }
 
 
-// namespace cheshire {
-extern    ConnectionPool<sql::Connection> app_cp;
-    void mysql_connection_pool(const std::string& server, const std::string& user, const std::string& password, const int& sum) 
-    {
-        sql::Driver* driver = MySQLDriver::getInstance().getDriver();
-        for(int i=0; i<sum; i++) {
-            sql::Connection* con = driver->connect(server, user, password);
-            if(con->isValid()) {
-                puts("connected ... ");
-                con->setSchema("cheshire");
-                // auto commit は true としておく、Tx が必要な場合はリポジトリで明確にすること。あるいは MySQLTx を利用すること。
-                app_cp.push(con);
-            } else {
-                puts("connection is invalid ... ");            
-            }
+
+extern ConnectionPool<sql::Connection> app_cp;
+extern AppProp appProp;
+
+void mysql_connection_pool(const std::string& server, const std::string& user, const std::string& password, const int& sum) 
+{
+    sql::Driver* driver = MySQLDriver::getInstance().getDriver();
+    for(int i=0; i<sum; i++) {
+        sql::Connection* con = driver->connect(server, user, password);
+        if(con->isValid()) {
+            puts("connected ... ");
+            con->setSchema("cheshire");
+            // auto commit は true としておく、Tx が必要な場合はリポジトリで明確にすること。あるいは MySQLTx を利用すること。
+            app_cp.push(con);
+        } else {
+            puts("connection is invalid ... ");            
         }
     }
+}
 
-// }   // end namespace cheshire
+
 
 int test_mysql_connection_pool_A() {
     puts("=== test_mysql_connection_pool_A");
     try {
-        mysql_connection_pool("tcp://127.0.0.1:3306", "derek", "derek1234", 2);
+        // mysql_connection_pool("tcp://127.0.0.1:3306", "derek", "derek1234", 2);
+        mysql_connection_pool(appProp.my.toServer(), appProp.my.user, appProp.my.password, 2);
 
         ptr_lambda_debug<const char*, const bool&>("empty ? ", app_cp.empty());
         assert(app_cp.empty() == 0);      // プールされていることを期待する
@@ -153,7 +156,8 @@ int test_mysql_connect() {              // これが test_1.cpp に移設でき�
     sql::Statement *          stmt   = nullptr;
     try {
         driver = get_driver_instance();     // 移設できない理由が、これ get_driver_instance が no reference になる。必要な情報を与えてもやはり上手く行かなかった。
-        con = driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234");
+        // con = driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234");
+        con = driver->connect(appProp.my.toServer(), appProp.my.user, appProp.my.password);
         // con = driver->connect("tcp://172.22.1.64:3306", "derek", "derek1234");
         if(con->isValid()) {
             puts("connected ... ");
@@ -199,7 +203,7 @@ int test_MySQLTx() {
     try {
         if(app_cp.empty()) {
             sql::Driver* driver = MySQLDriver::getInstance().getDriver();
-            con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
+            con = std::move(std::unique_ptr<sql::Connection>(driver->connect(appProp.my.toServer(), appProp.my.user, appProp.my.password)));
             if(con->isValid()) {
                 puts("connected ... ");
                 con->setSchema("cheshire");
@@ -263,7 +267,7 @@ int test_MySQLTx_rollback() {
     puts("=== test_MySQLTx_rollback");
     try {
         sql::Driver* driver = MySQLDriver::getInstance().getDriver();
-        std::unique_ptr<sql::Connection> con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
+        std::unique_ptr<sql::Connection> con = std::move(std::unique_ptr<sql::Connection>(driver->connect(appProp.my.toServer(), appProp.my.user, appProp.my.password)));
         if(con->isValid()) {
             puts("connected ... ");
             con->setSchema("cheshire");
@@ -483,8 +487,8 @@ int test_mysqlx_connect() {
     puts("=== test_mysqlx_connect");
     std::clock_t start = clock();
     try {
-        mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
-        // mysqlx::Session sess("172.22.1.64", 33060, "derek", "derek1234");
+        mysqlx::Session sess(appProp.myx.uri, appProp.myx.port, appProp.myx.user, appProp.myx.password);
+        // mysqlx::Session sess("localhost", 33060, "derek", "derek1234");
         mysqlx::Schema db = sess.getSchema("cheshire");
         std::cout << "your schema is " << db.getName() << std::endl;
         mysqlx::Table person = db.getTable("person");
@@ -517,7 +521,8 @@ int test_pqxx_connect() {
     puts("=== test_pqxx_connect");
     try {
         // pqxx::connection con{"postgresql://derek@localhost/jabberwocky"};
-        pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
+        // pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
+        pqxx::connection con{appProp.pqx.toString()};
         pqxx::work tx{con};
         std::string name = tx.query_value<std::string>(
             "SELECT name "
@@ -576,7 +581,7 @@ int test_pqxx_insert() {
     puts("=== test_pqxx_insert");
     std::clock_t start_1 = clock();
     try {
-        pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
+        pqxx::connection con{appProp.pqx.toString()};
         std::clock_t start_2 = clock();
         pqxx::work tx{con};
         long nextId = tx.query_value<long>(
@@ -612,7 +617,8 @@ int test_pqxx_resultset() {
     puts("=== test_pqxx_resultset");
     std::clock_t start = clock();
     try {
-        pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
+        pqxx::connection con{appProp.pqx.toString()};
+        // pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
         pqxx::work tx{con};
         pqxx::result res = tx.exec("SELECT * FROM animal");
         // std::cout << "Columns:\n";
@@ -899,7 +905,7 @@ int test_insert_person() {
         ptr_lambda_debug<const char*,const decltype(sql)&>("sql: ", sql);
 
         driver = get_driver_instance();
-        con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
+        con = std::move(std::unique_ptr<sql::Connection>(driver->connect(appProp.my.toServer(), appProp.my.user, appProp.my.password)));
         // con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://172.22.1.64:3306", "derek", "derek1234")));
         if(con->isValid()) {
             puts("connected ... ");
@@ -972,7 +978,7 @@ int test_PersonRepository_findOne() {
     puts("=== test_PersonRepository_findOne");
     try {
         sql::Driver* driver = MySQLDriver::getInstance().getDriver();
-        std::unique_ptr<sql::Connection> con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
+        std::unique_ptr<sql::Connection> con = std::move(std::unique_ptr<sql::Connection>(driver->connect(appProp.my.toServer(), appProp.my.user, appProp.my.password)));
         if(con->isValid()) {
             puts("connected ... ");
             con->setSchema("cheshire");
@@ -1005,7 +1011,7 @@ int test_PersonRepository_update() {
     puts("=== test_PersonRepository_update");
     try {
         sql::Driver* driver = MySQLDriver::getInstance().getDriver();
-        std::unique_ptr<sql::Connection> con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
+        std::unique_ptr<sql::Connection> con = std::move(std::unique_ptr<sql::Connection>(driver->connect(appProp.my.toServer(), appProp.my.user, appProp.my.password)));
 
         if(con->isValid()) {
             puts("connected ... ");
@@ -1055,7 +1061,7 @@ int test_PersonRepository_insert() {
     puts("=== test_PersonRepository_insert");
     try {
         sql::Driver* driver = MySQLDriver::getInstance().getDriver();
-        std::unique_ptr<sql::Connection> con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
+        std::unique_ptr<sql::Connection> con = std::move(std::unique_ptr<sql::Connection>(driver->connect(appProp.my.toServer(), appProp.my.user, appProp.my.password)));
         if(con->isValid()) {
             puts("connected ... ");
             con->setSchema("cheshire");
@@ -1088,7 +1094,7 @@ int test_PersonRepository_insert_no_age() {
     puts("=== test_PersonRepository_insert_no_age");
     try {
         sql::Driver* driver = MySQLDriver::getInstance().getDriver();
-        std::unique_ptr<sql::Connection> con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
+        std::unique_ptr<sql::Connection> con = std::move(std::unique_ptr<sql::Connection>(driver->connect(appProp.my.toServer(), appProp.my.user, appProp.my.password)));
         if(con->isValid()) {
             puts("connected ... ");
             con->setSchema("cheshire");
@@ -1121,7 +1127,7 @@ int test_PersonRepository_remove() {
     puts("=== test_PersonRepository_remove");
     try {
         sql::Driver* driver = MySQLDriver::getInstance().getDriver();
-        std::unique_ptr<sql::Connection> con = std::move(std::unique_ptr<sql::Connection>(driver->connect("tcp://127.0.0.1:3306", "derek", "derek1234")));
+        std::unique_ptr<sql::Connection> con = std::move(std::unique_ptr<sql::Connection>(driver->connect(appProp.my.toServer(), appProp.my.user, appProp.my.password)));
         if(con->isValid()) {
             puts("connected ... ");
             con->setSchema("cheshire");
