@@ -148,6 +148,21 @@ struct AppProp {
         std::string dbname;
         std::string user;
         std::string password;
+        // "hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"
+        std::string toString() {
+            std::string hostaddr("hostaddr=");
+            std::string portNum(" port=");
+            std::string d(" dbname=");
+            std::string u(" user=");
+            std::string p(" password=");
+            hostaddr.append(uri);
+            portNum.append(std::to_string(port));
+            d.append(dbname);
+            u.append(user);
+            p.append(password);
+            hostaddr.append(portNum).append(d).append(u).append(p);
+            return hostaddr;
+        }
     };
     AppProp::mysql my;
     AppProp::mysqlx myx;
@@ -172,7 +187,7 @@ bool read_app_prop() {
             std::cout << j << std::endl;
             for(auto& el: j) {
                 auto mysql = el.at("/mysql"_json_pointer);
-                std::cout << mysql << std::endl;
+                std::cout << mysql << '\n';
                 appProp.my.uri = mysql.at("uri");
                 appProp.my.port = mysql.at("port");
                 appProp.my.user = mysql.at("user");
@@ -180,7 +195,7 @@ bool read_app_prop() {
                 std::cout << "mysql is "<< appProp.my.uri << ": " << appProp.my.port << ": " << appProp.my.user << ": " << appProp.my.password << '\n';
 
                 auto mysqlx = el.at("/mysqlx"_json_pointer);
-                std::cout << mysqlx << std::endl;
+                std::cout << mysqlx << '\n';
                 appProp.myx.uri = mysqlx.at("uri");
                 appProp.myx.port = mysqlx.at("port");
                 appProp.myx.user = mysqlx.at("user");
@@ -188,13 +203,14 @@ bool read_app_prop() {
                 std::cout << "mysqlx is "<< appProp.myx.uri << ": " << appProp.myx.port << ": " << appProp.myx.user << ": " << appProp.myx.password << '\n';
 
                 auto pqxx = el.at("/pqxx"_json_pointer);
-                std::cout << pqxx << std::endl;
+                std::cout << pqxx << '\n';
                 appProp.pqx.uri = pqxx.at("uri");
                 appProp.pqx.port = pqxx.at("port");
                 appProp.pqx.dbname = pqxx.at("dbname");
                 appProp.pqx.user = pqxx.at("user");
                 appProp.pqx.password = pqxx.at("password");
                 std::cout << "pqxx is "<< appProp.pqx.uri << ": " << appProp.pqx.port << ": " << appProp.pqx.dbname << ": " << appProp.pqx.user << ": " << appProp.pqx.password << '\n';
+                std::cout << "pqxx :" << appProp.pqx.toString() << std::endl;
             }
         } else {
             std::cout << "Unable to open file." << std::endl;
@@ -533,7 +549,8 @@ int test_MySQLXCreateStrategy() {
 int test_pqxx_create_table() {
     try {
         puts("=== test_pqxx_create_table");
-        pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
+        // pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
+        pqxx::connection con{appProp.pqx.toString()};
         pqxx::work tx{con};
         const char* createAnimalTableSql = R"(
             CREATE TABLE animal ( 
@@ -578,7 +595,7 @@ int test_pqxx_create_table() {
 int test_pqxx_sql_injection() {
     puts("=== test_pqxx_sql_injection");
     try {
-        pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
+        pqxx::connection con{appProp.pqx.toString()};
         pqxx::work tx{con};
         long nextId = tx.query_value<int>(
             "SELECT nextval('table_id_seq')"
@@ -605,7 +622,7 @@ int test_pqxx_sql_injection() {
 int test_pqxx_rollback() {
     puts("=== test_pqxx_rollback");
     try {
-        pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
+        pqxx::connection con{appProp.pqx.toString()};
         pqxx::work tx{con};
         long nextId = tx.query_value<int>(
             "SELECT nextval('table_id_seq')"
@@ -756,7 +773,7 @@ private:
 int test_CompanyRepository_insert() {
     puts("=== test_CompanyRepository_insert");
     try {
-        pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
+        pqxx::connection con{appProp.pqx.toString()};
         pqxx::work tx{con};
 
         CompanyData data(0u, "ACB 総研", "東京都");
@@ -774,7 +791,8 @@ int test_CompanyRepository_insert() {
 int test_PGSQLTx_Create() {
     puts("=== test_PGSQLTx_Create");
     try {
-        pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
+        // pqxx::connection con{"hostaddr=127.0.0.1 port=5432 dbname=jabberwocky user=derek password=derek1234"};
+        pqxx::connection con{appProp.pqx.toString()};
         std::clock_t start = clock();
         pqxx::work tx{con};
 
@@ -938,7 +956,7 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_mysqlx_delete());
         assert(ret == 0);
     }
-    if(0){   // 3.00
+    if(3.00){   // 3.00
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_pqxx_create_table());
         assert(ret == 0);

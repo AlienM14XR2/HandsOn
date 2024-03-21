@@ -13,7 +13,7 @@
       "password": "derek1234"
     },
     "pqxx": {
-      "uri": "localhost",
+      "uri": "127.0.0.1",
       "port": 5432,
       "dbname": "jabberwocky",
       "user": "derek",
