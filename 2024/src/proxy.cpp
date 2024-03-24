@@ -6,7 +6,7 @@
  * - 実際の処理を行うのは別のクラス、上記の『代理人』のような存在。
  * 
  * e.g. compile.
- * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror proxy.cpp -o ../bin/main
+ * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror -I/usr/include/mysql-cppconn-8/ -L/usr/lib/x86_64-linux-gnu/ proxy.cpp -lmysqlcppconn -lmysqlcppconn8 -o ../bin/main
 */
 #include <iostream>
 #include <cassert>
