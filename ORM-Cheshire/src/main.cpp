@@ -120,7 +120,193 @@ int test_debug_and_error() {
  * 設計及び実装はここから。
 */
 
+namespace ormx2 {
+template <class DATA, class PKEY>
+class MySQLXData {
+public:
+    virtual ~MySQLXData() = default;
+    virtual DATA insertQuery(mysqlx::Session*)  const = 0;
+    virtual DATA findOneQuery(mysqlx::Session*, const PKEY&) const = 0;
+    virtual DATA updateQuery(mysqlx::Session*)  const = 0;
+    virtual void removeQuery(mysqlx::Session*, const PKEY&)  const = 0;
+};
 
+class PersonData final : public MySQLXData<PersonData, std::size_t> {
+public:
+    PersonData(const std::size_t& _id
+            , const std::string& _name
+            , const std::string& _email
+            , const int& _age ): id(_id), name(_name), email(_email), age(_age)
+    {}
+    PersonData(const std::size_t& _id
+            , const std::string& _name
+            , const std::string& _email): id(_id), name(_name), email(_email), age(std::nullopt)
+    {}
+    PersonData(const std::string& _name
+            , const std::string& _email
+            , const int& _age ): id(0ul), name(_name), email(_email), age(_age)
+    {}
+    PersonData(const std::string& _name
+            , const std::string& _email ): id(0ul), name(_name), email(_email), age(std::nullopt)
+    {}
+    virtual PersonData insertQuery(mysqlx::Session* sess) const override
+    {
+        puts("------ PersonData::insertQuery()");
+        mysqlx::Schema db = sess->getSchema("cheshire");
+        mysqlx::Table person = db.getTable("person");
+        mysqlx::TableInsert tblIns = person.insert("name", "email", "age");
+        mysqlx::Result res;
+        if(age.has_value()) {
+            res = tblIns.values(name, email, age.value()).execute();
+        } else {
+            res = tblIns.values(name, email, nullptr).execute();
+        }                 
+        PersonData result(res.getAutoIncrementValue(), name, email);
+        if(age.has_value()){
+            result.setAge(age.value());
+        }
+        return result;
+    }
+    virtual PersonData findOneQuery(mysqlx::Session* sess, const std::size_t& pkey) const override
+    {
+        puts("------ PersonData::findOneQuery()");
+        mysqlx::Schema db = sess->getSchema("cheshire");
+        mysqlx::Table person = db.getTable("person");
+        std::string cond("id = ");
+        cond.append(std::to_string(pkey));
+
+        mysqlx::RowResult rowRes = person.select("name", "email" , "age").where(cond).execute();
+        std::string r_name;
+        std::string r_email;
+        std::optional<int> r_age = std::nullopt;
+        for(auto d: rowRes) {
+            std::cout << d.get(0) << '\t' << d.get(1) << '\t' << d.get(2) << std::endl;
+            r_name  = d.get(0).get<std::string>();
+            r_email = d.get(1).get<std::string>();
+            if(!d.get(2).isNull()) {
+                r_age = d.get(2).get<int>();
+            }
+        }
+        if(r_age.has_value()) {
+            return PersonData(pkey, r_name, r_email, r_age.value());
+        } else {
+            return PersonData(pkey, r_name, r_email);
+        }
+    }
+    virtual PersonData updateQuery(mysqlx::Session* sess) const override
+    {
+        puts("------ PersonData::updateQuery()");
+        mysqlx::Schema db = sess->getSchema("cheshire");
+        mysqlx::Table person = db.getTable("person");
+        std::string cond("id = ");
+        cond.append(std::to_string(id));
+
+        if(age.has_value()) {
+            person.update().set("name", name).set("email", email).set("age", age.value())
+                    .where(cond).execute();
+        } else {
+            person.update().set("name", name).set("email", email)
+                    .where(cond).execute();
+        }
+
+        PersonData result(id, name, email);
+        if(age.has_value()){
+            result.setAge(age.value());
+        }
+        return result;
+    }
+    virtual void removeQuery(mysqlx::Session* sess, const std::size_t& pkey)  const override
+    {
+        mysqlx::Schema db = sess->getSchema("cheshire");
+        mysqlx::Table person = db.getTable("person");
+        std::string cond("id = ");
+        cond.append(std::to_string(pkey));
+
+        person.remove().where(cond).execute();
+    }
+
+    /**
+     * mysqlx, xdevapi において結果、DATA がクエリ実行する方がしっくりしたものになってしまった。
+     * DATA であり DAO ということだ。
+    */
+
+
+    std::size_t getId()         const { return id; }
+    std::string getName()       const { return name; }
+    std::string getEmail()      const { return email; }
+    std::optional<int> getAge() const { return age; }
+    void setAge(const int& _age)      { age = _age; }
+private:
+    std::size_t        id;
+    std::string        name;
+    std::string        email;
+    std::optional<int> age;
+};
+
+template <class DATA, class PKEY>
+class Repository {
+public:
+    virtual ~Repository() = default;
+    // ... 
+    virtual DATA insert(const DATA&)  const = 0;
+    virtual DATA update(const DATA&)  const = 0;
+    virtual void remove(const PKEY&)  const = 0;
+    virtual DATA findOne(const PKEY&) const = 0;
+
+};
+
+template<class DATA, class PKEY>
+class MySQLXBasicRepository final : public Repository<DATA, PKEY> {
+public:
+    MySQLXBasicRepository(mysqlx::Session* _session, const DATA& _data): session(_session), d(_data)
+    {}
+    virtual DATA insert(const DATA& data)  const
+    {
+        puts("------ MySQLXBasicRepository::insert()");
+        const MySQLXData<DATA, PKEY>* pdata = static_cast<const DATA*>(&data);
+        return pdata->insertQuery(session);
+    }
+    virtual DATA update(const DATA& data)  const
+    {
+        puts("------ MySQLXBasicRepository::update()");
+        const MySQLXData<DATA, PKEY>* pdata = static_cast<const DATA*>(&data);
+        return pdata->updateQuery(session);
+    }
+    virtual DATA findOne(const PKEY& pkey) const
+    {
+        puts("------ MySQLXBasicRepository::findOne()");
+        const MySQLXData<DATA, PKEY>* pdata = static_cast<const DATA*>(&d);
+        return pdata->findOneQuery(session, pkey);
+    }
+    virtual void remove(const PKEY& pkey) const
+    {
+        puts("------ MySQLXBasicRepository::remove()");
+        const MySQLXData<DATA, PKEY>* pdata = static_cast<const DATA*>(&d);
+        return pdata->removeQuery(session, pkey);
+    }
+    /**
+     * 単なるテンプレート型に過ぎない DATA をどのようにインスタンス化するのか。
+     * これが、できない限り私が望む理想的な Proxy にはならない。
+     * 今、思いつくのは、std::map を返却し、各リポジトリで DATA をインスタンス化する方法だが
+     * できれば、各リポジトリは宣言のみで、定義は行いたくない。
+     * あぁ、DataConcept で factory があればいいのかな。factory の仮引数に std::map があり、
+     * 各 DATA で std::map をもとに、自身を作る。そうすることで、リポジトリを汚染することは
+     * 回避できるかもしれない。
+     * 
+     * 値の受け渡し方法、これはいい方法が浮かばなかった、std::variant の利用も考えたが RDBMS 
+     * 側のビルダパターンでの実現方法が見えなかった。したがって、これは バリエーション・ポイント
+     * として、DATA 側に丸投げした方が設計上きれいになると考える。DATA::toMap() は止めて、CRUD 
+     * に対応したSQLのビルダを DATA に行ってもらうということだ。
+     * 
+     * これで、リポジトリはストレージに左右されないものにはなった（はず：）
+    */
+
+private:
+    mysqlx::Session* session;
+    DATA d;
+};
+
+}   // namespace ormx2
 
 
 
