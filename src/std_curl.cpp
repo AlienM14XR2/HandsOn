@@ -14,6 +14,7 @@
 */
 #include <iostream>
 #include <cassert>
+#include <cstring>
 #include <curl/curl.h>
 
 template <class M, class D>
@@ -54,7 +55,7 @@ size_t curl_write_func(char* cp, size_t size, size_t nmemb, std::string* stream)
 
 std::string curl_get(const char* url) 
 {
-  CURL *curl;
+  CURL*    curl;
   CURLcode res = CURLE_OK;
   curl = curl_easy_init();
   std::string chunk;
@@ -90,6 +91,46 @@ int test_curl_get() {
     }
 }
 
+std::string curl_post(const char* url, const char* postData) 
+{
+    CURL*    curl;
+    CURLcode res;
+    curl = curl_easy_init();
+    std::string chunk;
+    if(curl) {
+        curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_POST, 1);
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, postData);
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, strlen(postData));
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_func);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &chunk);
+        curl_easy_setopt(curl, CURLOPT_PROXY, "");
+        res = curl_easy_perform(curl);
+        ptr_lambda_debug<const char*, const decltype(res)&>("res is ", res);
+        curl_easy_cleanup(curl);
+    }
+    if(res != CURLE_OK) {
+        std::string errMsg;
+        errMsg.append("curl error. CURLcode is ").append(std::to_string(res));
+        throw std::runtime_error(errMsg);
+    }
+    return chunk;
+}
+
+int test_curl_post() {
+    puts("=== test_curl_post");
+    try {
+        char url[] = "https://httpbin.org/post";
+        char postData[] = "user=jiro&password=123456";
+        std::string res = curl_post(url, postData);
+        ptr_lambda_debug<const char*, const decltype(res)&>("res is ", res);
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<const decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void) {
     puts("START 課題 curl ===");
     if(0.01) {
@@ -100,6 +141,8 @@ int main(void) {
     if(1.00) {
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_curl_get());
+        assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_curl_post());
         assert(ret == 0);
     }
     puts("===   課題 curl END");
