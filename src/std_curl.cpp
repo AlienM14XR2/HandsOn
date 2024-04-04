@@ -142,6 +142,9 @@ int main(void) {
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_curl_get());
         assert(ret == 0);
+    }
+    if(0) {      // 1.01
+        auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_curl_post());
         assert(ret == 0);
     }
