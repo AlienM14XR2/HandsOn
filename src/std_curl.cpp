@@ -55,11 +55,13 @@ size_t curl_write_func(char* cp, size_t size, size_t nmemb, std::string* stream)
 std::string curl_get(const char* url) 
 {
   CURL *curl;
-  CURLcode res = CURLE_UNSUPPORTED_PROTOCOL;
+  CURLcode res = CURLE_OK;
   curl = curl_easy_init();
   std::string chunk;
   if(curl) {
     curl_easy_setopt(curl, CURLOPT_URL, url);
+    // サーバのSSL証明書の検証をしない
+    // curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_func);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &chunk);
     curl_easy_setopt(curl, CURLOPT_PROXY, "");
@@ -68,8 +70,9 @@ std::string curl_get(const char* url)
     curl_easy_cleanup(curl);
   }
   if(res != CURLE_OK) {
-    std::cout << "ERROR: curl error." << std::endl;
-    std::exit(1);
+    std::string errMsg;
+    errMsg.append("curl error. CURLcode is ").append(std::to_string(res));
+    throw std::runtime_error(errMsg);
   }
   return chunk;
 }
