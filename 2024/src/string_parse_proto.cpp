@@ -17,6 +17,7 @@
 #include <cassert>
 #include <cstring>
 #include <chrono>
+#include <nlohmann/json.hpp>
 #include <sys/stat.h>
 
 #include "h_tree.h"
@@ -311,6 +312,21 @@ int test_search2nd() {
   return EXIT_SUCCESS;
 }
 
+/**
+ * YouTube の任意の検索結果の解析を行う。
+ * 必要情報、この場合は JSON を返却する。
+*/
+
+int parseYouTube(nlohmann::json* _dest) {
+  puts("--- parseYouTube");
+  try {
+    return EXIT_SUCCESS;
+  } catch(std::exception& e) {
+    ptr_print_error<const decltype(e)&>(e);
+    return EXIT_FAILURE;
+  }
+}
+
 
 int main(void) {
     puts("START C/C++ 文字列解析 ===");
@@ -375,12 +391,12 @@ void readFile(const char* _filePath, char* _buf)
       strcat(_buf, tmp);
       memset(tmp, '\0', 10241);  // この一行がなく、初期化できていなかったのが原因だった。
     }
-    printf("\n");
+    // printf("\n");
     fclose(fp);
   } else {
     // print_error("not file open.");
-    printf("ERROR: not file open.");
-    exit(1);
+    // exit(1);
+    throw std::runtime_error("file is not opend.");
   }
 }
 
