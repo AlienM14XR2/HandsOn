@@ -315,20 +315,12 @@ int test_search2nd() {
 int test_Result_List_JSON() {
   puts("test_Result_List_JSON");
   try {
-  std::string p1 = R"({
-                  "personData": {
-                    "name": "Jojo",
-                    "email": "jojo@loki.org",
-                    "age": 24
-                  }})";
-  std::string p2 = R"({
-                  "personData": {
-                    "name": "Alpha",
-                    "email": "alpha@loki.org",
-                    "age": 30
-                  }})";
+    std::string p1 = R"({"personData": {"name": "Jojo","email": "jojo@loki.org","age": 24}})";
+    std::string p2 = R"({"personData": {"name": "Alpha","email": "alpha@loki.org","age": 30}})";
     nlohmann::json res;
-    res["list"] = {p1, p2};
+    res["list"] = {};
+    res["list"][0] = p1;
+    res["list"][1] = p2;
     ptr_lambda_debug<const char*, const std::string&>("res is ", res.dump());
     return EXIT_SUCCESS;
   } catch(std::exception& e) {
