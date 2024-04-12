@@ -334,13 +334,14 @@ int test_Result_List_JSON() {
  * 必要情報、この場合は JSON を返却する。
 */
 
-int parseYouTube(nlohmann::json* _dest, const std::string& _filePath) {
+int parseYouTube(std::string& _dest, const std::string& _filePath) {
   puts("--- parseYouTube");
   char* buf       = NULL;
   H_TREE startPos = createTree();
   H_TREE endPos   = createTree();
   H_TREE dest     = createTree();
-  H_TREE fix      = createTree();
+  // H_TREE fix      = createTree();
+  _dest           = R"({"ytList":[)";
   try {
     size_t size = getFileSize(_filePath.c_str());
     buf = (char*)malloc(size+1);
@@ -351,42 +352,54 @@ int parseYouTube(nlohmann::json* _dest, const std::string& _filePath) {
     char endPattern[]      = "\"}}}]},\"shortBylineText\"";   // endPattern の中に必ず終端を表現する文字があること。この場合は ','
     printf("startPattern is \t%s\n", startPattern);
     printf("endPattern   is \t%s\n", endPattern);
-    char appendT[] = "{";
-    char appendB[] = "}";
+    // char appendT[] = "{";
+    // char appendB[] = "}";
     setRange(buf, startPos, endPos, startPattern, endPattern);
 
     if(isValidRange(startPos, endPos)) {
       search2nd(dest, startPos, endPos, 5);
       H_TREE tmp = dest;
+      size_t i = 0;
       while((tmp = hasNextTree(tmp)) != NULL) {
-        char* str = (char*)treeValue(tmp);          // BAD KNOW-HOW ここで pop してはいけない（理由が知りたければ試してみてくれ：）
-        size_t s = 0;
-        size_t e = 0;
-        checkChar(str, '{', '}', &s, &e);
-        ptr_lambda_debug<const char*, const decltype(s)&>("s is ", s);
-        ptr_lambda_debug<const char*, const decltype(e)&>("e is ", e);
-        if(s > e) {
-          appendBottom(fix, str, appendB, s-e);
+        char* cstr = (char*)treeValue(tmp);
+        std::string str(cstr);
+        str.append("}}");
+        // printf("str is %s\n", str.c_str());
+        if(i == 0) {
+          _dest.append(str);
         } else {
-          appendTop(fix, str, appendT, e-s);
+          _dest.append(", ").append(str);
         }
-        free((void*)str);
+        i++;
+        free((void*)cstr);
       }
-      tmp = fix;
-      while((tmp = hasNextTree(tmp)) != NULL) {
-        char* str = (char*)treeValue(tmp);
-        printf("str is \t%s\n", str);
-        // TODO ここで最終的に返却する JSON にする必要がある。
-        free((void*)str);
-      }
+      // 次の処理には致命的なバグがあるのか？その問題の切り分けを行う：）
+      // 以下の処理には問題はないかもしれないが、あまり意味を感じなくなったから止める。
+      // tmp      = fix;      
+      // size_t i = 0;
+      // while((tmp = hasNextTree(tmp)) != NULL) {
+      //   char* cstr = (char*)treeValue(tmp);
+      //   // printf("str is \t%s\n", str);
+      //   // TODO ここで最終的に返却する JSON にする必要がある。
+      //   std::string str(cstr);
+      //   // printf("str is \t%s\n", str.c_str());
+      //   if(i == 0) {
+      //     _dest.append(str);
+      //   } else {
+      //     _dest.append(", ").append(str);
+      //   }
+      //   i++;
+      //   free((void*)cstr);
+      // }
+      _dest.append("]}");
       printf("dest count is \t%ld\n", countTree(dest));   // H_TREE は 根（root）分余計にある。実際の要素数 + 1 になる。
-      printf("fix count is \t%ld\n", countTree(fix));     // H_TREE は 根（root）分余計にある。実際の要素数 + 1 になる。
+      // printf("fix count is \t%ld\n", countTree(fix));     // H_TREE は 根（root）分余計にある。実際の要素数 + 1 になる。
     }
 
     clearTree(startPos, countTree(startPos));
     clearTree(endPos, countTree(endPos));
     clearTree(dest, countTree(dest));
-    clearTree(fix, countTree(fix));
+    // clearTree(fix, countTree(fix));
     removeBuffer(buf);
     return EXIT_SUCCESS;
   } catch(std::exception& e) {
@@ -394,7 +407,7 @@ int parseYouTube(nlohmann::json* _dest, const std::string& _filePath) {
     clearTree(startPos, countTree(startPos));
     clearTree(endPos, countTree(endPos));
     clearTree(dest, countTree(dest));
-    clearTree(fix, countTree(fix));
+    // clearTree(fix, countTree(fix));
     removeBuffer(buf);
     return EXIT_FAILURE;
   }
@@ -403,9 +416,12 @@ int parseYouTube(nlohmann::json* _dest, const std::string& _filePath) {
 int test_parseYouTube() {
   puts("=== test_parseYouTube");
   try {
-    nlohmann::json dest;
+    std::string dest;
     std::string filePath("/home/jack/tmp/sample.html");
-    return parseYouTube(&dest, filePath);
+    int ret = parseYouTube(dest, filePath);
+    nlohmann::json j(dest);
+    ptr_lambda_debug<const char*, const std::string&>("j is ", j.dump());   // これで問題なく JSON 成形されていれば OK。問題があれば exception になる：）
+    return ret;
   } catch(std::exception& e) {
     ptr_print_error<const decltype(e)&>(e);
     return EXIT_FAILURE;
@@ -438,8 +454,8 @@ int main(void) {
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_Result_List_JSON());
         assert(ret == 0);
-        // ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_parseYouTube());
-        // assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_parseYouTube());
+        assert(ret == 0);
     }
     puts("===   C/C++ 文字列解析 END");
     return 0;
@@ -646,21 +662,19 @@ void search2nd(H_TREE _dest, H_TREE _startPos, H_TREE _endPos, char _beforeLimit
   char* start      = NULL;
   char* end        = NULL;
   size_t sz = countTree(_startPos);       // countTree() は 要素数 + 1 を返却する。 +1 は H_TREE の根（root）。  
-//   debug_long("sz is ", &sz);
   ptr_lambda_debug<const char*, const decltype(sz)&>("sz is ", sz);  
   for(size_t i=0 ; i<(sz-1); i++) {
     start    = (char*)popQueue(_startPos);
     end      = (char*)popQueue(_endPos);
     end += _beforeLimitPos;               // limitCh の直前まで移動
     printf("(end-start) size is %ld\n", end - start);
-    size_t msz = (end - start) + 1;
+    size_t msz = (end - start) + 2;       // 余分にバイト数を確保する場合は、必ず 2 の倍数で確保すること。
     char* str = (char*)malloc(sizeof(char)*msz);
     memset(str, '\0', sizeof(char)*msz);
     size_t j = 0;
-    size_t jlimit = msz-1;
     while(1) {
       str[j] = *start;
-      if(j >= jlimit || start == end) {
+      if(start == end) {
         pushTree(_dest, str);
         break;
       }
