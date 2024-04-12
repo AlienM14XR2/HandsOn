@@ -11,14 +11,16 @@
  * その過程で C を使わなくなるのは止む終えないと考える。前置きは以上だ。
  * 
  * e.g. compile.
- * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror -I../inc/ h_tree.c string_parse_proto.cpp -o ../bin/main
+ * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror -I../inc/ h_tree.c string_parse_proto.cpp -lcurl -o ../bin/main
 */
 #include <iostream>
 #include <cassert>
 #include <cstring>
 #include <chrono>
+#include <fstream>
 #include <nlohmann/json.hpp>
 #include <sys/stat.h>
+#include <curl/curl.h>
 
 #include "h_tree.h"
 
@@ -137,6 +139,62 @@ int test_H_TREE() {
     }
 }
 
+
+std::string url_encode(const std::string &value) {
+    std::ostringstream escaped;
+    escaped.fill('0');
+    escaped << std::hex;
+
+    for (std::string::const_iterator i = value.begin(), n = value.end(); i != n; ++i) {
+        std::string::value_type c = (*i);
+
+        // Keep alphanumeric and other accepted characters intact
+        if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+            escaped << c;
+            continue;
+        }
+
+        // Any other characters are percent-encoded
+        escaped << std::uppercase;
+        escaped << '%' << std::setw(2) << int((unsigned char) c);
+        escaped << std::nouppercase;
+    }
+
+    return escaped.str();
+}
+
+
+size_t curl_write_func(char* cp, size_t size, size_t nmemb, std::string* stream) 
+{
+    size_t realSize = size * nmemb;
+    stream->append(cp, realSize);
+    return realSize;
+}
+
+std::string curl_get(const char* url) 
+{
+  CURL*    curl;
+  CURLcode res = CURLE_OK;
+  curl = curl_easy_init();
+  std::string chunk;
+  if(curl) {
+    curl_easy_setopt(curl, CURLOPT_URL, url);
+    // サーバのSSL証明書の検証をしない
+    // curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_func);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &chunk);
+    curl_easy_setopt(curl, CURLOPT_PROXY, "");
+    res = curl_easy_perform(curl);
+    ptr_lambda_debug<const char*, const decltype(res)&>("res is ", res);
+    curl_easy_cleanup(curl);
+  }
+  if(res != CURLE_OK) {
+    std::string errMsg;
+    errMsg.append("curl error. CURLcode is ").append(std::to_string(res));
+    throw std::runtime_error(errMsg);
+  }
+  return chunk;
+}
 
 
 
@@ -329,6 +387,52 @@ int test_Result_List_JSON() {
   }
 }
 
+
+
+#define WRITE_DIR   "/home/jack/tmp/string_parse_proto/"
+
+void writeYouTube(const std::string& source) {
+  puts("--- writeYouTube");
+  try {
+    std::string fileName(WRITE_DIR);
+    fileName += "youtube/source.html";
+    std::ofstream writer;
+    writer.open(fileName, std::ios::out);
+    writer << source << std::endl;
+    writer.close();
+  } catch(std::exception& e) {
+    throw std::runtime_error(e.what());
+  }
+}
+
+
+std::string requestYouTube(const std::string& keyword) {
+  puts("--- requestYouTube");
+  try {
+    std::string url = "https://www.youtube.com/results?search_query=";
+    url.append(keyword);
+    std::string res = curl_get(url.c_str());
+    return res;
+  } catch(std::exception& e) {
+    throw std::runtime_error(e.what());
+  }
+}
+
+int test_requestYouTube() {
+  puts("=== test_requestYouTube");
+  try {
+    std::string keyword = "メタルギア";
+    std::string res = requestYouTube(url_encode(keyword));
+    // ptr_lambda_debug<const char*, const std::string&>("res is ", res);
+    writeYouTube(res);
+    return EXIT_SUCCESS;
+  } catch(std::exception& e) {
+    ptr_print_error<const decltype(e)&>(e);
+    return EXIT_FAILURE;
+  }
+}
+
+
 /**
  * YouTube の任意の検索結果の解析を行う。
  * 必要情報、この場合は JSON を返却する。
@@ -412,7 +516,9 @@ int test_parseYouTube() {
   puts("=== test_parseYouTube");
   try {
     std::string dest;
-    std::string filePath("/home/jack/tmp/sample.html");
+    // std::string filePath("/home/jack/tmp/sample.html");
+    std::string filePath(WRITE_DIR);
+    filePath += "youtube/source.html";
     int ret = parseYouTube(dest, filePath);
     nlohmann::json j(dest);
     ptr_lambda_debug<const char*, const std::string&>("j is ", j.dump());   // これで問題なく JSON 成形されていれば OK。問題があれば exception になる：）
@@ -449,8 +555,15 @@ int main(void) {
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_Result_List_JSON());
         assert(ret == 0);
+        std::clock_t start_1 = clock();
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestYouTube());
+        assert(ret == 0);
+        std::clock_t start_2 = clock();
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_parseYouTube());
         assert(ret == 0);
+        std::clock_t end = clock();
+        std::cout << "passed: " << (double)(end-start_1)/CLOCKS_PER_SEC << " sec." << std::endl;
+        std::cout << "passed: " << (double)(end-start_2)/CLOCKS_PER_SEC << " sec." << std::endl;
     }
     puts("===   C/C++ 文字列解析 END");
     return 0;
