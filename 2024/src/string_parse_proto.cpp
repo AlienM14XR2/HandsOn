@@ -312,6 +312,31 @@ int test_search2nd() {
   return EXIT_SUCCESS;
 }
 
+int test_Result_List_JSON() {
+  puts("test_Result_List_JSON");
+  try {
+  std::string p1 = R"({
+                  "personData": {
+                    "name": "Jojo",
+                    "email": "jojo@loki.org",
+                    "age": 24
+                  }})";
+  std::string p2 = R"({
+                  "personData": {
+                    "name": "Alpha",
+                    "email": "alpha@loki.org",
+                    "age": 30
+                  }})";
+    nlohmann::json res;
+    res["list"] = {p1, p2};
+    ptr_lambda_debug<const char*, const std::string&>("res is ", res.dump());
+    return EXIT_SUCCESS;
+  } catch(std::exception& e) {
+    ptr_print_error<const decltype(e)&>(e);
+    return EXIT_FAILURE;
+  }
+}
+
 /**
  * YouTube の任意の検索結果の解析を行う。
  * 必要情報、この場合は JSON を返却する。
@@ -419,8 +444,10 @@ int main(void) {
     }
     if(1.02) {        // 1.02
         auto ret = 0;
-        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_parseYouTube());
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_Result_List_JSON());
         assert(ret == 0);
+        // ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_parseYouTube());
+        // assert(ret == 0);
     }
     puts("===   C/C++ 文字列解析 END");
     return 0;
