@@ -340,7 +340,6 @@ int parseYouTube(std::string& _dest, const std::string& _filePath) {
   H_TREE startPos = createTree();
   H_TREE endPos   = createTree();
   H_TREE dest     = createTree();
-  // H_TREE fix      = createTree();
   _dest           = R"({"ytList":[)";
   try {
     size_t size = getFileSize(_filePath.c_str());
@@ -352,8 +351,6 @@ int parseYouTube(std::string& _dest, const std::string& _filePath) {
     char endPattern[]      = "\"}}}]},\"shortBylineText\"";   // endPattern の中に必ず終端を表現する文字があること。この場合は ','
     printf("startPattern is \t%s\n", startPattern);
     printf("endPattern   is \t%s\n", endPattern);
-    // char appendT[] = "{";
-    // char appendB[] = "}";
     setRange(buf, startPos, endPos, startPattern, endPattern);
 
     if(isValidRange(startPos, endPos)) {
@@ -393,13 +390,11 @@ int parseYouTube(std::string& _dest, const std::string& _filePath) {
       // }
       _dest.append("]}");
       printf("dest count is \t%ld\n", countTree(dest));   // H_TREE は 根（root）分余計にある。実際の要素数 + 1 になる。
-      // printf("fix count is \t%ld\n", countTree(fix));     // H_TREE は 根（root）分余計にある。実際の要素数 + 1 になる。
     }
 
     clearTree(startPos, countTree(startPos));
     clearTree(endPos, countTree(endPos));
     clearTree(dest, countTree(dest));
-    // clearTree(fix, countTree(fix));
     removeBuffer(buf);
     return EXIT_SUCCESS;
   } catch(std::exception& e) {
@@ -491,13 +486,13 @@ void readFile(const char* _filePath, char* _buf)
 {
   puts("--- readFile");
   FILE*  fp          = NULL;
-  char   tmp[10241] = "\0";
+  char   tmp[10242] = "\0";
   size_t readSize    = 0;
     
   fp = fopen(_filePath, "r");
   if(fp != NULL) {    
     // ファイルの読み込みとメモリへの書き込み
-    memset(tmp, '\0', 10241);
+    memset(tmp, '\0', 10242);
     while((readSize = fread(tmp, 1, 10240, fp)) != 0) {
       strcat(_buf, tmp);
       memset(tmp, '\0', 10241);  // この一行がなく、初期化できていなかったのが原因だった。
