@@ -317,15 +317,85 @@ int test_search2nd() {
  * 必要情報、この場合は JSON を返却する。
 */
 
-int parseYouTube(nlohmann::json* _dest) {
+int parseYouTube(nlohmann::json* _dest, const std::string& _filePath) {
   puts("--- parseYouTube");
+  char* buf       = NULL;
+  H_TREE startPos = createTree();
+  H_TREE endPos   = createTree();
+  H_TREE dest     = createTree();
+  H_TREE fix      = createTree();
   try {
+    size_t size = getFileSize(_filePath.c_str());
+    buf = (char*)malloc(size+1);
+    memset(buf, '\0', size+1);
+    readFile(_filePath.c_str(), buf);
+
+    char startPattern[]    = "{\"videoRenderer\":";
+    char endPattern[]      = "\"}}}]},\"shortBylineText\"";   // endPattern の中に必ず終端を表現する文字があること。この場合は ','
+    printf("startPattern is \t%s\n", startPattern);
+    printf("endPattern   is \t%s\n", endPattern);
+    char appendT[] = "{";
+    char appendB[] = "}";
+    setRange(buf, startPos, endPos, startPattern, endPattern);
+
+    if(isValidRange(startPos, endPos)) {
+      search2nd(dest, startPos, endPos, 5);
+      H_TREE tmp = dest;
+      while((tmp = hasNextTree(tmp)) != NULL) {
+        char* str = (char*)treeValue(tmp);          // BAD KNOW-HOW ここで pop してはいけない（理由が知りたければ試してみてくれ：）
+        size_t s = 0;
+        size_t e = 0;
+        checkChar(str, '{', '}', &s, &e);
+        ptr_lambda_debug<const char*, const decltype(s)&>("s is ", s);
+        ptr_lambda_debug<const char*, const decltype(e)&>("e is ", e);
+        if(s > e) {
+          appendBottom(fix, str, appendB, s-e);
+        } else {
+          appendTop(fix, str, appendT, e-s);
+        }
+        free((void*)str);
+      }
+      tmp = fix;
+      while((tmp = hasNextTree(tmp)) != NULL) {
+        char* str = (char*)treeValue(tmp);
+        printf("str is \t%s\n", str);
+        // TODO ここで最終的に返却する JSON にする必要がある。
+        free((void*)str);
+      }
+      printf("dest count is \t%ld\n", countTree(dest));   // H_TREE は 根（root）分余計にある。実際の要素数 + 1 になる。
+      printf("fix count is \t%ld\n", countTree(fix));     // H_TREE は 根（root）分余計にある。実際の要素数 + 1 になる。
+    }
+
+    clearTree(startPos, countTree(startPos));
+    clearTree(endPos, countTree(endPos));
+    clearTree(dest, countTree(dest));
+    clearTree(fix, countTree(fix));
+    removeBuffer(buf);
     return EXIT_SUCCESS;
+  } catch(std::exception& e) {
+    ptr_print_error<const decltype(e)&>(e);
+    clearTree(startPos, countTree(startPos));
+    clearTree(endPos, countTree(endPos));
+    clearTree(dest, countTree(dest));
+    clearTree(fix, countTree(fix));
+    removeBuffer(buf);
+    return EXIT_FAILURE;
+  }
+}
+
+int test_parseYouTube() {
+  puts("=== test_parseYouTube");
+  try {
+    nlohmann::json dest;
+    std::string filePath("/home/jack/tmp/sample.html");
+    return parseYouTube(&dest, filePath);
   } catch(std::exception& e) {
     ptr_print_error<const decltype(e)&>(e);
     return EXIT_FAILURE;
   }
 }
+
+
 
 
 int main(void) {
@@ -337,19 +407,25 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_H_TREE());
         assert(ret == 0);
     }
-    if(1.00) {
+    if(0) {        // 1.00
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_searchProto());
         assert(ret == 0);
     }
-    if(1.01) {
+    if(0) {        // 1.01
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_search2nd());
+        assert(ret == 0);
+    }
+    if(1.02) {        // 1.02
+        auto ret = 0;
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_parseYouTube());
         assert(ret == 0);
     }
     puts("===   C/C++ 文字列解析 END");
     return 0;
 }
+
 
 
 
