@@ -469,8 +469,8 @@ bool parseYouTube(std::string& _dest, const std::string& _filePath) {
   _dest           = R"({"ytList":[)";
   try {
     size_t size = getFileSize(_filePath.c_str());
-    buf = (char*)malloc(size+1);
-    memset(buf, '\0', size+1);
+    buf = (char*)malloc(size+2);
+    memset(buf, '\0', size+2);
     readFile(_filePath.c_str(), buf);
 
     char startPattern[]    = "{\"videoRenderer\":";
@@ -509,7 +509,6 @@ bool parseYouTube(std::string& _dest, const std::string& _filePath) {
     clearTree(startPos, countTree(startPos));
     clearTree(endPos, countTree(endPos));
     clearTree(dest, countTree(dest));
-    // clearTree(fix, countTree(fix));
     removeBuffer(buf);
     return false;
   }
@@ -583,12 +582,63 @@ int test_requestGoogle() {
 
 /**
  * Google
+ * 検索結果の文字列解析。
  * 
  * <div jsname="xQjRM">
  * ...
  * </div></div></div></div></div></div></div>
 */
 
+bool parseGoogle(std::string& _dest, const std::string& _filePath) {
+  puts("--- parseGoogle");
+  char* buf       = NULL;
+  H_TREE startPos = createTree();
+  H_TREE endPos   = createTree();
+  H_TREE dest     = createTree();
+  _dest           = R"({"gList":[)";
+  try {
+    size_t size = getFileSize(_filePath.c_str());
+    buf = (char*)malloc(size+2);
+    memset(buf, '\0', size+2);
+    readFile(_filePath.c_str(), buf);
+
+    // 次のパターンで正しくデータの位置が特定できるかが問題
+    char startPattern[]    = "<div jsname=\"xQjRM\">";
+    char endPattern[]      = "</div></div></div></div></div></div></div>";
+    printf("startPattern is \t%s\n", startPattern);
+    printf("endPattern   is \t%s\n", endPattern);
+
+
+    _dest.append("]}");
+    clearTree(startPos, countTree(startPos));
+    clearTree(endPos, countTree(endPos));
+    clearTree(dest, countTree(dest));
+    removeBuffer(buf);
+    return true;
+  } catch(std::exception& e) {
+    ptr_print_error<const decltype(e)&>(e);
+    clearTree(startPos, countTree(startPos));
+    clearTree(endPos, countTree(endPos));
+    clearTree(dest, countTree(dest));
+    removeBuffer(buf);
+    return false;
+  }
+}
+
+int test_parseGoogle() {
+  puts("=== test_parseGoogle");
+  try {
+    std::string dest;
+    std::string filePath(WRITE_DIR);
+    filePath += "google/source.html";
+    bool ret = parseGoogle(dest, filePath);
+    ptr_lambda_debug<const char*, const bool&>("ret is ", ret);
+    return EXIT_SUCCESS;
+  } catch(std::exception& e) {
+    ptr_print_error<const decltype(e)&>(e);
+    return EXIT_FAILURE;
+  }
+}
 
 int main(void) {
     puts("START C/C++ 文字列解析 ===");
@@ -625,9 +675,11 @@ int main(void) {
         std::cout << "passed: " << (double)(end-start_1)/CLOCKS_PER_SEC << " sec." << std::endl;
         std::cout << "passed: " << (double)(end-start_2)/CLOCKS_PER_SEC << " sec." << std::endl;
     }
-    if(0) {      // 1.03
+    if(1.03) {      // 1.03
         auto ret = 0;
-        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestGoogle());
+        // ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestGoogle());
+        // assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_parseGoogle());
         assert(ret == 0);
     }
     puts("===   C/C++ 文字列解析 END");
