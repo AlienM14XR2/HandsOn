@@ -460,7 +460,7 @@ int test_requestYouTube() {
  * 必要情報、この場合は JSON を返却する。
 */
 
-int parseYouTube(std::string& _dest, const std::string& _filePath) {
+bool parseYouTube(std::string& _dest, const std::string& _filePath) {
   puts("--- parseYouTube");
   char* buf       = NULL;
   H_TREE startPos = createTree();
@@ -503,7 +503,7 @@ int parseYouTube(std::string& _dest, const std::string& _filePath) {
     clearTree(endPos, countTree(endPos));
     clearTree(dest, countTree(dest));
     removeBuffer(buf);
-    return EXIT_SUCCESS;
+    return true;
   } catch(std::exception& e) {
     ptr_print_error<const decltype(e)&>(e);
     clearTree(startPos, countTree(startPos));
@@ -511,7 +511,7 @@ int parseYouTube(std::string& _dest, const std::string& _filePath) {
     clearTree(dest, countTree(dest));
     // clearTree(fix, countTree(fix));
     removeBuffer(buf);
-    return EXIT_FAILURE;
+    return false;
   }
 }
 
@@ -522,10 +522,11 @@ int test_parseYouTube() {
     // std::string filePath("/home/jack/tmp/sample.html");
     std::string filePath(WRITE_DIR);
     filePath += "youtube/source.html";
-    int ret = parseYouTube(dest, filePath);
+    bool ret = parseYouTube(dest, filePath);
+    ptr_lambda_debug<const char*, const bool&>("ret is ", ret);
     nlohmann::json j(dest);
     ptr_lambda_debug<const char*, const std::string&>("j is ", j.dump());   // これで問題なく JSON 成形されていれば OK。問題があれば exception になる：）
-    return ret;
+    return EXIT_SUCCESS;
   } catch(std::exception& e) {
     ptr_print_error<const decltype(e)&>(e);
     return EXIT_FAILURE;
@@ -581,6 +582,8 @@ int test_requestGoogle() {
 }
 
 /**
+ * Google
+ * 
  * <div jsname="xQjRM">
  * ...
  * </div></div></div></div></div></div></div>
@@ -610,7 +613,7 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_search2nd());
         assert(ret == 0);
     }
-    if(0) {        // 1.02
+    if(1.02) {        // 1.02
         auto ret = 0;
         std::clock_t start_1 = clock();
         // ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestYouTube());
