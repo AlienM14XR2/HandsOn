@@ -389,6 +389,12 @@ int test_Result_List_JSON() {
 
 
 
+/**
+ * YouTube
+ * 
+ * 外部サービス、ユーチューブへのリクエストとパース。
+*/
+
 #define WRITE_DIR   "/home/jack/tmp/string_parse_proto/"
 
 void writeYouTube(const std::string& source) {
@@ -404,7 +410,6 @@ void writeYouTube(const std::string& source) {
     throw std::runtime_error(e.what());
   }
 }
-
 
 std::string requestYouTube(const std::string& keyword) {
   puts("--- requestYouTube");
@@ -431,7 +436,6 @@ int test_requestYouTube() {
     return EXIT_FAILURE;
   }
 }
-
 
 /**
  * YouTube の任意の検索結果の解析を行う。
@@ -474,28 +478,9 @@ int parseYouTube(std::string& _dest, const std::string& _filePath) {
         i++;
         free((void*)cstr);
       }
-      // 次の処理には致命的なバグがあるのか？その問題の切り分けを行う：）
-      // 以下の処理には問題はないかもしれないが、あまり意味を感じなくなったから止める。
-      // tmp      = fix;      
-      // size_t i = 0;
-      // while((tmp = hasNextTree(tmp)) != NULL) {
-      //   char* cstr = (char*)treeValue(tmp);
-      //   // printf("str is \t%s\n", str);
-      //   // TODO ここで最終的に返却する JSON にする必要がある。
-      //   std::string str(cstr);
-      //   // printf("str is \t%s\n", str.c_str());
-      //   if(i == 0) {
-      //     _dest.append(str);
-      //   } else {
-      //     _dest.append(", ").append(str);
-      //   }
-      //   i++;
-      //   free((void*)cstr);
-      // }
       _dest.append("]}");
       printf("dest count is \t%ld\n", countTree(dest));   // H_TREE は 根（root）分余計にある。実際の要素数 + 1 になる。
     }
-
     clearTree(startPos, countTree(startPos));
     clearTree(endPos, countTree(endPos));
     clearTree(dest, countTree(dest));
@@ -531,6 +516,38 @@ int test_parseYouTube() {
 
 
 
+/**
+ * Google
+ * 
+ * 外部サービス、グーグルへのリクエストとパース。
+*/
+
+std::string requestGoogle(const std::string& keyword) {
+  puts("--- requestGoogle");
+  try {
+    std::string url = "https://www.google.com/search?q=";
+    url.append(keyword);
+    std::string res = curl_get(url.c_str());
+    return res;
+  } catch(std::exception& e) {
+    throw std::runtime_error(e.what());
+  }
+}
+
+int test_requestGoogle() {
+  puts("=== test_requestGoogle");
+  try {
+    std::string keyword = "失楽園";
+    std::string res = requestGoogle(url_encode(keyword));
+    ptr_lambda_debug<const char*, const std::string&>("res is ", res);
+    // writeGoogle(res);
+    return EXIT_SUCCESS;
+  } catch(std::exception& e) {
+    ptr_print_error<const decltype(e)&>(e);
+    return EXIT_FAILURE;
+  }
+}
+
 
 int main(void) {
     puts("START C/C++ 文字列解析 ===");
@@ -550,20 +567,25 @@ int main(void) {
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_search2nd());
         assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_Result_List_JSON());
+        assert(ret == 0);
     }
     if(1.02) {        // 1.02
         auto ret = 0;
-        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_Result_List_JSON());
-        assert(ret == 0);
         std::clock_t start_1 = clock();
-        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestYouTube());
-        assert(ret == 0);
+        // ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestYouTube());
+        // assert(ret == 0);
         std::clock_t start_2 = clock();
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_parseYouTube());
         assert(ret == 0);
         std::clock_t end = clock();
         std::cout << "passed: " << (double)(end-start_1)/CLOCKS_PER_SEC << " sec." << std::endl;
         std::cout << "passed: " << (double)(end-start_2)/CLOCKS_PER_SEC << " sec." << std::endl;
+    }
+    if(1.03) {
+        auto ret = 0;
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestGoogle());
+        assert(ret == 0);
     }
     puts("===   C/C++ 文字列解析 END");
     return 0;
