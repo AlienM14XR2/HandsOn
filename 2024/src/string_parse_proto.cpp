@@ -496,9 +496,9 @@ bool parseYouTube(std::string& _dest, const std::string& _filePath) {
         i++;
         free((void*)cstr);
       }
-      _dest.append("]}");
       printf("dest count is \t%ld\n", countTree(dest));   // H_TREE は 根（root）分余計にある。実際の要素数 + 1 になる。
     }
+    _dest.append("]}");
     clearTree(startPos, countTree(startPos));
     clearTree(endPos, countTree(endPos));
     clearTree(dest, countTree(dest));
@@ -544,7 +544,7 @@ void writeGoogle(const std::string& source) {
   puts("--- writeGoogle");
   try {
     std::string fileName(WRITE_DIR);
-    fileName += "google/source.html";
+    fileName += "google/source_4.html";
     std::ofstream writer;
     writer.open(fileName, std::ios::out);
     writer << source << std::endl;
@@ -569,7 +569,9 @@ std::string requestGoogle(const std::string& keyword) {
 int test_requestGoogle() {
   puts("=== test_requestGoogle");
   try {
-    std::string keyword = "失楽園";
+    // std::string keyword = "失楽園";
+    // std::string keyword = "DMC 4";
+    std::string keyword = "レジデントエビル";
     std::string res = requestGoogle(url_encode(keyword));
     // ptr_lambda_debug<const char*, const std::string&>("res is ", res);
     writeGoogle(res);
@@ -602,13 +604,44 @@ bool parseGoogle(std::string& _dest, const std::string& _filePath) {
     memset(buf, '\0', size+2);
     readFile(_filePath.c_str(), buf);
 
-    // 次のパターンで正しくデータの位置が特定できるかが問題
-    char startPattern[]    = "<div jsname=\"xQjRM\">";
-    char endPattern[]      = "</div></div></div></div></div></div></div>";
+    // 次のパターンで概ねデータの位置の特定は可能だが、もとデータが HTML であるため、startPos endPos の個数の完全一致は不可能だと感じた。
+    char startPattern[]    = "<div class=\"egMi0 kCrYT\">";
+    char endPattern[]      = "</div></div></div></div></div></div>";
     printf("startPattern is \t%s\n", startPattern);
     printf("endPattern   is \t%s\n", endPattern);
+    setRange(buf, startPos, endPos, startPattern, endPattern);
 
+    printf("startPos count is %ld\n", countTree(startPos));
+    printf("endPos   count is %ld\n", countTree(endPos));
 
+    // printf("buf is %s\n", buf);
+    isValidRange(startPos, endPos);   // この関数の Google バージョンが必要かな
+
+    /**
+     * 場合によっては文字列の先頭、終端の取得方法から見直した方がいいかもしれない。
+     * 今は妥当な方法が思いつかない。
+    */
+
+    // if(isValidRange(startPos, endPos)) {
+    //   search2nd(dest, startPos, endPos, 1);
+    //   H_TREE tmp = dest;
+    //   // size_t i = 0;
+    //   while((tmp = hasNextTree(tmp)) != NULL) {
+    //     char* cstr = (char*)treeValue(tmp);
+    //     std::string str(cstr);
+    //     ptr_lambda_debug<const char*, const std::string&>("str is ", str);
+    //     // str.append("}}");
+    //     // // printf("str is %s\n", str.c_str());
+    //     // if(i == 0) {
+    //     //   _dest.append(str);
+    //     // } else {
+    //     //   _dest.append(", ").append(str);
+    //     // }
+    //     // i++;
+    //     free((void*)cstr);
+    //   }
+    //   printf("dest count is \t%ld\n", countTree(dest));   // H_TREE は 根（root）分余計にある。実際の要素数 + 1 になる。
+    // }
     _dest.append("]}");
     clearTree(startPos, countTree(startPos));
     clearTree(endPos, countTree(endPos));
@@ -677,8 +710,8 @@ int main(void) {
     }
     if(1.03) {      // 1.03
         auto ret = 0;
-        // ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestGoogle());
-        // assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestGoogle());
+        assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_parseGoogle());
         assert(ret == 0);
     }
@@ -725,7 +758,7 @@ void readFile(const char* _filePath, char* _buf)
     memset(tmp, '\0', 10242);
     while((readSize = fread(tmp, 1, 10240, fp)) != 0) {
       strcat(_buf, tmp);
-      memset(tmp, '\0', 10241);  // この一行がなく、初期化できていなかったのが原因だった。
+      memset(tmp, '\0', 10242);  // この一行がなく、初期化できていなかったのが原因だった。
     }
     // printf("\n");
     fclose(fp);
