@@ -522,6 +522,20 @@ int test_parseYouTube() {
  * 外部サービス、グーグルへのリクエストとパース。
 */
 
+void writeGoogle(const std::string& source) {
+  puts("--- writeGoogle");
+  try {
+    std::string fileName(WRITE_DIR);
+    fileName += "google/source.html";
+    std::ofstream writer;
+    writer.open(fileName, std::ios::out);
+    writer << source << std::endl;
+    writer.close();
+  } catch(std::exception& e) {
+    throw std::runtime_error(e.what());
+  }
+}
+
 std::string requestGoogle(const std::string& keyword) {
   puts("--- requestGoogle");
   try {
@@ -539,8 +553,8 @@ int test_requestGoogle() {
   try {
     std::string keyword = "失楽園";
     std::string res = requestGoogle(url_encode(keyword));
-    ptr_lambda_debug<const char*, const std::string&>("res is ", res);
-    // writeGoogle(res);
+    // ptr_lambda_debug<const char*, const std::string&>("res is ", res);
+    writeGoogle(res);
     return EXIT_SUCCESS;
   } catch(std::exception& e) {
     ptr_print_error<const decltype(e)&>(e);
