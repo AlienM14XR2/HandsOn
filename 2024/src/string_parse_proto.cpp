@@ -562,6 +562,12 @@ int test_requestGoogle() {
   }
 }
 
+/**
+ * <div jsname="xQjRM">
+ * ...
+ * </div></div></div></div></div></div></div>
+*/
+
 
 int main(void) {
     puts("START C/C++ 文字列解析 ===");
