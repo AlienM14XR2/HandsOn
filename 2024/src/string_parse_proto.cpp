@@ -371,7 +371,7 @@ int test_search2nd() {
 }
 
 int test_Result_List_JSON() {
-  puts("test_Result_List_JSON");
+  puts("=== test_Result_List_JSON");
   try {
     std::string p1 = R"({"personData": {"name": "Jojo","email": "jojo@loki.org","age": 24}})";
     std::string p2 = R"({"personData": {"name": "Alpha","email": "alpha@loki.org","age": 30}})";
@@ -379,6 +379,7 @@ int test_Result_List_JSON() {
     res["list"] = {};
     res["list"][0] = p1;
     res["list"][1] = p2;
+    // 次の出力ができれば OK
     ptr_lambda_debug<const char*, const std::string&>("res is ", res.dump());
     return EXIT_SUCCESS;
   } catch(std::exception& e) {
@@ -387,6 +388,23 @@ int test_Result_List_JSON() {
   }
 }
 
+int test_Result_List_JSON_innerHtml() {
+  puts("=== test_Result_List_JSON_innerHtml");
+  try {
+    std::string p1 = R"({"innerHtml": "<div jsname="xQjRM"><div class="sATSHe"><div><div jscontroller="SC7lYd" class="g Ww4FFb vt6azd tF2Cxc asEBEc" lang="ja" style="width:652px" jsaction="QyLbLe:OMITjf;ewaord:qsYrDe;xd28Mb:A6j43c" data-hveid="CD0QAA" data-ved="2ahUKEwjBtfzKnr6FAxVeiVYBHXgyA40QFSgAegQIPRAA">"})";
+    std::string p2 = R"({"innerHtml": "<div jsname="xQjRM"><div class="sATSHe"><div><div jscontroller="SC7lYd" class="g Ww4FFb vt6azd tF2Cxc asEBEc" lang="ja" style="width:600px" jsaction="QyLbLe:OMITjf;ewaord:qsYrDe;xd28Mb:A6j43c" data-hveid="CDkQAA" data-ved="2ahUKEwjBtfzKnr6FAxVeiVYBHXgyA40QFSgAegQIORAA">"})";
+    nlohmann::json res;
+    res["list"] = {};
+    res["list"][0] = p1;
+    res["list"][1] = p2;
+    // 次の出力ができれば OK
+    ptr_lambda_debug<const char*, const std::string&>("res is ", res.dump());
+    return EXIT_SUCCESS;
+  } catch(std::exception& e) {
+    ptr_print_error<const decltype(e)&>(e);
+    return EXIT_FAILURE;
+  }
+}
 
 
 /**
@@ -577,6 +595,10 @@ int main(void) {
         assert(ret == 1);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_H_TREE());
         assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_Result_List_JSON());
+        assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_Result_List_JSON_innerHtml());
+        assert(ret == 0);
     }
     if(0) {        // 1.00
         auto ret = 0;
@@ -587,10 +609,8 @@ int main(void) {
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_search2nd());
         assert(ret == 0);
-        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_Result_List_JSON());
-        assert(ret == 0);
     }
-    if(1.02) {        // 1.02
+    if(0) {        // 1.02
         auto ret = 0;
         std::clock_t start_1 = clock();
         // ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestYouTube());
@@ -602,7 +622,7 @@ int main(void) {
         std::cout << "passed: " << (double)(end-start_1)/CLOCKS_PER_SEC << " sec." << std::endl;
         std::cout << "passed: " << (double)(end-start_2)/CLOCKS_PER_SEC << " sec." << std::endl;
     }
-    if(1.03) {
+    if(0) {      // 1.03
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestGoogle());
         assert(ret == 0);
