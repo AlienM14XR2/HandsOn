@@ -605,8 +605,9 @@ bool parseGoogle(std::string& _dest, const std::string& _filePath) {
     readFile(_filePath.c_str(), buf);
 
     // 次のパターンで概ねデータの位置の特定は可能だが、もとデータが HTML であるため、startPos endPos の個数の完全一致は不可能だと感じた。
-    char startPattern[]    = "<div class=\"egMi0 kCrYT\">";
-    char endPattern[]      = "</div></div></div></div></div></div>";
+    char startPattern[]    = "<div><div class=\"Gx5Zad fP1Qef xpd EtOod pkphOe\">";
+    char endPattern[]      = "</div></div></div></div></div></div></div></div>";
+    // char endPattern[]      = "</div></div></div></div></div>";
     printf("startPattern is \t%s\n", startPattern);
     printf("endPattern   is \t%s\n", endPattern);
     setRange(buf, startPos, endPos, startPattern, endPattern);
@@ -615,7 +616,23 @@ bool parseGoogle(std::string& _dest, const std::string& _filePath) {
     printf("endPos   count is %ld\n", countTree(endPos));
 
     // printf("buf is %s\n", buf);
-    isValidRange(startPos, endPos);   // この関数の Google バージョンが必要かな
+    // isValidRange(startPos, endPos);   // この関数の Google バージョンが必要かな
+
+    H_TREE stmp = startPos;
+    H_TREE etmp = endPos;
+    while((stmp = hasNextTree(stmp)) != NULL) {
+      char* s = (char*)treeValue(stmp);
+      etmp = hasNextTree(etmp);
+      char* e = (char*)treeValue(etmp);
+      printf("s : e = %p : %p\n", s, e);
+      if( e > s ) {
+        printf("s : e = %c : %c\n", *s, *e);
+      }
+    }
+    /**
+     * 上記のデバッグから分かったこと、setRange() 関数を新たに用意するか次の要件を満たす必要があるということかな。
+     * startPos > endPos の場合は startPos を空ループで無視する必要がある startPos == endPos になるまで。
+    */
 
     /**
      * 場合によっては文字列の先頭、終端の取得方法から見直した方がいいかもしれない。
@@ -824,16 +841,21 @@ void setRange(char* _buf, H_TREE _startPositions, H_TREE _endPositions, const ch
   if(_buf != NULL) {
     char*  start     = &_buf[0];
     char*  hitPos    = NULL;
+    char*  firstPos  = NULL;
     // 先頭検索文字（パターン）に該当する箇所（アドレス）の取得
     do {
       hitPos = strstr(start, _startPattern);
       if(hitPos != NULL) {
+        if(firstPos == NULL) {
+          firstPos = hitPos;
+        }
         pushTree(_startPositions, hitPos);
         start = hitPos + 1;
       }
     } while(hitPos != NULL);
     // 終端検索文字（パターン）に該当する箇所（アドレス）の取得 
     start     = &_buf[0];
+    // start     = firstPos;
     hitPos    = NULL;
     do {
       hitPos = strstr(start, _endPattern);
