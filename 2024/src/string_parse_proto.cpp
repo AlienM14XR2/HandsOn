@@ -571,7 +571,7 @@ int test_requestGoogle() {
   try {
     // std::string keyword = "失楽園";
     // std::string keyword = "DMC 4";
-    std::string keyword = "レジデントエビル";
+    std::string keyword = "レジデントイービル";
     std::string res = requestGoogle(url_encode(keyword));
     // ptr_lambda_debug<const char*, const std::string&>("res is ", res);
     writeGoogle(res);
@@ -612,31 +612,51 @@ bool parseGoogle(std::string& _dest, const std::string& _filePath) {
     printf("endPattern   is \t%s\n", endPattern);
     setRange(buf, startPos, endPos, startPattern, endPattern);
 
-    printf("startPos count is %ld\n", countTree(startPos));
-    printf("endPos   count is %ld\n", countTree(endPos));
-
-    // printf("buf is %s\n", buf);
-    // isValidRange(startPos, endPos);   // この関数の Google バージョンが必要かな
-
-    H_TREE stmp = startPos;
-    H_TREE etmp = endPos;
-    while((stmp = hasNextTree(stmp)) != NULL) {
-      char* s = (char*)treeValue(stmp);
-      etmp = hasNextTree(etmp);
-      char* e = (char*)treeValue(etmp);
-      printf("s : e = %p : %p\n", s, e);
-      if( e > s ) {
-        printf("s : e = %c : %c\n", *s, *e);
+    size_t scount = countTree(startPos);
+    size_t ecount = countTree(endPos);
+    printf("scount is %ld\n", scount);
+    printf("ecount is %ld\n", ecount);
+    if( scount > ecount ) {
+      for(size_t i = 0; i<(scount-ecount); i++) {
+        popStack(startPos);
       }
+    } else if( scount < ecount ) {
+      // for(size_t i = 0; i<(ecount-scount); i++) {
+      //   popStack(endPos);
+      // }
     }
-    /**
-     * 上記のデバッグから分かったこと、setRange() 関数を新たに用意するか次の要件を満たす必要があるということかな。
-     * startPos > endPos の場合は startPos を空ループで無視する必要がある startPos == endPos になるまで。
-    */
+      H_TREE stmp = startPos;
+      H_TREE etmp = endPos;
+      printf("\n");
+      while((stmp = hasNextTree(stmp)) != NULL) {
+        char* s = (char*)treeValue(stmp);
+        etmp = hasNextTree(etmp);
+        char* e = (char*)treeValue(etmp);
+        printf("s : e = %p : %p\n", s, e);
+        if( e > s ) {
+          printf("s : e = %c : %c\n", *s, *e);
+        }
+      }
+      /**
+       * 上記のデバッグから分かったこと、setRange() 関数を新たに用意するか次の要件を満たす必要があるということかな。
+       * startPos > endPos の場合は startPos を空ループで無視する必要がある startPos == endPos になるまで。
+      */
+    // printf("buf is %s\n", buf);
+    if(isValidRange(startPos, endPos)){
+     search2nd(dest, startPos, endPos, (char)strlen(endPattern)-1);
+     H_TREE tmp = dest;
+     while((tmp = hasNextTree(tmp)) != NULL) {
+        char* cstr = (char*)treeValue(tmp);
+        std::string str(cstr);
+        // ptr_lambda_debug<const char*, const std::string&>("str is ", str);
+        printf("%s\n", str.c_str());
+     }
+    }
 
     /**
-     * 場合によっては文字列の先頭、終端の取得方法から見直した方がいいかもしれない。
-     * 今は妥当な方法が思いつかない。
+     * 色々パターンを調べた結果、確実な規則性が得られなかった。
+     * 始点と終点の 2 点のみで、全ブロックを返却しようかと思う：）
+     * e.g. <div id="main"> から </footer> まで
     */
 
     // if(isValidRange(startPos, endPos)) {
@@ -680,7 +700,7 @@ int test_parseGoogle() {
   try {
     std::string dest;
     std::string filePath(WRITE_DIR);
-    filePath += "google/source.html";
+    filePath += "google/source_4.html";
     bool ret = parseGoogle(dest, filePath);
     ptr_lambda_debug<const char*, const bool&>("ret is ", ret);
     return EXIT_SUCCESS;
