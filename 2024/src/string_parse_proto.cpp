@@ -571,7 +571,8 @@ int test_requestGoogle() {
   try {
     // std::string keyword = "失楽園";
     // std::string keyword = "DMC 4";
-    std::string keyword = "レジデントイービル";
+    // std::string keyword = "レジデントイービル";
+    std::string keyword = "レジデントエビル";
     std::string res = requestGoogle(url_encode(keyword));
     // ptr_lambda_debug<const char*, const std::string&>("res is ", res);
     writeGoogle(res);
@@ -605,9 +606,10 @@ bool parseGoogle(std::string& _dest, const std::string& _filePath) {
     readFile(_filePath.c_str(), buf);
 
     // 次のパターンで概ねデータの位置の特定は可能だが、もとデータが HTML であるため、startPos endPos の個数の完全一致は不可能だと感じた。
-    char startPattern[]    = "<div><div class=\"Gx5Zad fP1Qef xpd EtOod pkphOe\">";
-    char endPattern[]      = "</div></div></div></div></div></div></div></div>";
-    // char endPattern[]      = "</div></div></div></div></div>";
+    // char startPattern[]    = "<div><div class=\"Gx5Zad fP1Qef xpd EtOod pkphOe\">";
+    // char endPattern[]      = "</div></div></div></div></div></div></div></div>";
+    char startPattern[]  = "<div></div>";
+    char endPattern[]    = "<footer>";
     printf("startPattern is \t%s\n", startPattern);
     printf("endPattern   is \t%s\n", endPattern);
     setRange(buf, startPos, endPos, startPattern, endPattern);
@@ -616,15 +618,6 @@ bool parseGoogle(std::string& _dest, const std::string& _filePath) {
     size_t ecount = countTree(endPos);
     printf("scount is %ld\n", scount);
     printf("ecount is %ld\n", ecount);
-    if( scount > ecount ) {
-      for(size_t i = 0; i<(scount-ecount); i++) {
-        popStack(startPos);
-      }
-    } else if( scount < ecount ) {
-      // for(size_t i = 0; i<(ecount-scount); i++) {
-      //   popStack(endPos);
-      // }
-    }
       H_TREE stmp = startPos;
       H_TREE etmp = endPos;
       printf("\n");
@@ -643,7 +636,7 @@ bool parseGoogle(std::string& _dest, const std::string& _filePath) {
       */
     // printf("buf is %s\n", buf);
     if(isValidRange(startPos, endPos)){
-     search2nd(dest, startPos, endPos, (char)strlen(endPattern)-1);
+     search2nd(dest, startPos, endPos, (char)((strlen(endPattern)-1)*-1));
      H_TREE tmp = dest;
      while((tmp = hasNextTree(tmp)) != NULL) {
         char* cstr = (char*)treeValue(tmp);
@@ -659,26 +652,6 @@ bool parseGoogle(std::string& _dest, const std::string& _filePath) {
      * e.g. <div id="main"> から </footer> まで
     */
 
-    // if(isValidRange(startPos, endPos)) {
-    //   search2nd(dest, startPos, endPos, 1);
-    //   H_TREE tmp = dest;
-    //   // size_t i = 0;
-    //   while((tmp = hasNextTree(tmp)) != NULL) {
-    //     char* cstr = (char*)treeValue(tmp);
-    //     std::string str(cstr);
-    //     ptr_lambda_debug<const char*, const std::string&>("str is ", str);
-    //     // str.append("}}");
-    //     // // printf("str is %s\n", str.c_str());
-    //     // if(i == 0) {
-    //     //   _dest.append(str);
-    //     // } else {
-    //     //   _dest.append(", ").append(str);
-    //     // }
-    //     // i++;
-    //     free((void*)cstr);
-    //   }
-    //   printf("dest count is \t%ld\n", countTree(dest));   // H_TREE は 根（root）分余計にある。実際の要素数 + 1 になる。
-    // }
     _dest.append("]}");
     clearTree(startPos, countTree(startPos));
     clearTree(endPos, countTree(endPos));
