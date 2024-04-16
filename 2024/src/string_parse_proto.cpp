@@ -624,7 +624,7 @@ int test_requestGoogle() {
  * </div></div></div></div></div></div></div>
 */
 
-bool parseGoogle(std::string& _dest, const std::string& _filePath) {
+void parseGoogle(std::string& _dest, const std::string& _filePath) {
   puts("--- parseGoogle");
   char* buf         = NULL;
   H_TREE startPos   = createTree();
@@ -640,9 +640,6 @@ bool parseGoogle(std::string& _dest, const std::string& _filePath) {
     memset(buf, '\0', size+2);
     readFile(_filePath.c_str(), buf);
 
-    // 次のパターンで概ねデータの位置の特定は可能だが、もとデータが HTML であるため、startPos endPos の個数の完全一致は不可能だと感じた。
-    // char startPattern[]    = "<div><div class=\"Gx5Zad fP1Qef xpd EtOod pkphOe\">";
-    // char endPattern[]      = "</div></div></div></div></div></div></div></div>";
     /**
      * 色々パターンを調べた結果、確実な規則性が得られなかった。
      * 始点と終点の 2 点のみで、全ブロックを返却しようかと思う：）
@@ -653,23 +650,7 @@ bool parseGoogle(std::string& _dest, const std::string& _filePath) {
     printf("startPattern is \t%s\n", startPattern);
     printf("endPattern   is \t%s\n", endPattern);
     setRange(buf, startPos, endPos, startPattern, endPattern);
-
-    size_t scount = countTree(startPos);
-    size_t ecount = countTree(endPos);
-    printf("scount is %ld\n", scount);
-    printf("ecount is %ld\n", ecount);
     printf("\n");
-    // H_TREE stmp = startPos;
-    // H_TREE etmp = endPos;
-    // while((stmp = hasNextTree(stmp)) != NULL) {
-    //   char* s = (char*)treeValue(stmp);
-    //   etmp = hasNextTree(etmp);
-    //   char* e = (char*)treeValue(etmp);
-    //   printf("s : e = %p : %p\n", s, e);
-    //   if( e > s ) {
-    //     printf("s : e = %c : %c\n", *s, *e);
-    //   }
-    // }
       /**
        * 上記のデバッグから分かったこと、setRange() 関数を新たに用意するか次の要件を満たす必要があるということかな。
        * startPos > endPos の場合は startPos を空ループで無視する必要がある startPos == endPos になるまで。
@@ -720,7 +701,6 @@ bool parseGoogle(std::string& _dest, const std::string& _filePath) {
        * 後はリファクタして、メモリの開放漏れがなければよいかと。
       */
     }
-
     _dest.append("]}");
     clearTree(startPos, countTree(startPos));
     clearTree(endPos, countTree(endPos));
@@ -729,7 +709,6 @@ bool parseGoogle(std::string& _dest, const std::string& _filePath) {
     clearTree(a_endPos, countTree(a_endPos));
     clearTree(a_dest, countTree(a_dest));
     removeBuffer(buf);
-    return true;
   } catch(std::exception& e) {
     ptr_print_error<const decltype(e)&>(e);
     clearTree(startPos, countTree(startPos));
@@ -739,7 +718,7 @@ bool parseGoogle(std::string& _dest, const std::string& _filePath) {
     clearTree(a_endPos, countTree(a_endPos));
     clearTree(a_dest, countTree(a_dest));
     removeBuffer(buf);
-    return false;
+    throw std::runtime_error(e.what());
   }
 }
 
@@ -748,8 +727,8 @@ int test_parseGoogle() {
   try {
     std::string dest;
     std::string filePath(WRITE_DIR);
-    filePath += "google/source_4.html";
-    bool ret = parseGoogle(dest, filePath);
+    filePath += "google/source_4.html"; 
+    parseGoogle(dest, filePath);
 
     // 文字列解析後に a タグのドメイン相対に対する置換処理を行う
     std::string target         = R"(href="/search?)";
@@ -757,7 +736,6 @@ int test_parseGoogle() {
     replaceAll(dest, target, replacement);
     ptr_lambda_debug<const char*, const std::string&>("dest is ", dest);
 
-    ptr_lambda_debug<const char*, const bool&>("ret is ", ret);
     nlohmann::json j(dest);
     ptr_lambda_debug<const char*, const std::string&>("j is ", j.dump());   // これで問題なく JSON 成形されていれば OK。問題があれば exception になる：）
     return EXIT_SUCCESS;
@@ -792,7 +770,7 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_search2nd());
         assert(ret == 0);
     }
-    if(0) {        // 1.02
+    if(1.02) {        // 1.02
         auto ret = 0;
         std::clock_t start_1 = clock();
         // ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestYouTube());
@@ -810,6 +788,9 @@ int main(void) {
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_parseGoogle());
         assert(ret == 0);
+    }
+    if(1.04) {      // 1.04
+      // Bing あるいは Yahoo! JAPAN かな。
     }
     puts("===   C/C++ 文字列解析 END");
     return 0;
