@@ -608,6 +608,11 @@ bool parseGoogle(std::string& _dest, const std::string& _filePath) {
     // 次のパターンで概ねデータの位置の特定は可能だが、もとデータが HTML であるため、startPos endPos の個数の完全一致は不可能だと感じた。
     // char startPattern[]    = "<div><div class=\"Gx5Zad fP1Qef xpd EtOod pkphOe\">";
     // char endPattern[]      = "</div></div></div></div></div></div></div></div>";
+    /**
+     * 色々パターンを調べた結果、確実な規則性が得られなかった。
+     * 始点と終点の 2 点のみで、全ブロックを返却しようかと思う：）
+     * e.g. <div id="main"> から </footer> まで
+    */
     char startPattern[]  = "<div></div>";
     char endPattern[]    = "<footer>";
     printf("startPattern is \t%s\n", startPattern);
@@ -618,18 +623,18 @@ bool parseGoogle(std::string& _dest, const std::string& _filePath) {
     size_t ecount = countTree(endPos);
     printf("scount is %ld\n", scount);
     printf("ecount is %ld\n", ecount);
-      H_TREE stmp = startPos;
-      H_TREE etmp = endPos;
-      printf("\n");
-      while((stmp = hasNextTree(stmp)) != NULL) {
-        char* s = (char*)treeValue(stmp);
-        etmp = hasNextTree(etmp);
-        char* e = (char*)treeValue(etmp);
-        printf("s : e = %p : %p\n", s, e);
-        if( e > s ) {
-          printf("s : e = %c : %c\n", *s, *e);
-        }
+    H_TREE stmp = startPos;
+    H_TREE etmp = endPos;
+    printf("\n");
+    while((stmp = hasNextTree(stmp)) != NULL) {
+      char* s = (char*)treeValue(stmp);
+      etmp = hasNextTree(etmp);
+      char* e = (char*)treeValue(etmp);
+      printf("s : e = %p : %p\n", s, e);
+      if( e > s ) {
+        printf("s : e = %c : %c\n", *s, *e);
       }
+    }
       /**
        * 上記のデバッグから分かったこと、setRange() 関数を新たに用意するか次の要件を満たす必要があるということかな。
        * startPos > endPos の場合は startPos を空ループで無視する必要がある startPos == endPos になるまで。
@@ -642,31 +647,39 @@ bool parseGoogle(std::string& _dest, const std::string& _filePath) {
       char* cstr = (char*)treeValue(tmp);
       std::string str(cstr);
       printf("%s\n", str.c_str());
-
+      free((void*)cstr);
       /**
        * ここで、a タグだけを抜き取りたい。
-       * "<a href=" から "</a>" まで。
+       * e.g. "<a href=" から "</a>" まで。
       */
-
-      // size_t strSize    = 1026;
-      // tmp               = NULL;
-      // char pattern[]    = "<a href=";
-      // H_TREE t1 = createTree();
-      // searchProto(t1, strSize, cstr, pattern, '>');
-      // tmp = t1;
-      // while((tmp = hasNextTree(tmp)) != NULL) {
-      //   char* str = (char*)treeValue(tmp);
-      //   printf("%s\n", str);
-      //   // printf("<a href=%s>\n", str);
-      //   free((void*)str);
-      // }
+      H_TREE a_startPos        = createTree();
+      H_TREE a_endPos          = createTree();
+      H_TREE a_dest            = createTree();
+      char   a_startPattern[]  = "<a ";
+      char   a_endPattern[]    = "</a>";
+      printf("a_startPattern is \t%s\n", a_startPattern);
+      printf("a_endPattern   is \t%s\n", a_endPattern);
+      setRange((char*)str.c_str(), a_startPos, a_endPos, a_startPattern, a_endPattern);
+      printf("scount is %ld\n", countTree(a_startPos));
+      printf("ecount is %ld\n", countTree(a_endPos));
+      if(isValidRange(a_startPos, a_endPos)) {
+        // search2nd(a_dest, a_startPos, a_endPos, (char)((strlen(endPattern)-1))*-1);
+        search2nd(a_dest, a_startPos, a_endPos, (char)(3));
+        tmp = a_dest;
+        while((tmp = hasNextTree(tmp)) != NULL) {
+          char* cstr = (char*)treeValue(tmp);
+          printf("%s\n", cstr);
+          free((void*)cstr);
+        }
+      }
+      clearTree(a_startPos, countTree(a_startPos));
+      clearTree(a_endPos, countTree(a_endPos));
+      clearTree(a_dest, countTree(a_dest));
+      /**
+       * 通常の検索エンジンの利用で必要な情報は a タグのみと割り切ればこれでいいと思う。
+       * 後はリファクタして、メモリの開放漏れがなければよいかと。
+      */
     }
-
-    /**
-     * 色々パターンを調べた結果、確実な規則性が得られなかった。
-     * 始点と終点の 2 点のみで、全ブロックを返却しようかと思う：）
-     * e.g. <div id="main"> から </footer> まで
-    */
 
     _dest.append("]}");
     clearTree(startPos, countTree(startPos));
