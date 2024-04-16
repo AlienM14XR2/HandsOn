@@ -406,6 +406,24 @@ int test_Result_List_JSON_innerHtml() {
   }
 }
 
+int test_string_replace() {
+  puts("=== test_string_replace");
+  try {
+    std::string src            = R"(<a class="Q71vJc" href="/search?sca_esv=e7ea9d64b74deda5&amp;ie=UTF-8&amp;q=%E5%A4%B1%E6%A5%BD%E5%9C%92+%E3%83%8D%E3%82%BF%E3%83%90%E3%83%AC&amp;sa=X&amp;ved=2ahUKEwiu5fT42cWFAxWBsVYBHXOLBkAQ1QJ6BAgBEAo" data-ved="2ahUKEwiu5fT42cWFAxWBsVYBHXOLBkAQ1QJ6BAgBEAo"><accordion-entry-search-icon><span class="ieB2Dd"><img class="OEaqif" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///////yH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" style="max-width:20px;max-height:20px" id="dimg_15" data-deferred="1"></span></accordion-entry-search-icon><div class="kjGX2"><span class="Xe4YD"><div class="BNeawe s3v9rd AP7Wnd lRVwie">&#22833;&#27005;&#22290; &#12493;&#12479;&#12496;&#12524;</div></span></div></a>)";
+    std::string target         = R"(href="/search?)";
+    std::string replacement    = R"(href="https://www.google.com/search?)";
+    std::string::size_type pos = 0;
+    while((pos = src.find(target, pos)) != std::string::npos) {
+      src.replace(pos, target.length(), replacement);
+      pos += replacement.length();
+    }
+    ptr_lambda_debug<const char*, const std::string&>("src is ", src);
+    return EXIT_SUCCESS;
+  } catch(std::exception& e) {
+    ptr_print_error<const decltype(e)&>(e);
+    return EXIT_FAILURE;
+  }
+}
 
 /**
  * YouTube
@@ -724,6 +742,8 @@ int main(void) {
         assert(ret == 0);
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_Result_List_JSON_innerHtml());
         assert(ret == 0);
+        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_string_replace());
+        assert(ret == 0);
     }
     if(0) {        // 1.00
         auto ret = 0;
@@ -735,7 +755,7 @@ int main(void) {
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_search2nd());
         assert(ret == 0);
     }
-    if(1.02) {        // 1.02
+    if(0) {        // 1.02
         auto ret = 0;
         std::clock_t start_1 = clock();
         // ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestYouTube());
@@ -747,7 +767,7 @@ int main(void) {
         std::cout << "passed: " << (double)(end-start_1)/CLOCKS_PER_SEC << " sec." << std::endl;
         std::cout << "passed: " << (double)(end-start_2)/CLOCKS_PER_SEC << " sec." << std::endl;
     }
-    if(1.03) {      // 1.03
+    if(0) {      // 1.03
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestGoogle());
         assert(ret == 0);
