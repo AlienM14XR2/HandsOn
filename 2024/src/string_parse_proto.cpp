@@ -406,17 +406,31 @@ int test_Result_List_JSON_innerHtml() {
   }
 }
 
+void replaceAll(std::string& _src, const std::string& _target, const std::string& _replacement) {
+  puts("--- replaceAll");
+  try {
+    std::string::size_type pos = 0;
+    while((pos = _src.find(_target, pos)) != std::string::npos) {
+      _src.replace(pos, _target.length(), _replacement);
+      pos += _replacement.length();
+    }
+  } catch(std::exception& e) {
+    throw std::runtime_error(e.what());
+  }
+}
+
 int test_string_replace() {
   puts("=== test_string_replace");
   try {
     std::string src            = R"(<a class="Q71vJc" href="/search?sca_esv=e7ea9d64b74deda5&amp;ie=UTF-8&amp;q=%E5%A4%B1%E6%A5%BD%E5%9C%92+%E3%83%8D%E3%82%BF%E3%83%90%E3%83%AC&amp;sa=X&amp;ved=2ahUKEwiu5fT42cWFAxWBsVYBHXOLBkAQ1QJ6BAgBEAo" data-ved="2ahUKEwiu5fT42cWFAxWBsVYBHXOLBkAQ1QJ6BAgBEAo"><accordion-entry-search-icon><span class="ieB2Dd"><img class="OEaqif" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAP///////yH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" style="max-width:20px;max-height:20px" id="dimg_15" data-deferred="1"></span></accordion-entry-search-icon><div class="kjGX2"><span class="Xe4YD"><div class="BNeawe s3v9rd AP7Wnd lRVwie">&#22833;&#27005;&#22290; &#12493;&#12479;&#12496;&#12524;</div></span></div></a>)";
     std::string target         = R"(href="/search?)";
     std::string replacement    = R"(href="https://www.google.com/search?)";
-    std::string::size_type pos = 0;
-    while((pos = src.find(target, pos)) != std::string::npos) {
-      src.replace(pos, target.length(), replacement);
-      pos += replacement.length();
-    }
+    replaceAll(src, target, replacement);
+    // std::string::size_type pos = 0;
+    // while((pos = src.find(target, pos)) != std::string::npos) {
+    //   src.replace(pos, target.length(), replacement);
+    //   pos += replacement.length();
+    // }
     ptr_lambda_debug<const char*, const std::string&>("src is ", src);
     return EXIT_SUCCESS;
   } catch(std::exception& e) {
@@ -644,18 +658,18 @@ bool parseGoogle(std::string& _dest, const std::string& _filePath) {
     size_t ecount = countTree(endPos);
     printf("scount is %ld\n", scount);
     printf("ecount is %ld\n", ecount);
-    H_TREE stmp = startPos;
-    H_TREE etmp = endPos;
     printf("\n");
-    while((stmp = hasNextTree(stmp)) != NULL) {
-      char* s = (char*)treeValue(stmp);
-      etmp = hasNextTree(etmp);
-      char* e = (char*)treeValue(etmp);
-      printf("s : e = %p : %p\n", s, e);
-      if( e > s ) {
-        printf("s : e = %c : %c\n", *s, *e);
-      }
-    }
+    // H_TREE stmp = startPos;
+    // H_TREE etmp = endPos;
+    // while((stmp = hasNextTree(stmp)) != NULL) {
+    //   char* s = (char*)treeValue(stmp);
+    //   etmp = hasNextTree(etmp);
+    //   char* e = (char*)treeValue(etmp);
+    //   printf("s : e = %p : %p\n", s, e);
+    //   if( e > s ) {
+    //     printf("s : e = %c : %c\n", *s, *e);
+    //   }
+    // }
       /**
        * 上記のデバッグから分かったこと、setRange() 関数を新たに用意するか次の要件を満たす必要があるということかな。
        * startPos > endPos の場合は startPos を空ループで無視する必要がある startPos == endPos になるまで。
@@ -736,7 +750,13 @@ int test_parseGoogle() {
     std::string filePath(WRITE_DIR);
     filePath += "google/source_4.html";
     bool ret = parseGoogle(dest, filePath);
-    // TODO 文字列解析後に a タグのドメイン相対に対する置換処理を行う
+
+    // 文字列解析後に a タグのドメイン相対に対する置換処理を行う
+    std::string target         = R"(href="/search?)";
+    std::string replacement    = R"(href="https://www.google.com/search?)";
+    replaceAll(dest, target, replacement);
+    ptr_lambda_debug<const char*, const std::string&>("dest is ", dest);
+
     ptr_lambda_debug<const char*, const bool&>("ret is ", ret);
     nlohmann::json j(dest);
     ptr_lambda_debug<const char*, const std::string&>("j is ", j.dump());   // これで問題なく JSON 成形されていれば OK。問題があれば exception になる：）
