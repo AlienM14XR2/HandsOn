@@ -612,11 +612,14 @@ int test_requestGoogle() {
 
 bool parseGoogle(std::string& _dest, const std::string& _filePath) {
   puts("--- parseGoogle");
-  char* buf       = NULL;
-  H_TREE startPos = createTree();
-  H_TREE endPos   = createTree();
-  H_TREE dest     = createTree();
-  _dest           = R"({"gList":[)";
+  char* buf         = NULL;
+  H_TREE startPos   = createTree();
+  H_TREE endPos     = createTree();
+  H_TREE dest       = createTree();
+  H_TREE a_startPos = createTree();
+  H_TREE a_endPos   = createTree();
+  H_TREE a_dest     = createTree();
+  _dest             = R"({"gList":[)";
   try {
     size_t size = getFileSize(_filePath.c_str());
     buf = (char*)malloc(size+2);
@@ -670,11 +673,8 @@ bool parseGoogle(std::string& _dest, const std::string& _filePath) {
        * ここで、a タグだけを抜き取りたい。
        * e.g. "<a href=" から "</a>" まで。
       */
-      H_TREE a_startPos        = createTree();
-      H_TREE a_endPos          = createTree();
-      H_TREE a_dest            = createTree();
-      char   a_startPattern[]  = "<a ";
-      char   a_endPattern[]    = "</a>";
+      char a_startPattern[]  = "<a ";
+      char a_endPattern[]    = "</a>";
       printf("a_startPattern is \t%s\n", a_startPattern);
       printf("a_endPattern   is \t%s\n", a_endPattern);
       setRange((char*)str.c_str(), a_startPos, a_endPos, a_startPattern, a_endPattern);
@@ -684,15 +684,23 @@ bool parseGoogle(std::string& _dest, const std::string& _filePath) {
         // search2nd(a_dest, a_startPos, a_endPos, (char)((strlen(endPattern)-1))*-1);
         search2nd(a_dest, a_startPos, a_endPos, (char)(3));
         tmp = a_dest;
+        size_t i = 0;
         while((tmp = hasNextTree(tmp)) != NULL) {
           char* cstr = (char*)treeValue(tmp);
-          printf("%s\n", cstr);
+          std::string str;
+          if(i == 0) {
+            str = R"({"item":")";
+          } else {
+            str = R"(,{"item":")";
+          }
+          str.append(cstr);
+          str.append(R"("})");
+          printf("%s\n", str.c_str());
+          _dest.append(str);
           free((void*)cstr);
+          i++;
         }
       }
-      clearTree(a_startPos, countTree(a_startPos));
-      clearTree(a_endPos, countTree(a_endPos));
-      clearTree(a_dest, countTree(a_dest));
       /**
        * 通常の検索エンジンの利用で必要な情報は a タグのみと割り切ればこれでいいと思う。
        * 後はリファクタして、メモリの開放漏れがなければよいかと。
@@ -703,6 +711,9 @@ bool parseGoogle(std::string& _dest, const std::string& _filePath) {
     clearTree(startPos, countTree(startPos));
     clearTree(endPos, countTree(endPos));
     clearTree(dest, countTree(dest));
+    clearTree(a_startPos, countTree(a_startPos));
+    clearTree(a_endPos, countTree(a_endPos));
+    clearTree(a_dest, countTree(a_dest));
     removeBuffer(buf);
     return true;
   } catch(std::exception& e) {
@@ -710,6 +721,9 @@ bool parseGoogle(std::string& _dest, const std::string& _filePath) {
     clearTree(startPos, countTree(startPos));
     clearTree(endPos, countTree(endPos));
     clearTree(dest, countTree(dest));
+    clearTree(a_startPos, countTree(a_startPos));
+    clearTree(a_endPos, countTree(a_endPos));
+    clearTree(a_dest, countTree(a_dest));
     removeBuffer(buf);
     return false;
   }
@@ -722,7 +736,10 @@ int test_parseGoogle() {
     std::string filePath(WRITE_DIR);
     filePath += "google/source_4.html";
     bool ret = parseGoogle(dest, filePath);
+    // TODO 文字列解析後に a タグのドメイン相対に対する置換処理を行う
     ptr_lambda_debug<const char*, const bool&>("ret is ", ret);
+    nlohmann::json j(dest);
+    ptr_lambda_debug<const char*, const std::string&>("j is ", j.dump());   // これで問題なく JSON 成形されていれば OK。問題があれば exception になる：）
     return EXIT_SUCCESS;
   } catch(std::exception& e) {
     ptr_print_error<const decltype(e)&>(e);
@@ -767,7 +784,7 @@ int main(void) {
         std::cout << "passed: " << (double)(end-start_1)/CLOCKS_PER_SEC << " sec." << std::endl;
         std::cout << "passed: " << (double)(end-start_2)/CLOCKS_PER_SEC << " sec." << std::endl;
     }
-    if(0) {      // 1.03
+    if(1.03) {      // 1.03
         auto ret = 0;
         ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestGoogle());
         assert(ret == 0);
