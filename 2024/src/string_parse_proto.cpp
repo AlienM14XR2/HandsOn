@@ -569,10 +569,10 @@ std::string requestGoogle(const std::string& keyword) {
 int test_requestGoogle() {
   puts("=== test_requestGoogle");
   try {
-    // std::string keyword = "失楽園";
+    std::string keyword = "失楽園";
     // std::string keyword = "DMC 4";
     // std::string keyword = "レジデントイービル";
-    std::string keyword = "レジデントエビル";
+    // std::string keyword = "レジデントエビル";
     std::string res = requestGoogle(url_encode(keyword));
     // ptr_lambda_debug<const char*, const std::string&>("res is ", res);
     writeGoogle(res);
@@ -635,15 +635,31 @@ bool parseGoogle(std::string& _dest, const std::string& _filePath) {
        * startPos > endPos の場合は startPos を空ループで無視する必要がある startPos == endPos になるまで。
       */
     // printf("buf is %s\n", buf);
-    if(isValidRange(startPos, endPos)){
-     search2nd(dest, startPos, endPos, (char)((strlen(endPattern)-1)*-1));
-     H_TREE tmp = dest;
-     while((tmp = hasNextTree(tmp)) != NULL) {
-        char* cstr = (char*)treeValue(tmp);
-        std::string str(cstr);
-        // ptr_lambda_debug<const char*, const std::string&>("str is ", str);
-        printf("%s\n", str.c_str());
-     }
+    if(isValidRange(startPos, endPos)) {
+      search2nd(dest, startPos, endPos, (char)((strlen(endPattern)-1)*-1));
+      H_TREE tmp = dest;
+      tmp = hasNextTree(tmp);
+      char* cstr = (char*)treeValue(tmp);
+      std::string str(cstr);
+      printf("%s\n", str.c_str());
+
+      /**
+       * ここで、a タグだけを抜き取りたい。
+       * "<a href=" から "</a>" まで。
+      */
+
+      // size_t strSize    = 1026;
+      // tmp               = NULL;
+      // char pattern[]    = "<a href=";
+      // H_TREE t1 = createTree();
+      // searchProto(t1, strSize, cstr, pattern, '>');
+      // tmp = t1;
+      // while((tmp = hasNextTree(tmp)) != NULL) {
+      //   char* str = (char*)treeValue(tmp);
+      //   printf("%s\n", str);
+      //   // printf("<a href=%s>\n", str);
+      //   free((void*)str);
+      // }
     }
 
     /**
@@ -783,7 +799,7 @@ void searchProto(H_TREE _dest, size_t _destSize, char* _buf, const char* _patter
 {
   puts("------ searchProto");
   if(_buf != NULL) {
-    size_t ptnSize  = strlen(_pattern);
+    // size_t ptnSize  = strlen(_pattern);
     char* start     = &_buf[0];
     char* hitPos    = NULL;
     H_TREE root     = createTree();
@@ -792,7 +808,7 @@ void searchProto(H_TREE _dest, size_t _destSize, char* _buf, const char* _patter
     do {
       hitPos = strstr(start, _pattern);
       if(hitPos != NULL) {
-        hitPos += ptnSize;
+        // hitPos += ptnSize;
         pushTree(root, hitPos);
         start = hitPos + 1;
         hitCount++;
@@ -814,6 +830,7 @@ void searchProto(H_TREE _dest, size_t _destSize, char* _buf, const char* _patter
           str[i] = *searchPos;
         }
         if(i == limitSize || *searchPos == _limitCh) {
+          str[i] = *searchPos;
           pushTree(_dest, str);
           break;
         }
