@@ -619,9 +619,9 @@ int test_requestGoogle() {
  * Google
  * 検索結果の文字列解析。
  * 
- * <div jsname="xQjRM">
+ * <div></div>
  * ...
- * </div></div></div></div></div></div></div>
+ * <footer>
 */
 
 void parseGoogle(std::string& _dest, const std::string& _filePath) {
@@ -633,7 +633,7 @@ void parseGoogle(std::string& _dest, const std::string& _filePath) {
   H_TREE a_startPos = createTree();
   H_TREE a_endPos   = createTree();
   H_TREE a_dest     = createTree();
-  _dest             = R"({"gList":[)";
+  _dest             = R"({"gList":[)";      // JSON リスト構造のはじまり
   try {
     size_t size = getFileSize(_filePath.c_str());
     buf = (char*)malloc(size+2);
@@ -655,7 +655,6 @@ void parseGoogle(std::string& _dest, const std::string& _filePath) {
        * 上記のデバッグから分かったこと、setRange() 関数を新たに用意するか次の要件を満たす必要があるということかな。
        * startPos > endPos の場合は startPos を空ループで無視する必要がある startPos == endPos になるまで。
       */
-    // printf("buf is %s\n", buf);
     if(isValidRange(startPos, endPos)) {
       search2nd(dest, startPos, endPos, (char)((strlen(endPattern)-1)*-1));
       H_TREE tmp = dest;
@@ -676,7 +675,6 @@ void parseGoogle(std::string& _dest, const std::string& _filePath) {
       printf("scount is %ld\n", countTree(a_startPos));
       printf("ecount is %ld\n", countTree(a_endPos));
       if(isValidRange(a_startPos, a_endPos)) {
-        // search2nd(a_dest, a_startPos, a_endPos, (char)((strlen(endPattern)-1))*-1);
         search2nd(a_dest, a_startPos, a_endPos, (char)(3));
         tmp = a_dest;
         size_t i = 0;
@@ -701,7 +699,7 @@ void parseGoogle(std::string& _dest, const std::string& _filePath) {
        * 後はリファクタして、メモリの開放漏れがなければよいかと。
       */
     }
-    _dest.append("]}");
+    _dest.append("]}");     // JSON リスト構造の終わり
     clearTree(startPos, countTree(startPos));
     clearTree(endPos, countTree(endPos));
     clearTree(dest, countTree(dest));
@@ -745,52 +743,100 @@ int test_parseGoogle() {
   }
 }
 
+/**
+ * Yahoo JAPAN
+ * 
+ * 外部サービス、Yahoo JAPAN へのリクエストとパース。
+*/
+
+void writeYahoo(const std::string& source) {
+  puts("--- writeYahoo");
+  try {
+    std::string fileName(WRITE_DIR);
+    fileName += "yahoo/source.html";
+    std::ofstream writer;
+    writer.open(fileName, std::ios::out);
+    writer << source << std::endl;
+    writer.close();
+  } catch(std::exception& e) {
+    throw std::runtime_error(e.what());
+  }
+}
+
+std::string requestYahoo(const std::string& keyword) {
+  puts("--- requestYahoo");
+  try {
+    std::string url = "https://search.yahoo.co.jp/search?p=";
+    url.append(keyword);
+    std::string res = curl_get(url.c_str());
+    return res;
+  } catch(std::exception& e) {
+    throw std::runtime_error(e.what());
+  }
+}
+
+int test_requestYahoo() {
+  puts("=== test_requestYahoo");
+  try {
+    std::string keyword = "哲学";
+    std::string res = requestYahoo(url_encode(keyword));
+    // ptr_lambda_debug<const char*, const std::string&>("res is ", res);
+    writeYahoo(res);
+    return EXIT_SUCCESS;
+  } catch(std::exception& e) {
+    ptr_print_error<const decltype(e)&>(e);
+    return EXIT_FAILURE;
+  }
+}
+
 int main(void) {
     puts("START C/C++ 文字列解析 ===");
     if(0.01) {
-        auto ret = 0;
-        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_debug_and_error());
-        assert(ret == 1);
-        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_H_TREE());
-        assert(ret == 0);
-        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_Result_List_JSON());
-        assert(ret == 0);
-        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_Result_List_JSON_innerHtml());
-        assert(ret == 0);
-        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_string_replace());
-        assert(ret == 0);
+      auto ret = 0;
+      ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_debug_and_error());
+      assert(ret == 1);
+      ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_H_TREE());
+      assert(ret == 0);
+      ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_Result_List_JSON());
+      assert(ret == 0);
+      ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_Result_List_JSON_innerHtml());
+      assert(ret == 0);
+      ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_string_replace());
+      assert(ret == 0);
     }
     if(0) {        // 1.00
-        auto ret = 0;
-        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_searchProto());
-        assert(ret == 0);
+      auto ret = 0;
+      ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_searchProto());
+      assert(ret == 0);
     }
     if(0) {        // 1.01
-        auto ret = 0;
-        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_search2nd());
-        assert(ret == 0);
+      auto ret = 0;
+      ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_search2nd());
+      assert(ret == 0);
     }
     if(1.02) {        // 1.02
-        auto ret = 0;
-        std::clock_t start_1 = clock();
-        // ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestYouTube());
-        // assert(ret == 0);
-        std::clock_t start_2 = clock();
-        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_parseYouTube());
-        assert(ret == 0);
-        std::clock_t end = clock();
-        std::cout << "passed: " << (double)(end-start_1)/CLOCKS_PER_SEC << " sec." << std::endl;
-        std::cout << "passed: " << (double)(end-start_2)/CLOCKS_PER_SEC << " sec." << std::endl;
+      auto ret = 0;
+      std::clock_t start_1 = clock();
+      // ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestYouTube());
+      // assert(ret == 0);
+      std::clock_t start_2 = clock();
+      ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_parseYouTube());
+      assert(ret == 0);
+      std::clock_t end = clock();
+      std::cout << "passed: " << (double)(end-start_1)/CLOCKS_PER_SEC << " sec." << std::endl;
+      std::cout << "passed: " << (double)(end-start_2)/CLOCKS_PER_SEC << " sec." << std::endl;
     }
-    if(1.03) {      // 1.03
-        auto ret = 0;
-        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestGoogle());
-        assert(ret == 0);
-        ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_parseGoogle());
-        assert(ret == 0);
+    if(0) {      // 1.03
+      auto ret = 0;
+      ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestGoogle());
+      assert(ret == 0);
+      ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_parseGoogle());
+      assert(ret == 0);
     }
     if(1.04) {      // 1.04
-      // Bing あるいは Yahoo! JAPAN かな。
+      auto ret = 0;
+      ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestYahoo());
+      assert(ret == 0);
     }
     puts("===   C/C++ 文字列解析 END");
     return 0;
