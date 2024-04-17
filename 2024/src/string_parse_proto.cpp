@@ -732,7 +732,7 @@ int test_parseGoogle() {
 
     // 文字列解析後に a タグのドメイン相対に対する置換処理を行う
     std::string target         = R"(href="/search?)";
-    std::string replacement    = R"(href="https://www.google.com/search?)";
+    std::string replacement    = R"(target="_blank" href="https://www.google.com/search?)";
     replaceAll(dest, target, replacement);
     ptr_lambda_debug<const char*, const std::string&>("dest is ", dest);
 
