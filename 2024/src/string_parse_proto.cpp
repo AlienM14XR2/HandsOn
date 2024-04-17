@@ -789,6 +789,47 @@ int test_requestYahoo() {
   }
 }
 
+/**
+ * Yahoo
+ * 検索結果の文字列解析。
+*/
+
+void parseYahoo(std::string& _dest, const std::string& _filePath) {
+  /**
+   * 考え方は Google の場合と同じで、大まかな範囲を絞り込み、a タグを取り出す。
+   * <ot>
+   * <li>... 必要な情報 ...</li>
+   * </ot>
+  */
+  puts("--- parseYahoo");
+  char* buf = NULL;
+  try {
+    size_t size = getFileSize(_filePath.c_str());
+    buf = (char*)malloc(size+2);
+    memset(buf, '\0', size+2);
+    readFile(_filePath.c_str(), buf);
+    ptr_lambda_debug<const char*, const char*>("buf is ", buf);
+    removeBuffer(buf);
+  } catch(std::exception& e) {
+    removeBuffer(buf);
+    throw std::runtime_error(e.what());
+  }
+}
+
+int test_parseYahoo() {
+  puts("=== test_parseYahoo");
+  try {
+    std::string dest;
+    std::string filePath(WRITE_DIR);
+    filePath += "yahoo/source.html"; 
+    parseYahoo(dest, filePath);
+    return EXIT_SUCCESS;
+  } catch(std::exception& e) {
+    ptr_print_error<const decltype(e)&>(e);
+    return EXIT_FAILURE;
+  }
+}
+
 int main(void) {
     puts("START C/C++ 文字列解析 ===");
     if(0.01) {
@@ -835,7 +876,9 @@ int main(void) {
     }
     if(1.04) {      // 1.04
       auto ret = 0;
-      ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestYahoo());
+      // ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestYahoo());
+      assert(ret == 0);
+      ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_parseYahoo());
       assert(ret == 0);
     }
     puts("===   C/C++ 文字列解析 END");
