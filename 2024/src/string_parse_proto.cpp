@@ -877,6 +877,10 @@ int test_parseYahoo() {
   }
 }
 
+/**
+ * ここまでで文字列解析のソースを宣言と定義に分けて、必要ならリファクタする。
+*/
+
 int main(void) {
     puts("START C/C++ 文字列解析 ===");
     if(0.01) {
@@ -902,11 +906,11 @@ int main(void) {
       ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_search2nd());
       assert(ret == 0);
     }
-    if(0) {        // 1.02
+    if(1.02) {        // 1.02
       auto ret = 0;
       std::clock_t start_1 = clock();
-      // ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestYouTube());
-      // assert(ret == 0);
+      ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestYouTube());
+      assert(ret == 0);
       std::clock_t start_2 = clock();
       ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_parseYouTube());
       assert(ret == 0);
@@ -916,14 +920,14 @@ int main(void) {
     }
     if(1.03) {      // 1.03
       auto ret = 0;
-      // ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestGoogle());
-      // assert(ret == 0);
+      ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestGoogle());
+      assert(ret == 0);
       ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_parseGoogle());
       assert(ret == 0);
     }
     if(1.04) {      // 1.04
       auto ret = 0;
-      // ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestYahoo());
+      ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestYahoo());
       assert(ret == 0);
       ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_parseYahoo());
       assert(ret == 0);
