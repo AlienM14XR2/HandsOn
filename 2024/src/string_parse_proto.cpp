@@ -795,22 +795,52 @@ int test_requestYahoo() {
 */
 
 void parseYahoo(std::string& _dest, const std::string& _filePath) {
-  /**
-   * 考え方は Google の場合と同じで、大まかな範囲を絞り込み、a タグを取り出す。
-   * <ot>
-   * <li>... 必要な情報 ...</li>
-   * </ot>
-  */
   puts("--- parseYahoo");
   char* buf = NULL;
+  H_TREE startPos   = createTree();
+  H_TREE endPos     = createTree();
+  H_TREE dest       = createTree();
   try {
     size_t size = getFileSize(_filePath.c_str());
     buf = (char*)malloc(size+2);
     memset(buf, '\0', size+2);
     readFile(_filePath.c_str(), buf);
-    ptr_lambda_debug<const char*, const char*>("buf is ", buf);
+
+    // ptr_lambda_debug<const char*, const char*>("buf is ", buf);
+    /**
+     * 考え方は Google の場合と同じで、大まかな範囲を絞り込み、a タグを取り出す。
+     * <ot>
+     * <li>... 必要な情報 ...</li>
+     * </ot>
+     * 実際のもとデータ上に <ot></ot> は発見できなかったため、<li></li> を直接抽出した。
+    */
+    char startPattern[]  = "<li>";
+    char endPattern[]    = "</li>";
+    printf("startPattern is \t%s\n", startPattern);
+    printf("endPattern   is \t%s\n", endPattern);
+    setRange(buf, startPos, endPos, startPattern, endPattern);
+    printf("\n");
+    printf("startPos count is \t%ld\n", countTree(startPos));
+    printf("endPos count is \t%ld\n", countTree(endPos));
+
+    if(countTree(startPos)>1 && countTree(endPos)>1 && isValidRange(startPos, endPos)) {
+      search2nd(dest, startPos, endPos, (char)((strlen(endPattern)-1)));
+      H_TREE tmp = dest;
+      while((tmp = hasNextTree(tmp)) != NULL) {
+        char* cstr = (char*)treeValue(tmp);
+        std::string str(cstr);
+        printf("%s\n", str.c_str());
+        free((void*)cstr);
+      }
+    }
+    clearTree(startPos, countTree(startPos));
+    clearTree(endPos, countTree(endPos));
+    clearTree(dest, countTree(dest));
     removeBuffer(buf);
   } catch(std::exception& e) {
+    clearTree(startPos, countTree(startPos));
+    clearTree(endPos, countTree(endPos));
+    clearTree(dest, countTree(dest));
     removeBuffer(buf);
     throw std::runtime_error(e.what());
   }
@@ -855,7 +885,7 @@ int main(void) {
       ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_search2nd());
       assert(ret == 0);
     }
-    if(1.02) {        // 1.02
+    if(0) {        // 1.02
       auto ret = 0;
       std::clock_t start_1 = clock();
       // ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestYouTube());
