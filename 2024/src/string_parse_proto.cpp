@@ -655,7 +655,7 @@ void parseGoogle(std::string& _dest, const std::string& _filePath) {
        * 上記のデバッグから分かったこと、setRange() 関数を新たに用意するか次の要件を満たす必要があるということかな。
        * startPos > endPos の場合は startPos を空ループで無視する必要がある startPos == endPos になるまで。
       */
-    if(isValidRange(startPos, endPos)) {
+    if(countTree(startPos)>1 && countTree(endPos)>1 && isValidRange(startPos, endPos)) {
       search2nd(dest, startPos, endPos, (char)((strlen(endPattern)-1)*-1));
       H_TREE tmp = dest;
       tmp = hasNextTree(tmp);
@@ -800,6 +800,7 @@ void parseYahoo(std::string& _dest, const std::string& _filePath) {
   H_TREE startPos   = createTree();
   H_TREE endPos     = createTree();
   H_TREE dest       = createTree();
+  _dest             = R"({"yList":[)";      // JSON リスト構造のはじまり
   try {
     size_t size = getFileSize(_filePath.c_str());
     buf = (char*)malloc(size+2);
@@ -826,13 +827,24 @@ void parseYahoo(std::string& _dest, const std::string& _filePath) {
     if(countTree(startPos)>1 && countTree(endPos)>1 && isValidRange(startPos, endPos)) {
       search2nd(dest, startPos, endPos, (char)((strlen(endPattern)-1)));
       H_TREE tmp = dest;
+      size_t i = 0;
       while((tmp = hasNextTree(tmp)) != NULL) {
         char* cstr = (char*)treeValue(tmp);
-        std::string str(cstr);
+        std::string str;
+        if(i == 0) {
+          str = R"({"item":")";
+        } else {
+          str = R"(,{"item":")";
+        }
+        str.append(cstr);
+        str.append(R"("})");
         printf("%s\n", str.c_str());
+        _dest.append(str);
         free((void*)cstr);
+        i++;
       }
     }
+    _dest.append("]}");     // JSON リスト構造の終わり
     clearTree(startPos, countTree(startPos));
     clearTree(endPos, countTree(endPos));
     clearTree(dest, countTree(dest));
@@ -853,6 +865,8 @@ int test_parseYahoo() {
     std::string filePath(WRITE_DIR);
     filePath += "yahoo/source.html"; 
     parseYahoo(dest, filePath);
+    nlohmann::json j(dest);
+    ptr_lambda_debug<const char*, const std::string&>("j is ", j.dump());   // これで問題なく JSON 成形されていれば OK。問題があれば exception になる：）
     return EXIT_SUCCESS;
   } catch(std::exception& e) {
     ptr_print_error<const decltype(e)&>(e);
@@ -897,10 +911,10 @@ int main(void) {
       std::cout << "passed: " << (double)(end-start_1)/CLOCKS_PER_SEC << " sec." << std::endl;
       std::cout << "passed: " << (double)(end-start_2)/CLOCKS_PER_SEC << " sec." << std::endl;
     }
-    if(0) {      // 1.03
+    if(1.03) {      // 1.03
       auto ret = 0;
-      ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestGoogle());
-      assert(ret == 0);
+      // ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_requestGoogle());
+      // assert(ret == 0);
       ptr_lambda_debug<const char*, const decltype(ret)&>("Play and Result ... ", ret = test_parseGoogle());
       assert(ret == 0);
     }
