@@ -865,6 +865,9 @@ int test_parseYahoo() {
     std::string filePath(WRITE_DIR);
     filePath += "yahoo/source.html"; 
     parseYahoo(dest, filePath);
+    std::string target         = R"(href=)";
+    std::string replacement    = R"(target="_blank" href=)";
+    replaceAll(dest, target, replacement);
     nlohmann::json j(dest);
     ptr_lambda_debug<const char*, const std::string&>("j is ", j.dump());   // これで問題なく JSON 成形されていれば OK。問題があれば exception になる：）
     return EXIT_SUCCESS;
