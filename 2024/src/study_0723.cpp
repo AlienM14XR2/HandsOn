@@ -14,6 +14,16 @@ void (*ptr_lambda_debug)(M, D) = [](auto message, auto debug) -> void {
     std::cout << "DEBUG: " << message << '\t' << debug << std::endl;
 };
 
+template <class Error>
+concept ErrReasonable = requires(Error& e) {
+    e.what();
+};
+template <class Error>
+requires ErrReasonable<Error>
+void (*ptr_print_error)(Error) = [](const auto e) -> void {
+    std::cerr << "ERROR: " << e.what() << std::endl;
+};
+
 /**
  * 何らかの映像から特定のモノを識別するクラスについて考えてみる。
  * 入出力は考慮しない、あくまでも概念のみ。動的なモノと静的なモノに分類できる。
@@ -99,7 +109,8 @@ int test_001() {
         s.identify();
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
-        std::cout << "Error: " << e.what() << std::endl;
+        // std::cout << "Error: " << e.what() << std::endl;
+        ptr_print_error<const decltype(e)&>(e);
         return EXIT_FAILURE;
     }
 }
