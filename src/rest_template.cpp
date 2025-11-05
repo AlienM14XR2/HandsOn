@@ -17,6 +17,7 @@
  * 次のライブラリが必要
  * sudo apt install libcurl4-openssl-dev
  * sudo apt install -y curl
+ * sudo apt install nlohmann-json3-dev
  * 
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror -I../inc -L/usr/lib/x86_64-linux-gnu/ rest_template.cpp -lcurl -o ../bin/rest_template
  */
