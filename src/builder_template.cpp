@@ -61,6 +61,38 @@ void print_debug(Head&& head, Tail&&... tail)
   print_debug(std::forward<Tail>(tail)...);
 }
 
+// AI 作成バージョン .. これは動く。
+template <class... Args>
+void print_debug_v2(Args&&... args)
+{
+    // std::apply を使用して、タプルに変換された引数を別の関数に渡す
+    std::apply([](auto&&... t_args) {
+        std::cout << "Debug Tuple elements: ";
+        auto print_element = [&](const auto& element) {
+            std::cout << element << '\t';
+        };
+        // C++17以降の pack expansion で要素を順に処理
+        (print_element(t_args), ...);
+        std::cout << std::endl;
+    }, std::make_tuple(std::forward<Args>(args)...));
+}
+
+//
+// 学習を進めて、次の形が一番使い勝手がいいのではと思った。
+//
+
+template <class... Args>
+void print_debug_v3(Args&&... args)
+{
+    std::cout << "Debug v3: ";
+    auto print_element = [](const auto& element) {
+        std::cout << element << '\t';
+    };
+    // C++17以降の pack expansion で要素を順に処理
+    (print_element(std::forward<Args>(args)), ...);
+    std::cout << std::endl;
+}
+
 template <class Error>
 concept ErrReasonable = requires(Error& e) {
     e.what();
@@ -187,7 +219,7 @@ public:
     {
         return pqxx::params{args...};
     }
- };
+};
 
 int setupTable()
 {
@@ -229,6 +261,9 @@ int test_print_debug()
     puts("------ test_print_debug");
     try {
         print_debug<const char*, const int&, const int&, const double&>("test", 1, 2, 3.141592);
+        print_debug_v2<const char*, const int&, const int&, const double&>("test", 1, 2, 3.141592);
+        // 型指定とかいらなかったんだ。
+        print_debug_v3("test", 1, 2, 3.141592);
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<decltype(e)&>(e);
