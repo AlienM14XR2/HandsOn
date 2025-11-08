@@ -43,7 +43,7 @@ ALTER TABLE contractor ADD CONSTRAINT email_uk unique (email);
 template <class M, class D>
 void (*ptr_print_debug)(M, D) = [](const auto message, const auto debug) -> void
 {
-    std::cout << "DEBUG: " << message << '\t' << debug << std::endl;
+    std::cout << "DEBUG: " << message << debug << std::endl;
 };
 
 // 嘘っぱち AI よりよっぽどいいよね（https://cpprefjp.github.io/lang/cpp11/variadic_templates.html）
@@ -179,6 +179,85 @@ public:
         if( num ) ptr_print_debug<const std::string&, int&>("num: ", *(num.get()));
     }
 };
+
+template <class... Args>
+std::string insert_sql(const std::string& table, Args&&... args)
+{
+    // R"(INSERT INTO contractor (id, company_id, email, password, name, roles) VALUES ($1, $2, $3, $4, $5, $6))"
+    size_t size = sizeof...(args);
+    printf("size: %ld\n", size);
+    std::string sql = "INSERT INTO " + table + '\n';
+    const std::string dollar = "$";
+    std::string fields;
+    std::string values;
+    size_t i = 0;
+
+    auto print_fields_values = [&](const auto& element) {
+        i++;
+        if(i < size) {
+            fields.append(element).append(", ");
+            values.append(dollar + std::to_string(i)).append(", ");
+        } else {
+            fields.append(element);
+            values.append(dollar + std::to_string(i));
+        }
+    };
+    (print_fields_values(std::forward<Args>(args)), ...);
+
+    sql.append("( ");
+    sql.append(fields);
+    sql.append(" )");
+    sql.append("\nVALUES\n");
+    sql.append("( ");
+    sql.append(values);
+    sql.append(" )\n");
+    return sql;
+}
+
+template <class... Args>
+std::string update_sql(const std::string& table, Args&&... args)
+{
+    // UPDATE contractor
+    // SET id=$1, company_id=$2, email=$3, password=$4, name=$5, roles=$6 
+    // WHERE id=$1
+
+    size_t size = sizeof...(args);
+    std::string sql = "UPDATE " + table + '\n';
+    const std::string dollar = "$";
+    std::string fvals;
+    std::string pkey;
+    size_t i = 0;
+
+    auto print_fields_values = [&](const auto& element) {
+        i++;
+        if(i < size) {
+            if(i == 1) pkey.append(element).append("=").append(dollar+std::to_string(1));
+            fvals.append(element).append("=").append(dollar+std::to_string(i)).append(", ");
+        } else {
+            fvals.append(element).append("=").append(dollar+std::to_string(i));
+        }
+    };
+    (print_fields_values(std::forward<Args>(args)), ...);
+    sql.append("SET ").append(fvals);
+    sql.append("\nWHERE ").append(pkey).append("\n");
+    return sql;
+}
+
+std::string select_by_pkey_sql(const std::string& table, const std::string& pkey)
+{
+    std::string sql = "SELECT * FROM " + table + '\n';
+    sql.append("WHERE ").append(pkey).append("=$1");
+    return sql;
+}
+
+std::string delete_by_pkey_sql(const std::string& table, const std::string& pkey)
+{
+//     DELETE FROM contractor
+//     WHERE id = $1
+    std::string sql = "DELETE FROM " + table + '\n';
+    sql.append("WHERE ").append(pkey).append("=$1");
+    return sql;
+}
 
 /**
  * pqxx のSQL Builder について考えてみる。
@@ -337,10 +416,12 @@ int test_postgres_insert(long* id)
         //     "insert_contractor",
         //     R"(INSERT INTO contractor (id, company_id, email, password, name, roles) VALUES ($1, $2, $3, $4, $5, $6))"
         // );
-        std::string sql = R"(
-            INSERT INTO contractor (id, company_id, email, password, name, roles) 
-            VALUES ($1, $2, $3, $4, $5, $6)
-        )";
+        // std::string sql = R"(
+        //     INSERT INTO contractor (id, company_id, email, password, name, roles) 
+        //     VALUES ($1, $2, $3, $4, $5, $6)
+        // )";
+        std::string sql = insert_sql("contractor", "id", "company_id", "email", "password", "name", "roles");
+        ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
         SqlBuilder builder{"insert_contractor", sql};
         pqxx::work tx(builder.makePrepare(conn));
         *id = tx.query_value<long>(
@@ -348,12 +429,40 @@ int test_postgres_insert(long* id)
         );
         printf("nextId: %ld\n", *id);
         // DONE pqxx::prepped と pqxx::params のインスタンス化を SQLの発行場所で管理できないか。
-        pqxx::result result = tx.exec(builder.makePrepped(), builder.makeParams(*id, "bar_3333D", "foo1234@bar.com", "foo12345678", "foo1234", "Admin,User"));
+        pqxx::result result = tx.exec(builder.makePrepped(), builder.makeParams(*id, "bar_3333D", "joe1234@bar.com", "joe12345678", "Joe", "Admin,User"));
         for (auto const &row: result) {
             for (auto const &field: row) std::cout << field.c_str() << '\t';
             std::cout << '\n';
         }
 // throw std::runtime_error("It's test runtime error.");
+        tx.commit();
+        conn.close();
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+int test_postgres_update(long* id)
+{
+    puts("------ test_postgres_update");
+    try {
+        pqxx::connection conn{"hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234"};
+        // std::string sql = R"(
+        //     UPDATE contractor
+        //     SET id=$1, company_id=$2, email=$3, password=$4, name=$5, roles=$6 
+        //     WHERE id=$1
+        // )";
+        std::string sql = update_sql("contractor", "id", "company_id", "email", "password", "name", "roles");
+        ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
+        SqlBuilder builder{"update_contractor", sql};
+        pqxx::work tx(builder.makePrepare(conn));
+        pqxx::result result = tx.exec(builder.makePrepped(), builder.makeParams(*id, "bar_3333D", "alice1234@bar.com", "alice12345678", "Alice", "User"));
+        for (auto const &row: result) {
+            for (auto const &field: row) std::cout << field.c_str() << '\t';
+            std::cout << '\n';
+        }
         tx.commit();
         conn.close();
         return EXIT_SUCCESS;
@@ -374,10 +483,12 @@ int test_postgres_select(long* id)
         //     SELECT * FROM contractor
         //     WHERE id = $1)"
         // );
-        std::string sql = R"(
-            SELECT * FROM contractor
-            WHERE id = $1
-        )";
+        // std::string sql = R"(
+        //     SELECT * FROM contractor
+        //     WHERE id = $1
+        // )";
+        std::string sql = select_by_pkey_sql("contractor", "id");
+        ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
         SqlBuilder builder{"select_contractor", sql};
         pqxx::work tx(builder.makePrepare(conn));
         pqxx::result result = tx.exec(builder.makePrepped(), builder.makeParams(*id));
@@ -411,7 +522,9 @@ int test_postgres_delete(long* id)
         //     DELETE FROM contractor
         //     WHERE id = $1)"
         // );
-        std::string sql = R"(DELETE FROM contractor WHERE id = $1)";
+        // std::string sql = R"(DELETE FROM contractor WHERE id = $1)";
+        std::string sql = delete_by_pkey_sql("contractor", "id");
+        ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
         SqlBuilder builder{"delete_contractor", sql};
         pqxx::work tx(builder.makePrepare(conn));
         pqxx::result result = tx.exec(builder.makePrepped(), builder.makeParams(*id));
@@ -431,7 +544,7 @@ int test_postgres_delete(long* id)
 int main(void)
 {
     puts("START main ===");
-    if(1) {
+    if(0) {
         ProcA a(2, "start");
         a.build().build().finish();
         puts("--- Proceed");
@@ -441,23 +554,25 @@ int main(void)
         proceed.debug();
     }
     int ret = -1;
-    if(1) {
+    if(0) {
         ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_print_debug());
-        assert(ret == 0);
-        ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = setupTable());
         assert(ret == 0);
     }
     if(1) {
         ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_ObjectPool());
         assert(ret == 0);
     }
-    if(1) {
+    if(0) {
         ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_connection());
         assert(ret == 0);
     }
     if(1) {
+        ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = setupTable());
+        assert(ret == 0);
         long id = 0;
         ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_insert(&id));
+        assert(ret == 0);
+        ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_update(&id));
         assert(ret == 0);
         ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_select(&id));
         assert(ret == 0);
