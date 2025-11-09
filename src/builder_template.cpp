@@ -181,31 +181,31 @@ public:
 };
 
 template <class... Args>
-std::string insert_sql(const std::string& table, Args&&... args)
+std::string insert_sql(const std::string& table, Args&&... fields)
 {
     // R"(INSERT INTO contractor (id, company_id, email, password, name, roles) VALUES ($1, $2, $3, $4, $5, $6))"
-    size_t size = sizeof...(args);
+    size_t size = sizeof...(fields);
     printf("size: %ld\n", size);
     std::string sql = "INSERT INTO " + table + '\n';
     const std::string dollar = "$";
-    std::string fields;
+    std::string flds;
     std::string values;
     size_t i = 0;
 
     auto print_fields_values = [&](const auto& element) {
         i++;
         if(i < size) {
-            fields.append(element).append(", ");
+            flds.append(element).append(", ");
             values.append(dollar + std::to_string(i)).append(", ");
         } else {
-            fields.append(element);
+            flds.append(element);
             values.append(dollar + std::to_string(i));
         }
     };
-    (print_fields_values(std::forward<Args>(args)), ...);
+    (print_fields_values(std::forward<Args>(fields)), ...);
 
     sql.append("( ");
-    sql.append(fields);
+    sql.append(flds);
     sql.append(" )");
     sql.append("\nVALUES\n");
     sql.append("( ");
@@ -215,13 +215,13 @@ std::string insert_sql(const std::string& table, Args&&... args)
 }
 
 template <class... Args>
-std::string update_sql(const std::string& table, Args&&... args)
+std::string update_sql(const std::string& table, Args&&... fields)
 {
     // UPDATE contractor
     // SET id=$1, company_id=$2, email=$3, password=$4, name=$5, roles=$6 
     // WHERE id=$1
 
-    size_t size = sizeof...(args);
+    size_t size = sizeof...(fields);
     std::string sql = "UPDATE " + table + '\n';
     const std::string dollar = "$";
     std::string fvals;
@@ -237,9 +237,33 @@ std::string update_sql(const std::string& table, Args&&... args)
             fvals.append(element).append("=").append(dollar+std::to_string(i));
         }
     };
-    (print_fields_values(std::forward<Args>(args)), ...);
+    (print_fields_values(std::forward<Args>(fields)), ...);
     sql.append("SET ").append(fvals);
     sql.append("\nWHERE ").append(pkey).append("\n");
+    return sql;
+}
+
+template <class... Args>
+std::string select_by_pkey_sql(const std::string& table, const std::string& pkey, Args&&... fields)
+{
+    size_t size = sizeof...(fields);
+    std::string sql = "SELECT ";
+    std::string flds;
+    size_t i = 0;
+
+    auto print_field = [&](const auto& element) {
+        i++;
+        if(i < size) {
+            flds.append(element).append(", ");
+        } else {
+            flds.append(element);
+        }
+    };
+    (print_field(std::forward<Args>(fields)), ...);
+
+    sql.append(flds);
+    sql.append(" FROM ").append(table);
+    sql.append("\nWHERE ").append(pkey).append("=$1");
     return sql;
 }
 
@@ -553,6 +577,31 @@ int test_postgres_select(long* id)
     }
 }
 
+int test_postgres_select_field(long* id)
+{
+    puts("------ test_postgres_select_field");
+    try {
+        pqxx::connection conn{"hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234"};
+        std::string sql = select_by_pkey_sql("contractor", "id", "id", "name");
+        ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
+        SqlBuilder builder{"select_contractor", sql};
+        pqxx::work tx(builder.makePrepare(conn));
+        pqxx::result result = tx.exec(builder.makePrepped(), builder.makeParams(*id));
+        tx.commit();
+        conn.close();
+        for (auto const &row: result) {
+            for (auto const &row: result) {
+                auto [id, name] = row.as<int, std::string>();
+                std::cout << id << '\t' << name << std::endl;
+            }
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 int test_postgres_delete(long* id)
 {
     puts("------ test_postgres_delete");
@@ -619,6 +668,8 @@ int main(void)
         ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_update(&id));
         assert(ret == 0);
         ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_select(&id));
+        assert(ret == 0);
+        ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_select_field(&id));
         assert(ret == 0);
         ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_delete(&id));
         assert(ret == 0);
