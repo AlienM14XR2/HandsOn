@@ -260,6 +260,46 @@ std::string delete_by_pkey_sql(const std::string& table, const std::string& pkey
 }
 
 /**
+ * Lombok がないとこんなにも面倒に感じるものなのか。
+ * 実際には、フィールド数が 50 を超える場合もあるため、この手のデータクラスの
+ * 意味自体を考え直す必要があるかもしれない（作らない or 作るなら自動生成の仕組みを作る）。
+ * 仕組みの中に問題がズレただけに感じるけど。
+ */
+
+class Contractor final {
+private:
+    int id;
+    std::string companyId;
+    std::string email;
+    std::string password;
+    std::string name;
+    const char* roles;
+public:
+    Contractor(const int& _id, const std::string& _companyId, const std::string& _email, const std::string& _password, const std::string& _name, const char* _roles)
+    : id{_id}, companyId{_companyId}, email{_email}, password{_password}, name{_name}, roles{_roles}
+    {}
+
+    int getId()                noexcept { return id; }
+    std::string getCompanyId() noexcept { return companyId; }
+    std::string getEmail()     noexcept { return email; }
+    std::string getPassword()  noexcept { return password; }
+    std::string getName()      noexcept { return name; }
+    const char* getRoles()     noexcept { return roles; }
+
+    void print()
+    {
+        puts("------ Contractor::print");
+        std::cout << "id: " << id << '\t';
+        std::cout << "companyId: " << companyId << '\t';
+        std::cout << "email: " << email << '\t';
+        std::cout << "password :" << password << '\t';
+        std::cout << "name: " << name << '\t';
+        if(roles) std::cout << "roles: " << roles << std::endl;
+        else std::cout << std::endl;
+    }
+};
+
+/**
  * pqxx のSQL Builder について考えてみる。
  * 
  * - SQL 単位でクラスを用意して、必要なデータは内部で定数とするか（クラスが複数必要）。
@@ -429,7 +469,7 @@ int test_postgres_insert(long* id)
         );
         printf("nextId: %ld\n", *id);
         // DONE pqxx::prepped と pqxx::params のインスタンス化を SQLの発行場所で管理できないか。
-        pqxx::result result = tx.exec(builder.makePrepped(), builder.makeParams(*id, "bar_3333D", "joe1234@bar.com", "joe12345678", "Joe", "Admin,User"));
+        pqxx::result result = tx.exec(builder.makePrepped(), builder.makeParams(*id, "bar_3333D", "joe1234@bar.com", "joe12345678", "Joe", nullptr));
         for (auto const &row: result) {
             for (auto const &field: row) std::cout << field.c_str() << '\t';
             std::cout << '\n';
@@ -497,11 +537,13 @@ int test_postgres_select(long* id)
         for (auto const &row: result) {
             for (auto const &row: result) {
                 auto [id, companyId, email, password, name, roles] = row.as<int, std::string, std::string, std::string, std::string, const char*>();    // テーブルで、null を許可している場合は const char* を使わざるを得ない。
-                std::cout << id << '\t' << companyId << '\t' << email << '\t' << password << '\t' << name << '\t' << roles << std::endl;
                 if(roles) {
-                    std::string sroles(roles);
-                    printf("roles: %s\n", sroles.c_str());
+                    std::cout << id << '\t' << companyId << '\t' << email << '\t' << password << '\t' << name << '\t' << roles << std::endl;
+                } else {
+                    std::cout << id << '\t' << companyId << '\t' << email << '\t' << password << '\t' << name << std::endl;
                 }
+                Contractor contractor(id, companyId, email, password, name, roles);
+                contractor.print();
             }
         }
         return EXIT_SUCCESS;
@@ -571,6 +613,8 @@ int main(void)
         assert(ret == 0);
         long id = 0;
         ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_insert(&id));
+        assert(ret == 0);
+        ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_select(&id));
         assert(ret == 0);
         ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_update(&id));
         assert(ret == 0);
