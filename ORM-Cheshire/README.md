@@ -22,6 +22,12 @@ https://dev.mysql.com/doc/mysql-apt-repo-quick-guide/en/#apt-repo-setup
 
 これで、旧来の API と MySQL X DevAPI が利用できるライブラリ及びそれらのヘッダファイルがインストールされる（はず：）。
 
+MySQL C++ Connection のインストール
+```
+sudo apt update
+sudo apt install libmysqlcppconn-dev
+```
+
 次のコマンドでライブラリとヘッダファイルの場所がわかる。
 ```
 $ dpkg -L libmysqlcppconn8-2
