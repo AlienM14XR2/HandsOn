@@ -371,9 +371,8 @@ namespace tmp::postgres {
 class ContractorRepository final : public tmp::Repository<uint64_t, std::map<std::string, std::string>> {
 private:
     pqxx::work* tx;
-    SqlBuilder* builder;
 public:
-    ContractorRepository(pqxx::work* const _tx, SqlBuilder* const _builder): tx{_tx}, builder{_builder}
+    ContractorRepository(pqxx::work* const _tx): tx{_tx}
     {}
     virtual uint64_t insert(std::map<std::string, std::string>&& data) const override
     {
@@ -382,27 +381,39 @@ public:
             "SELECT nextval('contractor_id_seq')"
         );
         printf("nextval: %lu\n", id);
-        builder->makePrepare(tx->conn());
-        tx->exec(builder->makePrepped(), builder->makeParams(id, data.at("company_id"), data.at("email"), data.at("password"), data.at("name"), data.at("roles")));
+        std::string sql = insert_sql("contractor", "id", "company_id", "email", "password", "name", "roles");
+        ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
+        SqlBuilder builder{"insert_contractor", sql};
+        builder.makePrepare(tx->conn());
+        tx->exec(builder.makePrepped(), builder.makeParams(id, data.at("company_id"), data.at("email"), data.at("password"), data.at("name"), data.at("roles")));
         return id;
     }
     virtual void update(const uint64_t& id, std::map<std::string, std::string>&& data) const override
     {
         print_debug_v3("update ... ", typeid(*this).name());
-        builder->makePrepare(tx->conn());
-        tx->exec(builder->makePrepped(), builder->makeParams(id, data.at("company_id"), data.at("email"), data.at("password"), data.at("name"), data.at("roles")));
+        std::string sql = update_sql("contractor", "id", "company_id", "email", "password", "name", "roles");
+        ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
+        SqlBuilder builder{"update_contractor", sql};
+        builder.makePrepare(tx->conn());
+        tx->exec(builder.makePrepped(), builder.makeParams(id, data.at("company_id"), data.at("email"), data.at("password"), data.at("name"), data.at("roles")));
     }
     virtual void remove(const uint64_t& id) const override
     {
         print_debug_v3("remove ... ", typeid(*this).name());
-        builder->makePrepare(tx->conn());
-        tx->exec(builder->makePrepped(), builder->makeParams(id));
+        std::string sql = delete_by_pkey_sql("contractor", "id");
+        ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
+        SqlBuilder builder{"delete_contractor", sql};
+        builder.makePrepare(tx->conn());
+        tx->exec(builder.makePrepped(), builder.makeParams(id));
     }
     virtual std::optional<std::map<std::string, std::string>> findById(const uint64_t& id) const override
     {
         print_debug_v3("findById ... ", typeid(*this).name());
-        builder->makePrepare(tx->conn());
-        pqxx::result result = tx->exec(builder->makePrepped(), builder->makeParams(id));
+        std::string sql = select_by_pkey_sql("contractor", "id");
+        ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
+        SqlBuilder builder{"select_contractor", sql};
+        builder.makePrepare(tx->conn());
+        pqxx::result result = tx->exec(builder.makePrepped(), builder.makeParams(id));
         std::map<std::string, std::string> data;
         for (auto const &row: result) {
             for (auto const &row: result) {
@@ -583,12 +594,9 @@ int test_postgres_insert_v2(uint64_t* id)
         std::clock_t start_1 = clock();
         pqxx::connection conn{"hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234"};
         std::clock_t start_2 = clock();
-        std::string sql = insert_sql("contractor", "id", "company_id", "email", "password", "name", "roles");
-        ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
-        SqlBuilder builder{"insert_contractor", sql};
         pqxx::work tx(conn);
 
-        std::unique_ptr<tmp::Repository<uint64_t, std::map<std::string, std::string>>> repo = std::make_unique<tmp::postgres::ContractorRepository>(&tx, &builder);
+        std::unique_ptr<tmp::Repository<uint64_t, std::map<std::string, std::string>>> repo = std::make_unique<tmp::postgres::ContractorRepository>(&tx);
         std::map<std::string, std::string> data;
         data.insert(std::make_pair("company_id", "B3_1000"));
         data.insert(std::make_pair("email", "alice@loki.org"));
@@ -643,12 +651,8 @@ int test_postgres_update_v2(uint64_t* id)
     puts("------ test_postgres_update_v2");
     try {
         pqxx::connection conn{"hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234"};
-        std::string sql = update_sql("contractor", "id", "company_id", "email", "password", "name", "roles");
-        ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
-        SqlBuilder builder{"update_contractor", sql};
-
         pqxx::work tx(conn);
-        std::unique_ptr<tmp::Repository<uint64_t, std::map<std::string, std::string>>> repo = std::make_unique<tmp::postgres::ContractorRepository>(&tx, &builder);
+        std::unique_ptr<tmp::Repository<uint64_t, std::map<std::string, std::string>>> repo = std::make_unique<tmp::postgres::ContractorRepository>(&tx);
         std::map<std::string, std::string> data;
         data.insert(std::make_pair("company_id", "B3_1000"));
         data.insert(std::make_pair("email", "foo@loki.org"));
@@ -711,12 +715,9 @@ int test_postgres_select_v2(uint64_t* id)
     puts("------ test_postgres_select_v2");
     try {
         pqxx::connection conn{"hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234"};
-        std::string sql = select_by_pkey_sql("contractor", "id");
-        ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
-        SqlBuilder builder{"select_contractor", sql};
         pqxx::work tx(conn);
 
-        std::unique_ptr<tmp::Repository<uint64_t, std::map<std::string, std::string>>> repo = std::make_unique<tmp::postgres::ContractorRepository>(&tx, &builder);
+        std::unique_ptr<tmp::Repository<uint64_t, std::map<std::string, std::string>>> repo = std::make_unique<tmp::postgres::ContractorRepository>(&tx);
         std::optional<std::map<std::string, std::string>> data = repo->findById(*id);
         tx.commit();
         conn.close();
@@ -795,12 +796,9 @@ int test_postgres_delete_v2(uint64_t* id)
     puts("------ test_postgres_delete_v2");
     try {
         pqxx::connection conn{"hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234"};
-        std::string sql = delete_by_pkey_sql("contractor", "id");
-        ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
-        SqlBuilder builder{"delete_contractor", sql};
         pqxx::work tx(conn);
 
-        std::unique_ptr<tmp::Repository<uint64_t, std::map<std::string, std::string>>> repo = std::make_unique<tmp::postgres::ContractorRepository>(&tx, &builder);
+        std::unique_ptr<tmp::Repository<uint64_t, std::map<std::string, std::string>>> repo = std::make_unique<tmp::postgres::ContractorRepository>(&tx);
         repo->remove(*id);
         tx.commit();
         conn.close();

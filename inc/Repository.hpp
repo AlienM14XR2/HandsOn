@@ -8,6 +8,7 @@ namespace tmp {
 template <class ID, class Data>
 class Repository {
 public:
+    virtual ~Repository() = default;
     virtual ID insert(Data&&) const = 0;
     virtual void update(const ID&, Data&&) const = 0;
     virtual void remove(const ID&) const = 0;
