@@ -418,10 +418,11 @@ public:
         for (auto const &row: result) {
             for (auto const &row: result) {
                 auto [id, companyId, email, password, name, roles] = row.as<int, std::string, std::string, std::string, std::string, const char*>();    // テーブルで、null を許可している場合は const char* を使わざるを得ない。
-                data.insert(std::make_pair("company_id", "B3_1000"));
-                data.insert(std::make_pair("email", "alice@loki.org"));
-                data.insert(std::make_pair("password", "alice1111"));
-                data.insert(std::make_pair("name", "Alice"));
+                data.insert(std::make_pair("id", std::to_string(id)));
+                data.insert(std::make_pair("company_id", companyId));
+                data.insert(std::make_pair("email", email));
+                data.insert(std::make_pair("password", password));
+                data.insert(std::make_pair("name", name));
                 if(roles) {
                     std::cout << id << '\t' << companyId << '\t' << email << '\t' << password << '\t' << name << '\t' << roles << std::endl;
                     data.insert(std::make_pair("roles", std::string(roles)));
