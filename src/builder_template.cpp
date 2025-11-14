@@ -437,6 +437,32 @@ public:
     }
 };
 
+class RepositoryAdapter final : public tmp::Repository<std::string, std::map<std::string, std::string>> {
+    using interface = tmp::Repository<uint64_t, std::map<std::string, std::string>>;
+private:
+    interface* const adaptee;
+public:
+    RepositoryAdapter(interface* const _adaptee): adaptee{_adaptee}
+    {}
+    virtual std::string insert(std::map<std::string, std::string>&& data) const override
+    {
+        uint64_t id = adaptee->insert(std::forward<std::map<std::string, std::string>>(data));
+        return std::to_string(id);
+    }
+    virtual void update(const std::string& id, std::map<std::string, std::string>&& data) const override
+    {
+        adaptee->update(std::stoul(id), std::forward<std::map<std::string, std::string>>(data));
+    }
+    virtual void remove(const std::string& id) const override
+    {
+        adaptee->remove(std::stoul(id));
+    }
+    virtual std::optional<std::map<std::string, std::string>> findById(const std::string& id) const override
+    {
+        return adaptee->findById(std::stoul(id));
+    }
+};
+
 }   // namespace tmp::postgres
 
 
@@ -619,6 +645,33 @@ int test_postgres_insert_v2(uint64_t* id)
     }
 }
 
+int test_postgres_insert_v3(std::string* id)
+{
+    puts("------ test_postgres_insert_v3");
+    try {
+        pqxx::connection conn{"hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234"};
+        pqxx::work tx(conn);
+        std::unique_ptr<tmp::Repository<uint64_t, std::map<std::string, std::string>>> adaptee = std::make_unique<tmp::postgres::ContractorRepository>(&tx);
+        std::unique_ptr<tmp::Repository<std::string, std::map<std::string, std::string>>> adapter = std::make_unique<tmp::postgres::RepositoryAdapter>(adaptee.get());
+
+        std::map<std::string, std::string> data;
+        data.insert(std::make_pair("company_id", "B3_1000"));
+        data.insert(std::make_pair("email", "jack@loki.org"));
+        data.insert(std::make_pair("password", "jack1111"));
+        data.insert(std::make_pair("name", "Jack"));
+        data.insert(std::make_pair("roles", "Admin"));
+        *id = adapter->insert(std::move(data));
+        print_debug_v3("id: ", *id);
+// throw std::runtime_error("It's test runtime error.");
+        tx.commit();
+        conn.close();
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 int test_postgres_update(long* id)
 {
     puts("------ test_postgres_update");
@@ -655,12 +708,36 @@ int test_postgres_update_v2(uint64_t* id)
         pqxx::work tx(conn);
         std::unique_ptr<tmp::Repository<uint64_t, std::map<std::string, std::string>>> repo = std::make_unique<tmp::postgres::ContractorRepository>(&tx);
         std::map<std::string, std::string> data;
-        data.insert(std::make_pair("company_id", "B3_1000"));
-        data.insert(std::make_pair("email", "foo@loki.org"));
-        data.insert(std::make_pair("password", "alice1111"));
-        data.insert(std::make_pair("name", "Foo"));
-        data.insert(std::make_pair("roles", "Admin,User"));
+        data.insert(std::make_pair("company_id", "B3_1333"));
+        data.insert(std::make_pair("email", "bar@loki.org"));
+        data.insert(std::make_pair("password", "bar1111"));
+        data.insert(std::make_pair("name", "Bar"));
+        data.insert(std::make_pair("roles", "User"));
         repo->update(*id, std::move(data));
+        tx.commit();
+        conn.close();
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+int test_postgres_update_v3(std::string* id)
+{
+    puts("------ test_postgres_update_v3");
+    try {
+        pqxx::connection conn{"hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234"};
+        pqxx::work tx(conn);
+        std::unique_ptr<tmp::Repository<uint64_t, std::map<std::string, std::string>>> adaptee = std::make_unique<tmp::postgres::ContractorRepository>(&tx);
+        std::unique_ptr<tmp::Repository<std::string, std::map<std::string, std::string>>> adapter = std::make_unique<tmp::postgres::RepositoryAdapter>(adaptee.get());
+        std::map<std::string, std::string> data;
+        data.insert(std::make_pair("company_id", "B4_4444"));
+        data.insert(std::make_pair("email", "jjjj@loki.org"));
+        data.insert(std::make_pair("password", "jjjj1111"));
+        data.insert(std::make_pair("name", "JJJJ"));
+        data.insert(std::make_pair("roles", "User"));
+        adapter->update(*id, std::move(data));
         tx.commit();
         conn.close();
         return EXIT_SUCCESS;
@@ -720,6 +797,32 @@ int test_postgres_select_v2(uint64_t* id)
 
         std::unique_ptr<tmp::Repository<uint64_t, std::map<std::string, std::string>>> repo = std::make_unique<tmp::postgres::ContractorRepository>(&tx);
         std::optional<std::map<std::string, std::string>> data = repo->findById(*id);
+        tx.commit();
+        conn.close();
+        if(data.has_value()) {
+            print_debug_v3("Hit data ... id: ", *id);
+            for(auto f: data.value()) {
+                std::cout << f.first << '\t' << f.second << std::endl;
+            }
+        } else {
+            print_debug_v3("No data ... id: ", *id);
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+int test_postgres_select_v3(std::string* id)
+{
+    puts("------ test_postgres_select_v3");
+    try {
+        pqxx::connection conn{"hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234"};
+        pqxx::work tx(conn);
+        std::unique_ptr<tmp::Repository<uint64_t, std::map<std::string, std::string>>> adaptee = std::make_unique<tmp::postgres::ContractorRepository>(&tx);
+        std::unique_ptr<tmp::Repository<std::string, std::map<std::string, std::string>>> adapter = std::make_unique<tmp::postgres::RepositoryAdapter>(adaptee.get());
+        std::optional<std::map<std::string, std::string>> data = adapter->findById(*id);
         tx.commit();
         conn.close();
         if(data.has_value()) {
@@ -810,6 +913,24 @@ int test_postgres_delete_v2(uint64_t* id)
     }
 }
 
+int test_postgres_delete_v3(std::string* id)
+{
+    puts("------ test_postgres_delete_v3");
+    try {
+        pqxx::connection conn{"hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234"};
+        pqxx::work tx(conn);
+        std::unique_ptr<tmp::Repository<uint64_t, std::map<std::string, std::string>>> adaptee = std::make_unique<tmp::postgres::ContractorRepository>(&tx);
+        std::unique_ptr<tmp::Repository<std::string, std::map<std::string, std::string>>> adapter = std::make_unique<tmp::postgres::RepositoryAdapter>(adaptee.get());
+        adapter->remove(*id);
+        tx.commit();
+        conn.close();
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void)
 {
     puts("START main ===");
@@ -852,7 +973,7 @@ int main(void)
         ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_delete(&id));
         assert(ret == 0);
     }
-    if(1) {
+    if(0) {
         uint64_t id = 0;
         ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_insert_v2(&id));
         assert(ret == 0);
@@ -863,6 +984,17 @@ int main(void)
         ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_select_v2(&id));
         assert(ret == 0);
         ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_delete_v2(&id));
+        assert(ret == 0);
+    }
+    if(1) {
+        std::string sid{""};
+        ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_insert_v3(&sid));
+        assert(ret == 0);
+        ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_update_v3(&sid));
+        assert(ret == 0);
+        ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_select_v3(&sid));
+        assert(ret == 0);
+        ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_delete_v3(&sid));
         assert(ret == 0);
     }
     puts("=== main END");
