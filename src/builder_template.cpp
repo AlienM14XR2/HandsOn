@@ -370,7 +370,7 @@ namespace tmp::postgres {
 
 class ContractorRepository final : public tmp::Repository<uint64_t, std::map<std::string, std::string>> {
 private:
-    pqxx::work* tx;
+    pqxx::work* const tx;
 public:
     ContractorRepository(pqxx::work* const _tx): tx{_tx}
     {}
