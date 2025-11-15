@@ -38,6 +38,7 @@ ALTER TABLE contractor ADD CONSTRAINT email_uk unique (email);
 #include <memory>
 #include <cassert>
 #include <map>
+#include <vector>
 #include <ObjectPool.hpp>
 #include <Repository.hpp>
 #include <pqxx/pqxx>
@@ -364,9 +365,185 @@ public:
     {
         return pqxx::params{args...};
     }
+    std::string makeNextvalSql(const std::string& seqName) const
+    {
+        std::string sql{"SELECT nextval('"};
+        sql.append(seqName).append("')");
+        return sql;
+    }
 };
 
 namespace tmp::postgres {
+
+/**
+ * どこまでできるか不明だが、次は具象化クラスをひとつにできないか考えてみる。
+ * 以前作ったようなField クラスを定義し、それらをメンバ変数とするTable クラス
+ * を作るというのはやめたい。面倒がスライドしただけだ。
+ * 
+ * 事前確認事項。
+ * - NULL を許可したフィールドの扱い。
+ * 
+ * 制限事項
+ * - Auto Increment によるPraimary Key の作成を必須とする。
+ * - すでに、Null として登録されているレコードの検索はエラーとなる。
+ * - 本API を用いた登録では、NULL 許可フィールドに対しては何らかの値の入力を必須とする。
+ * 
+ * つまり制限事項を取っ払い、細やかな処理がやりたければ、ContractorRepositoryのように
+ * 個々に実装すればよいということ：）
+ * */
+
+
+
+// 次の処理が、結局はTemplate として、具象化クラス固有のものになる。
+// DTO は作らざるを得ない。
+// CRUD の各SQL はラップして作る必要がある。
+
+template <class ID, class Data>
+class TableInfo {
+public:
+    virtual ~TableInfo() = default;
+    virtual std::string getTableName() const = 0;
+    virtual std::string getSeqName() const = 0;
+    virtual pqxx::params makeParams4Save(SqlBuilder& builder, const ID& id, Data&& data) const = 0;
+    virtual std::string insertSql() const = 0;
+    virtual std::string updateSql() const = 0;
+    virtual std::string deleteSql() const = 0;
+    virtual std::string selectByIdSql() const = 0;
+    // dto method の中である程度の自由があるはず。
+    virtual Data rowToData(const pqxx::row& row) const = 0;
+};
+
+class ContractorInfo final : public TableInfo<uint64_t, std::map<std::string, std::string>> {
+    using Data = std::map<std::string, std::string>;
+private:
+    const std::string tableName{"contractor"};
+    const std::string pkeySeqName{"contractor_id_seq"};
+    const std::vector<std::string> fieldNames{"id", "company_id", "email", "password", "name", "roles"};
+public:
+    virtual std::string getTableName() const override
+    {
+        return tableName;
+    }
+    virtual std::string getSeqName() const override
+    {
+        return pkeySeqName;
+    }
+    virtual pqxx::params makeParams4Save(SqlBuilder& builder, const uint64_t& id, Data&& data) const override
+    {
+        return builder.makeParams(id
+            , data.at(fieldNames[1])
+            , data.at(fieldNames[2])
+            , data.at(fieldNames[3])
+            , data.at(fieldNames[4])
+            , data.at(fieldNames[5])
+        );
+    }
+    virtual std::string insertSql() const override
+    {
+        return insert_sql(tableName
+            , fieldNames[0]
+            , fieldNames[1]
+            , fieldNames[2]
+            , fieldNames[3]
+            , fieldNames[4]
+            , fieldNames[5]);
+    }
+    virtual std::string updateSql() const override
+    {
+        return update_sql(tableName
+            , fieldNames[0]
+            , fieldNames[1]
+            , fieldNames[2]
+            , fieldNames[3]
+            , fieldNames[4]
+            , fieldNames[5]);
+    }
+    virtual std::string deleteSql() const override
+    {
+        return delete_by_pkey_sql(tableName, fieldNames[0]);
+    }
+    virtual std::string selectByIdSql() const override
+    {
+        return select_by_pkey_sql(tableName, fieldNames[0]);
+    }
+    virtual Data rowToData(const pqxx::row& row) const override
+    {
+        Data data;
+        auto [id, companyId, email, password, name, roles] = row.as<uint64_t, std::string, std::string, std::string, std::string, const char*>();
+        data.insert(std::make_pair(fieldNames[0], std::to_string(id)));
+        data.insert(std::make_pair(fieldNames[1], companyId));
+        data.insert(std::make_pair(fieldNames[2], email));
+        data.insert(std::make_pair(fieldNames[3], password));
+        data.insert(std::make_pair(fieldNames[4], name));
+        if(roles) {
+            std::cout << id << '\t' << companyId << '\t' << email << '\t' << password << '\t' << name << '\t' << roles << std::endl;
+            data.insert(std::make_pair(fieldNames[5], std::string(roles)));
+        } else {
+            std::cout << id << '\t' << companyId << '\t' << email << '\t' << password << '\t' << name << std::endl;
+            data.insert(std::make_pair(fieldNames[5], ""));
+        }
+        return data;
+    }
+};
+
+class PqxxRepository final : public tmp::Repository<uint64_t, std::map<std::string, std::string>> {
+    using Data = std::map<std::string, std::string>;
+private:
+    pqxx::work* const tx;
+    TableInfo<uint64_t, Data>* const tableInfo;
+public:
+    PqxxRepository(pqxx::work* const _tx, TableInfo<uint64_t, Data>* const _tableInfo): tx{_tx}, tableInfo{_tableInfo}
+    {}
+    virtual uint64_t insert(Data&& data) const override
+    {
+        print_debug_v3("insert ... ", typeid(*this).name());
+        std::string sql = tableInfo->insertSql();
+        ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
+        SqlBuilder builder{"insert", sql};
+        uint64_t id = tx->query_value<uint64_t>(
+            builder.makeNextvalSql(tableInfo->getSeqName())
+        );
+        printf("nextval: %lu\n", id);
+        builder.makePrepare(tx->conn());
+        tx->exec(builder.makePrepped(), tableInfo->makeParams4Save(builder, id, std::move(data)));
+        return id;
+    }
+    virtual void update(const uint64_t& id, Data&& data) const override
+    {
+        print_debug_v3("update ... ", typeid(*this).name());
+        std::string sql = tableInfo->updateSql();
+        ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
+        SqlBuilder builder{"update", sql};
+        builder.makePrepare(tx->conn());
+        tx->exec(builder.makePrepped(), tableInfo->makeParams4Save(builder, id, std::move(data)));
+    }
+    virtual void remove(const uint64_t& id) const override
+    {
+        print_debug_v3("remove ... ", typeid(*this).name());
+        // std::string sql = delete_by_pkey_sql("contractor", "id");
+        std::string sql = tableInfo->deleteSql();
+        ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
+        SqlBuilder builder{"delete", sql};
+        builder.makePrepare(tx->conn());
+        tx->exec(builder.makePrepped(), builder.makeParams(id));
+    }
+    virtual std::optional<Data> findById(const uint64_t& id) const override
+    {
+        print_debug_v3("findById ... ", typeid(*this).name());
+        // std::string sql = select_by_pkey_sql("contractor", "id");
+        std::string sql = tableInfo->selectByIdSql();
+        ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
+        SqlBuilder builder{"select_by_id", sql};
+        builder.makePrepare(tx->conn());
+        pqxx::result result = tx->exec(builder.makePrepped(), builder.makeParams(id));
+        for (auto const &row: result) {
+            for (const pqxx::row& row: result) {
+                return tableInfo->rowToData(row);
+            }
+        }
+        return std::nullopt;
+    }
+};
 
 class ContractorRepository final : public tmp::Repository<uint64_t, std::map<std::string, std::string>> {
 private:
@@ -417,7 +594,8 @@ public:
         std::map<std::string, std::string> data;
         for (auto const &row: result) {
             for (auto const &row: result) {
-                auto [id, companyId, email, password, name, roles] = row.as<int, std::string, std::string, std::string, std::string, const char*>();    // テーブルで、null を許可している場合は const char* を使わざるを得ない。
+                // auto [id, companyId, email, password, name, roles] = row.as<uint64_t, std::string, std::string, std::string, std::string, const char*>();    // テーブルで、null を許可している場合は const char* を使わざるを得ない。
+                auto [id, companyId, email, password, name, roles] = row.as<uint64_t, std::string, std::string, std::string, std::string, const char*>();
                 data.insert(std::make_pair("id", std::to_string(id)));
                 data.insert(std::make_pair("company_id", companyId));
                 data.insert(std::make_pair("email", email));
@@ -931,6 +1109,115 @@ int test_postgres_delete_v3(std::string* id)
     }
 }
 
+int test_postgres_insert_v4(uint64_t* id)
+{
+    puts("------ test_postgres_insert_v4");
+    using iface = tmp::Repository<uint64_t, std::map<std::string, std::string>>;
+    using subclazz = tmp::postgres::PqxxRepository;
+    try {
+        std::clock_t start_1 = clock();
+        pqxx::connection conn{"hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234"};
+        std::clock_t start_2 = clock();
+        pqxx::work tx(conn);
+
+        tmp::postgres::ContractorInfo info;
+        std::unique_ptr<iface> repo = std::make_unique<subclazz>(&tx, &info);
+        std::map<std::string, std::string> data;
+        data.insert(std::make_pair("company_id", "B3_1000"));
+        data.insert(std::make_pair("email", "alice@loki.org"));
+        data.insert(std::make_pair("password", "alice1111"));
+        data.insert(std::make_pair("name", "Alice"));
+        data.insert(std::make_pair("roles", ""));
+        *id = repo->insert(std::move(data));
+        print_debug_v3("id: ", *id);
+// throw std::runtime_error("It's test runtime error.");
+        tx.commit();
+        conn.close();
+        std::clock_t end = clock();
+        std::cout << "passed " << (double)(end-start_1)/CLOCKS_PER_SEC << " sec." << std::endl;
+        std::cout << "passed " << (double)(end-start_2)/CLOCKS_PER_SEC << " sec." << std::endl;
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+int test_postgres_update_v4(uint64_t* id)
+{
+    puts("------ test_postgres_update_v4");
+    using iface = tmp::Repository<uint64_t, std::map<std::string, std::string>>;
+    using subclazz = tmp::postgres::PqxxRepository;
+    try {
+        pqxx::connection conn{"hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234"};
+        pqxx::work tx(conn);
+        tmp::postgres::ContractorInfo info;
+        std::unique_ptr<iface> repo = std::make_unique<subclazz>(&tx, &info);
+        std::map<std::string, std::string> data;
+        data.insert(std::make_pair("company_id", "B4_1444"));
+        data.insert(std::make_pair("email", "joe@loki.org"));
+        data.insert(std::make_pair("password", "joe1111"));
+        data.insert(std::make_pair("name", "Joe"));
+        data.insert(std::make_pair("roles", "User"));
+        repo->update(*id, std::move(data));
+        tx.commit();
+        conn.close();
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+int test_postgres_select_v4(uint64_t* id)
+{
+    puts("------ test_postgres_select_v4");
+    using iface = tmp::Repository<uint64_t, std::map<std::string, std::string>>;
+    using subclazz = tmp::postgres::PqxxRepository;
+    try {
+        pqxx::connection conn{"hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234"};
+        pqxx::work tx(conn);
+        tmp::postgres::ContractorInfo info;
+        std::unique_ptr<iface> repo = std::make_unique<subclazz>(&tx, &info);
+        std::optional<std::map<std::string, std::string>> data = repo->findById(*id);
+        tx.commit();
+        conn.close();
+        if(data.has_value()) {
+            print_debug_v3("Hit data ... id: ", *id);
+            for(auto f: data.value()) {
+                std::cout << f.first << '\t' << f.second << std::endl;
+            }
+        } else {
+            print_debug_v3("No data ... id: ", *id);
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+int test_postgres_delete_v4(uint64_t* id)
+{
+    puts("------ test_postgres_delete_v4");
+    using iface = tmp::Repository<uint64_t, std::map<std::string, std::string>>;
+    using subclazz = tmp::postgres::PqxxRepository;
+    try {
+        pqxx::connection conn{"hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234"};
+        pqxx::work tx(conn);
+        tmp::postgres::ContractorInfo info;
+        std::unique_ptr<iface> repo = std::make_unique<subclazz>(&tx, &info);
+        repo->remove(*id);
+        tx.commit();
+        conn.close();
+        ptr_print_debug<const std::string&, decltype(*id)&>("delete id: ", *id);
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void)
 {
     puts("START main ===");
@@ -986,7 +1273,7 @@ int main(void)
         ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_delete_v2(&id));
         assert(ret == 0);
     }
-    if(1) {
+    if(0) {
         std::string sid{""};
         ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_insert_v3(&sid));
         assert(ret == 0);
@@ -995,6 +1282,17 @@ int main(void)
         ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_select_v3(&sid));
         assert(ret == 0);
         ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_delete_v3(&sid));
+        assert(ret == 0);
+    }
+    if(1) {
+        uint64_t id = 0;
+        ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_insert_v4(&id));
+        assert(ret == 0);
+        ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_update_v4(&id));
+        assert(ret == 0);
+        ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_select_v4(&id));
+        assert(ret == 0);
+        ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_delete_v4(&id));
         assert(ret == 0);
     }
     puts("=== main END");
