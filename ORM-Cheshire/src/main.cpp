@@ -672,7 +672,7 @@ int test_MySQLXCreateStrategy() {
  * （使ってもいいが、いらないという意味）Too Much なものになってしまうから。
  * リポジトリは同様に定義できてもそれを利用するのは Tx ではなく、サービスになると思う。今回の Lost Chapter はこれで終了とする。
  * 
- * うん、前言撤回だ、O\R Mapping としてどこまでできるのか、PostgreSQL でも極力 MySQL と同じインタフェースで行けるのか、自分の設計
+ * うん、前言撤回だ、O/R Mapping としてどこまでできるのか、PostgreSQL でも極力 MySQL と同じインタフェースで行けるのか、自分の設計
  * が間違っていないのか、それを確かめなければ、C++ の学習としては不完全だと感じた。MySQL は jdbc.h、xdevapi.h 双方に対応できたの
  * だから、できるところまでやってみる。
  * 余談だが、MySQL は xdevapi.h（mysqlx） を利用し Nginx + FastCGI の構成で、person Table に INSERT する API で 1 ミリ秒を切ること
