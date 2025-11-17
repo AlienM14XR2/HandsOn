@@ -3,7 +3,7 @@
 
 #include <string>
 
-namespace tmp::helper {
+namespace tmp::postgres::helper {
 template <class... Args>
 std::string insert_sql(const std::string& table, Args&&... fields)
 {
@@ -109,5 +109,5 @@ std::string delete_by_pkey_sql(const std::string& table, const std::string& pkey
     return sql;
 }
 
-}   // namespace tmp::helper
+}   // namespace tmp::postgres::helper
 #endif

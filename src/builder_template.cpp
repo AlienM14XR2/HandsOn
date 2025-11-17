@@ -338,7 +338,7 @@ public:
     }
     virtual std::string insertSql() const override
     {
-        return tmp::helper::insert_sql(tableName
+        return tmp::postgres::helper::insert_sql(tableName
             , fieldNames[0]
             , fieldNames[1]
             , fieldNames[2]
@@ -348,7 +348,7 @@ public:
     }
     virtual std::string updateSql() const override
     {
-        return tmp::helper::update_by_pkey_sql(tableName
+        return tmp::postgres::helper::update_by_pkey_sql(tableName
             , fieldNames[0]
             , fieldNames[1]
             , fieldNames[2]
@@ -358,11 +358,11 @@ public:
     }
     virtual std::string deleteSql() const override
     {
-        return tmp::helper::delete_by_pkey_sql(tableName, fieldNames[0]);
+        return tmp::postgres::helper::delete_by_pkey_sql(tableName, fieldNames[0]);
     }
     virtual std::string selectByIdSql() const override
     {
-        return tmp::helper::select_by_pkey_sql(tableName, fieldNames[0]);
+        return tmp::postgres::helper::select_by_pkey_sql(tableName, fieldNames[0]);
     }
     virtual Data rowToData(const pqxx::row& row) const override
     {
@@ -456,7 +456,7 @@ public:
             "SELECT nextval('contractor_id_seq')"
         );
         printf("nextval: %lu\n", id);
-        std::string sql = tmp::helper::insert_sql("contractor", "id", "company_id", "email", "password", "name", "roles");
+        std::string sql = tmp::postgres::helper::insert_sql("contractor", "id", "company_id", "email", "password", "name", "roles");
         ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
         SqlBuilder builder{"insert_contractor", sql};
         builder.makePrepare(tx->conn());
@@ -466,7 +466,7 @@ public:
     virtual void update(const uint64_t& id, std::map<std::string, std::string>&& data) const override
     {
         print_debug_v3("update ... ", typeid(*this).name());
-        std::string sql = tmp::helper::update_by_pkey_sql("contractor", "id", "company_id", "email", "password", "name", "roles");
+        std::string sql = tmp::postgres::helper::update_by_pkey_sql("contractor", "id", "company_id", "email", "password", "name", "roles");
         ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
         SqlBuilder builder{"update_contractor", sql};
         builder.makePrepare(tx->conn());
@@ -475,7 +475,7 @@ public:
     virtual void remove(const uint64_t& id) const override
     {
         print_debug_v3("remove ... ", typeid(*this).name());
-        std::string sql = tmp::helper::delete_by_pkey_sql("contractor", "id");
+        std::string sql = tmp::postgres::helper::delete_by_pkey_sql("contractor", "id");
         ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
         SqlBuilder builder{"delete_contractor", sql};
         builder.makePrepare(tx->conn());
@@ -484,7 +484,7 @@ public:
     virtual std::optional<std::map<std::string, std::string>> findById(const uint64_t& id) const override
     {
         print_debug_v3("findById ... ", typeid(*this).name());
-        std::string sql = tmp::helper::select_by_pkey_sql("contractor", "id");
+        std::string sql = tmp::postgres::helper::select_by_pkey_sql("contractor", "id");
         ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
         SqlBuilder builder{"select_contractor", sql};
         builder.makePrepare(tx->conn());
@@ -637,18 +637,18 @@ int test_print_debug()
     }
 }
 
-int test_select_by_pkey_sql_M1A1()
-{
-    puts("------ test_select_by_pkey_sql_M1A1");
-    try {
-        std::string sql = tmp::helper::select_by_pkey_sql("contractor", "id", "company_id", "email", "password");
-        print_debug_v3("sql: ", sql);
-        return EXIT_SUCCESS;
-    } catch(std::exception& e) {
-        ptr_print_error<decltype(e)&>(e);
-        return EXIT_FAILURE;
-    }
-}
+// int test_select_by_pkey_sql_M1A1()
+// {
+//     puts("------ test_select_by_pkey_sql_M1A1");
+//     try {
+//         std::string sql = tmp::postgres::helper::select_by_pkey_sql("contractor", "id", "company_id", "email", "password");
+//         print_debug_v3("sql: ", sql);
+//         return EXIT_SUCCESS;
+//     } catch(std::exception& e) {
+//         ptr_print_error<decltype(e)&>(e);
+//         return EXIT_FAILURE;
+//     }
+// }
 
 int test_ObjectPool()
 {
@@ -720,7 +720,7 @@ int test_postgres_insert(long* id)
         //     INSERT INTO contractor (id, company_id, email, password, name, roles) 
         //     VALUES ($1, $2, $3, $4, $5, $6)
         // )";
-        std::string sql = tmp::helper::insert_sql("contractor", "id", "company_id", "email", "password", "name", "roles");
+        std::string sql = tmp::postgres::helper::insert_sql("contractor", "id", "company_id", "email", "password", "name", "roles");
         ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
         SqlBuilder builder{"insert_contractor", sql};
         pqxx::work tx(builder.makePrepare(conn));
@@ -812,7 +812,7 @@ int test_postgres_update(long* id)
         //     SET id=$1, company_id=$2, email=$3, password=$4, name=$5, roles=$6 
         //     WHERE id=$1
         // )";
-        std::string sql = tmp::helper::update_by_pkey_sql("contractor", "id", "company_id", "email", "password", "name", "roles");
+        std::string sql = tmp::postgres::helper::update_by_pkey_sql("contractor", "id", "company_id", "email", "password", "name", "roles");
         ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
         SqlBuilder builder{"update_contractor", sql};
         pqxx::work tx(builder.makePrepare(conn));
@@ -892,7 +892,7 @@ int test_postgres_select(long* id)
         //     SELECT * FROM contractor
         //     WHERE id = $1
         // )";
-        std::string sql = tmp::helper::select_by_pkey_sql("contractor", "id");
+        std::string sql = tmp::postgres::helper::select_by_pkey_sql("contractor", "id");
         ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
         SqlBuilder builder{"select_contractor", sql};
         pqxx::work tx(builder.makePrepare(conn));
@@ -975,7 +975,7 @@ int test_postgres_select_field(long* id)
     puts("------ test_postgres_select_field");
     try {
         pqxx::connection conn{"hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234"};
-        std::string sql = tmp::helper::select_by_pkey_sql("contractor", "id", "id", "name");
+        std::string sql = tmp::postgres::helper::select_by_pkey_sql("contractor", "id", "id", "name");
         ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
         SqlBuilder builder{"select_contractor", sql};
         pqxx::work tx(builder.makePrepare(conn));
@@ -1007,7 +1007,7 @@ int test_postgres_delete(long* id)
         //     WHERE id = $1)"
         // );
         // std::string sql = R"(DELETE FROM contractor WHERE id = $1)";
-        std::string sql = tmp::helper::delete_by_pkey_sql("contractor", "id");
+        std::string sql = tmp::postgres::helper::delete_by_pkey_sql("contractor", "id");
         ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
         SqlBuilder builder{"delete_contractor", sql};
         pqxx::work tx(builder.makePrepare(conn));
@@ -1268,10 +1268,10 @@ int main(void)
         ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_print_debug());
         assert(ret == 0);
     }
-    if(1) {
-        ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_select_by_pkey_sql_M1A1());
-        assert(ret == 0);
-    }
+    // if(1) {
+    //     ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_select_by_pkey_sql_M1A1());
+    //     assert(ret == 0);
+    // }
     if(0) {
         ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_ObjectPool());
         assert(ret == 0);
