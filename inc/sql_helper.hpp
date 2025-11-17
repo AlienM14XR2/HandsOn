@@ -91,7 +91,6 @@ std::string select_by_pkey_sql(const std::string& table, const std::string& pkey
     return sql;
 }
 
-template <class... Args>
 std::string select_by_pkey_sql(const std::string& table, const std::string& pkey)
 {
     std::string sql = "SELECT * FROM " + table + '\n';
@@ -99,7 +98,6 @@ std::string select_by_pkey_sql(const std::string& table, const std::string& pkey
     return sql;
 }
 
-template <class... Args>
 std::string delete_by_pkey_sql(const std::string& table, const std::string& pkey)
 {
 //     DELETE FROM contractor
