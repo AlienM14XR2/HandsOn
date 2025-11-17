@@ -641,6 +641,47 @@ public:
     }
 };
 
+class SqlExecutor final {
+    using Data = std::map<std::string,std::string>;
+private:
+    pqxx::work* const tx;
+public:
+    SqlExecutor(pqxx::work* const _tx): tx{_tx}
+    {}
+    std::vector<Data> findProc_v1(std::vector<std::string>&& sqlSyntax, Data (*dataSetHelper)(const pqxx::const_result_iterator::reference& _row))
+    {
+        // 事前に次のデータを登録した。
+        // INSERT INTO contractor(company_id, email, password, name, roles)
+        // VALUES
+        // ('A1_1000', 'admin@example.com', '$2a$10$Ff.Tr2q.fBciJKiA1b4wAOwNpjr9RypX3DHeQwLQQg0GMxGrl4FcO', 'admin', 'ROLE_ADMIN'),
+        // ('A1_1000', 'student@example.com', '$2a$10$fzJDR7BSMQnRg9Odg/JDzemQdLc6g2a7lR/ccHoMQEoxpxhs6dT0m', 'student', 'ROLE_USER');
+
+        // psql ではPrepared Statement に同じ名前を利用するとError になる。
+        // PREPARE stmt_1(text) AS
+        // 	SELECT id, company_id, email FROM contractor
+        // 	WHERE company_id = $1;
+        // EXECUTE stmt_1('A1_1000');
+        size_t size = sqlSyntax.size();
+        size_t i = 0;
+        std::vector<Data> result;
+        for(auto sql: sqlSyntax) {
+            i++;
+            if(i < size) tx->exec(sql);
+            else {
+                pqxx::result res = tx->exec(sql);
+                for (auto const &row: res) {
+                    print_debug_v3("colums: ", res.columns());
+                    // mysql 同様すべて本メソッドで完結させたかったが
+                    // posgresql ではそれらしいものが見当たらず断念した。
+                    // 結局コールバック関数で、データをセットするものが外部に必要だと思う。
+                    result.push_back(dataSetHelper(row));
+                }
+            }
+        }
+        return result;
+    }
+};
+
 }   // namespace tmp::postgres
 
 
@@ -1218,6 +1259,87 @@ int test_postgres_delete_v4(uint64_t* id)
     }
 }
 
+int test_SqlExecutor_findProc_v1()
+{
+    puts("------ test_SqlExecutor_findProc_v1");
+    using Data = std::map<std::string,std::string>;
+    try {
+        // Data (*dataSetHelper)(const pqxx::const_result_iterator::reference& _row)
+        Data (*helper)(const pqxx::const_result_iterator::reference&) = [](const pqxx::const_result_iterator::reference& row) -> Data {
+            Data data;
+            auto [id, companyId, email] = row.as<uint64_t, std::string, std::string>();
+            data.insert(std::make_pair("id", std::to_string(id)));
+            data.insert(std::make_pair("company_id", companyId));
+            data.insert(std::make_pair("email", email));
+            return data;
+        };
+
+        pqxx::connection conn{"hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234"};
+        pqxx::work tx(conn);
+        tmp::postgres::SqlExecutor exec{&tx};
+        std::string s1 = R"(PREPARE stmt_1(text) AS
+	                            SELECT id, company_id, email FROM contractor
+                                WHERE company_id = $1;)";
+        std::string s2 = R"(EXECUTE stmt_1('A1_1000');)";
+        std::vector vec{s1, s2};
+        std::vector<Data> result = exec.findProc_v1(std::move(vec), helper);
+        print_debug_v3("result size: ",result.size());
+        for(auto& row: result) {
+            puts("--------- check data");
+            for(auto& m: row) {
+                print_debug_v3(m.first, m.second);
+            }
+        }
+        // 同一コネクションで二回目を実行したらどうなるのか... psql ではプリペアドステートメント名の重複でエラーになったが。
+        // 結果はやはり同じ、つまりエラーになる：）
+        // この件は頭の片隅に置いておく、これはSQL の発行側が注意すべきことでExecutor（執行者） の
+        // 責務ではないと考える。
+        // exec.findProc_v1(std::move(vec), helper);
+        return EXIT_SUCCESS;
+    } catch (std::exception& e) {
+        ptr_print_error<decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+int test_SqlExecutor_findProc_v1A1()
+{
+    puts("------ test_SqlExecutor_findProc_v1A1");
+    using Data = std::map<std::string,std::string>;
+    try {
+        Data (*helper)(const pqxx::const_result_iterator::reference&) = [](const pqxx::const_result_iterator::reference& row) -> Data {
+            Data data;
+            std::tuple<std::string, std::string, std::string> t;
+            row.to(t);
+            std::cout << std::get<0>(t) << '\t' << std::get<1>(t) << '\t' << std::get<2>(t) << std::endl;
+            data.insert(std::make_pair("id", std::get<0>(t)));
+            data.insert(std::make_pair("company_id", std::get<1>(t)));
+            data.insert(std::make_pair("email", std::get<2>(t)));
+            return data;
+        };
+
+        pqxx::connection conn{"hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234"};
+        pqxx::work tx(conn);
+        tmp::postgres::SqlExecutor exec{&tx};
+        std::string s1 = R"(PREPARE stmt_1(text) AS
+	                            SELECT id, company_id, email FROM contractor
+                                WHERE company_id = $1;)";
+        std::string s2 = R"(EXECUTE stmt_1('A1_1000');)";
+        std::vector vec{s1, s2};
+        std::vector<Data> result = exec.findProc_v1(std::move(vec), helper);
+        print_debug_v3("result size: ",result.size());
+        for(auto& row: result) {
+            puts("--------- check data");
+            for(auto& m: row) {
+                print_debug_v3(m.first, m.second);
+            }
+        }
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 int main(void)
 {
     puts("START main ===");
@@ -1293,6 +1415,14 @@ int main(void)
         ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_select_v4(&id));
         assert(ret == 0);
         ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_postgres_delete_v4(&id));
+        assert(ret == 0);
+    }
+    if(1) {
+        ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_SqlExecutor_findProc_v1());
+        assert(ret == 0);
+    }
+    if(1) {
+        ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_SqlExecutor_findProc_v1A1());
         assert(ret == 0);
     }
     puts("=== main END");
