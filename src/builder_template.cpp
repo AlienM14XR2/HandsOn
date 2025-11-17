@@ -348,7 +348,7 @@ public:
     }
     virtual std::string updateSql() const override
     {
-        return tmp::helper::update_sql(tableName
+        return tmp::helper::update_by_pkey_sql(tableName
             , fieldNames[0]
             , fieldNames[1]
             , fieldNames[2]
@@ -466,7 +466,7 @@ public:
     virtual void update(const uint64_t& id, std::map<std::string, std::string>&& data) const override
     {
         print_debug_v3("update ... ", typeid(*this).name());
-        std::string sql = tmp::helper::update_sql("contractor", "id", "company_id", "email", "password", "name", "roles");
+        std::string sql = tmp::helper::update_by_pkey_sql("contractor", "id", "company_id", "email", "password", "name", "roles");
         ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
         SqlBuilder builder{"update_contractor", sql};
         builder.makePrepare(tx->conn());
@@ -812,7 +812,7 @@ int test_postgres_update(long* id)
         //     SET id=$1, company_id=$2, email=$3, password=$4, name=$5, roles=$6 
         //     WHERE id=$1
         // )";
-        std::string sql = tmp::helper::update_sql("contractor", "id", "company_id", "email", "password", "name", "roles");
+        std::string sql = tmp::helper::update_by_pkey_sql("contractor", "id", "company_id", "email", "password", "name", "roles");
         ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
         SqlBuilder builder{"update_contractor", sql};
         pqxx::work tx(builder.makePrepare(conn));

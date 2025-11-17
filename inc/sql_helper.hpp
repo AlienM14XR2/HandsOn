@@ -39,7 +39,7 @@ std::string insert_sql(const std::string& table, Args&&... fields)
 }
 
 template <class... Args>
-std::string update_sql(const std::string& table, Args&&... fields)
+std::string update_by_pkey_sql(const std::string& table, Args&&... fields)
 {
     // UPDATE contractor
     // SET id=$1, company_id=$2, email=$3, password=$4, name=$5, roles=$6 
