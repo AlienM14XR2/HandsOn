@@ -70,6 +70,7 @@
 // #include <codecvt> // For std::codecvt_utf8_utf16
 // #include <locale>  // For std::wstring_convert
 #include <Repository.hpp>
+#include <sql_helper.hpp>
 
 #include <mysql/jdbc.h>
 #include <mysqlx/xdevapi.h>
@@ -188,7 +189,7 @@ public:
     }
 };
 
-namespace tmp::mysql {
+namespace tmp::mysql::r0 {
 
 // 一見次のRepository のサブクラスは良いように思えるが、Data がContractor に
 // なっていることが好ましくない。Repository を唯一のインタフェースとしたい場合
@@ -268,7 +269,7 @@ public:
     }
 };
 
-}   // namespace tmp::mysql
+}   // namespace tmp::mysql::r0
 
 namespace tmp::mysql::v2 {
 
@@ -436,6 +437,7 @@ public:
     {}
     std::vector<Data> findProc_v1(std::vector<std::string>&& sqlSyntax)
     {
+    // e.g.
     // mysql> PREPARE stmt FROM 'SELECT id, company_id, email FROM contractor WHERE company_id = ?';
     // mysql> SET @1 = 'A1_1000';
     // mysql> EXECUTE stmt USING @1;
@@ -502,6 +504,88 @@ public:
         }
         return result;
     }
+    void cudProc_v1(std::vector<std::string>&& sqlSyntax)
+    {
+        sess->sql("USE "+DB).execute();
+        size_t size = sqlSyntax.size();
+        size_t i = 0;
+        for(auto s: sqlSyntax) {
+            i++;
+            if(i < size) sess->sql(s).execute();
+            else {
+                mysqlx::RowResult rowResult = sess->sql(s).execute();
+                print_debug_v3("row count: ", rowResult.count());
+            }
+        }
+    }
+};
+
+class SimplePrepare final {
+private:
+    std::string name;
+    std::string query;
+    std::vector<std::string> sets;
+    void valueToSets(const std::string& val)
+    {
+        const std::string s{"SET @"};
+        const size_t count = sets.size() + 1;
+        std::string elm;
+        elm.append(s).append(std::to_string(count)).append("=").append(val).append(";");
+        sets.push_back(elm);
+    }
+public:
+    SimplePrepare(const std::string _name): name{_name}
+    {}
+    SimplePrepare& setQuery(const std::string _query) noexcept
+    {
+        query = _query;
+        return *this;
+    }
+    SimplePrepare& set(const int64_t& val)
+    {
+        valueToSets(std::to_string(val));
+        return *this;
+    }
+    SimplePrepare& set(const int& val)
+    {
+        valueToSets(std::to_string(val));
+        return *this;
+    }
+    SimplePrepare& set(const double& val)
+    {
+        valueToSets(std::to_string(val));
+        return *this;
+    }
+    SimplePrepare& set(const std::string& val)
+    {
+        const std::string s{"SET @"};
+        const size_t count = sets.size() + 1;
+        std::string elm;
+        elm.append(s).append(std::to_string(count)).append("='").append(val).append("';");
+        sets.push_back(elm);
+        return *this;
+    }
+    std::vector<std::string> build() const
+    {
+        std::vector<std::string> result;
+        std::string prepare_syntax{"PREPARE "};
+        std::string using_syntax{""};
+        std::string execute_syntax{""};
+        size_t i = 0;
+        // PREPARE からクエリまで
+        prepare_syntax.append(name).append(" FROM '\n")
+        .append(query).append("';\n");
+        result.push_back(prepare_syntax);
+        // SET 句以降
+        for(const std::string& s: sets) {
+            result.push_back(std::string(s + "\n"));
+            if(i == 0) using_syntax.append("@").append(std::to_string(++i));
+            else using_syntax.append(", @").append(std::to_string(++i));
+        }
+        execute_syntax.append("EXECUTE ").append(name).append(" USING ").append(using_syntax).append(";\n");
+        result.push_back(execute_syntax);
+        return result;
+    }
 };
 
 }   // namespace tmp::mysql::v2
@@ -514,7 +598,7 @@ int test_conn_mysqlx()
         tmp.print();
         uint64_t id = 3;
         mysqlx::Session sess("localhost", 33060, "root", "root1234");
-        tmp::mysql::ContractorRepository repo{&sess};
+        tmp::mysql::r0::ContractorRepository repo{&sess};
         std::optional<Contractor> data = repo.findById(id);
         if(data) {
             data.value().print();
@@ -538,7 +622,7 @@ int test_insert_mysqlx(uint64_t* id)
         std::clock_t start_2 = clock();
         // sess.startTransaction();
         tx->begin();
-        tmp::mysql::ContractorRepository repo{&sess};
+        tmp::mysql::r0::ContractorRepository repo{&sess};
         Contractor data{0, "B3_1000", "alice@loki.org", "alice1111", "Alice", std::nullopt};
         data.print();
         *id = repo.insert(std::move(data));
@@ -565,7 +649,7 @@ int test_update_mysqlx(uint64_t* id) {
     try {
         tx->begin();
         std::optional<std::string> roles = std::string{"Admin,User"};
-        tmp::mysql::ContractorRepository repo{&sess};
+        tmp::mysql::r0::ContractorRepository repo{&sess};
         Contractor data{*id, "B3_1000", "foo@loki.org", "alice1111", "Foo", roles};
         data.print();
         repo.update(*id, std::move(data));
@@ -585,7 +669,7 @@ int test_delete_mysqlx(uint64_t* id)
     std::unique_ptr<Transaction> tx = std::make_unique<MySqlTransaction>(&sess);
     try {
         tx->begin();
-        tmp::mysql::ContractorRepository repo{&sess};
+        tmp::mysql::r0::ContractorRepository repo{&sess};
         repo.remove(*id);
         tx->commit();
         return EXIT_SUCCESS;
@@ -788,6 +872,110 @@ int test_SqlExecutor_findProc_v1()
     }
 }
 
+int test_output_prep_sql()
+{
+    puts("------ test_output_prep_sql");
+    try {
+        std::string sql_i = tmp::mysql::helper::insert_sql_auto_id("contractor", "company_id", "email", "password", "name");
+        print_debug_v3("insert sql: ", sql_i);
+// PREPARE stmt FROM '
+// INSERT INTO contractor
+// ( company_id, email, password, name )
+// VALUES
+// ( ?, ?, ?, ? )';
+// SET @1='C3_3000';
+// SET @2='jack@loki.org';
+// SET @3='jack1111';
+// SET @4='Jack';
+// EXECUTE stmt USING @1, @2, @3, @4;
+        std::string sql_u = tmp::mysql::helper::update_by_pkey_sql("contractor", "id", "company_id", "email", "password", "name");
+        print_debug_v3("update sql: ", sql_u);
+// PREPARE stmt FROM '
+// UPDATE contractor
+// SET company_id=?, email=?, password=?, name=?
+// WHERE id=?';
+// SET @1='C3_3333';
+// SET @2='jack@loki.org';
+// SET @3='jack2222';
+// SET @4='JACK';
+// SET @5=180;
+// EXECUTE stmt USING @1, @2, @3, @4, @5;
+        std::string sql_s = tmp::mysql::helper::select_by_pkey_sql("contractor", "id");
+        print_debug_v3("select sql: ", sql_s);
+// PREPARE stmt FROM '
+// SELECT * FROM contractor
+// WHERE id=?';
+// SET @1=180;
+// EXECUTE stmt USING @1;
+        std::string sql_d = tmp::mysql::helper::delete_by_pkey_sql("contractor", "id");
+        print_debug_v3("delete sql: ", sql_d);
+// PREPARE stmt FROM '
+// DELETE FROM contractor
+// WHERE id=?';
+// SET @1=180;
+// EXECUTE stmt USING @1;
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+int test_SimplePrepare_SqlExecutor_M1()
+{
+    puts("------ test_SimplePrepare_SqlExecutor_M1");
+    using Data = std::map<std::string,std::string>;
+    mysqlx::Session sess("localhost", 33060, "root", "root1234");
+    try {
+        // Insert
+        tmp::mysql::v2::SimplePrepare insPrepare{"stmt1"};
+        insPrepare.setQuery(tmp::mysql::helper::insert_sql_auto_id("contractor", "company_id", "email", "password", "name"));
+        std::vector<std::string> syntax = insPrepare.set("C3_3000").set("derek@loki.org").set("derek1111").set("DEREK").build();
+        for(auto s: syntax) {
+            print_debug_v3(s);
+        }
+        sess.startTransaction();
+        tmp::mysql::v2::SqlExecutor exec{&sess};
+        exec.cudProc_v1(std::move(syntax));
+        sess.commit();
+        // Insert 後の確認、ID の取得が目的。
+        std::string s1 = R"(SELECT * FROM contractor ORDER BY id DESC LIMIT 1;)";
+        std::vector<std::string> vec{s1};
+        std::vector<Data> r1 = exec.findProc_v1(std::move(vec));
+        for(auto& row: r1) {
+            puts("--------- check data");
+            for(auto& m: row) {
+                print_debug_v3(m.first, m.second);
+            }
+        }
+        // Update
+        tmp::mysql::v2::SimplePrepare upPrepare{"stmt2"};
+        upPrepare.setQuery(tmp::mysql::helper::update_by_pkey_sql("contractor", "id", "company_id", "email", "password", "name"));
+        std::vector<std::string> syntax_u = upPrepare.set("C3_3333").set("jack@loki.org").set("jack2222").set("JACK").set(std::stoi(r1[0].at("id"))).build();
+        for(auto s: syntax_u) {
+            print_debug_v3(s);
+        }
+        sess.startTransaction();
+        exec.cudProc_v1(std::move(syntax_u));
+        sess.commit();
+        // Delete
+        tmp::mysql::v2::SimplePrepare delPrepare{"stmt3"};
+        delPrepare.setQuery(tmp::mysql::helper::delete_by_pkey_sql("contractor", "id"));
+        std::vector<std::string> syntax_d = delPrepare.set(std::stoi(r1[0].at("id"))).build();
+        for(auto s: syntax_d) {
+            print_debug_v3(s);
+        }
+        sess.startTransaction();
+        exec.cudProc_v1(std::move(syntax_d));
+        sess.commit();
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        sess.rollback();
+        ptr_print_error<decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void)
 {
     puts("START main ===");
@@ -820,13 +1008,19 @@ int main(void)
         assert(ret == 0);
         print_debug_v3("Play and Result ... ", ret = test_findOrderByIdDescLimitOffset_mysqlx_v2(&id));
         assert(ret == 0);
+        print_debug_v3("Play and Result ... ", ret = test_SqlExecutor_findProc_v1());
+        assert(ret == 0);
     }
     if(0) {
         print_debug_v3("Play and Result ... ", ret = test_conn_mysqlx_v3());
         assert(ret == 0);
     }
+    if(0) {
+        print_debug_v3("Play and Result ... ", ret = test_output_prep_sql());
+        assert(ret == 0);
+    }
     if(1) {
-        print_debug_v3("Play and Result ... ", ret = test_SqlExecutor_findProc_v1());
+        print_debug_v3("Play and Result ... ", ret = test_SimplePrepare_SqlExecutor_M1());
         assert(ret == 0);
     }
     puts("=== main END");
