@@ -39,6 +39,10 @@ ALTER TABLE contractor ADD CONSTRAINT email_uk unique (email);
 #include <cassert>
 #include <map>
 #include <vector>
+#include <random>
+#include <ctime>
+#include <chrono>
+
 #include <ObjectPool.hpp>
 #include <Repository.hpp>
 #include <sql_helper.hpp>
@@ -107,6 +111,30 @@ void (*ptr_print_error)(Error) = [](const auto e) -> void {
     std::cerr << "ERROR: " << e.what() << std::endl;
 };
 
+/**
+ * 乱数生成関数（C++）
+ */
+float random_cxx()
+{
+    std::random_device seed_gen;                            // 非決定的な乱数生成器
+    std::mt19937 engine(seed_gen());                        // 擬似乱数製正規。ランダムなシードを設定する。
+    std::uniform_real_distribution<float> dist(-1.0f, 1.0f);        // 分布方法
+    return dist(engine);                                    // 乱数生成
+}
+
+std::string generate_id()
+{
+    const float t = random_cxx();
+    auto now = std::chrono::system_clock::now();
+    // エポック (起点) からの経過時間をナノ秒単位のdurationに変換
+    auto nanoseconds_since_epoch = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        now.time_since_epoch()
+    );
+    // ナノ秒のカウントを取得 (整数値)
+    const long long nanosecond_count = nanoseconds_since_epoch.count();
+    const float b = random_cxx();
+    return std::to_string(t) + std::to_string(nanosecond_count) + std::to_string(b);
+}
 // ある処理の終了が、次の処理の始まり。
 // 単なるチェーン処理だな。
 // それが嫌なら、自身を返却して、ひとつにまとめる（普通の Builder パターン）。
@@ -397,7 +425,7 @@ public:
         print_debug_v3("insert ... ", typeid(*this).name());
         std::string sql = tableInfo->insertSql();
         ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
-        SqlBuilder builder{"insert", sql};
+        SqlBuilder builder{generate_id(), sql};
         uint64_t id = tx->query_value<uint64_t>(
             builder.makeNextvalSql(tableInfo->getSeqName())
         );
@@ -411,7 +439,7 @@ public:
         print_debug_v3("update ... ", typeid(*this).name());
         std::string sql = tableInfo->updateSql();
         ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
-        SqlBuilder builder{"update", sql};
+        SqlBuilder builder{generate_id(), sql};
         builder.makePrepare(tx->conn());
         tx->exec(builder.makePrepped(), tableInfo->makeParams4Save(builder, id, std::move(data)));
     }
@@ -421,7 +449,7 @@ public:
         // std::string sql = delete_by_pkey_sql("contractor", "id");
         std::string sql = tableInfo->deleteSql();
         ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
-        SqlBuilder builder{"delete", sql};
+        SqlBuilder builder{generate_id(), sql};
         builder.makePrepare(tx->conn());
         tx->exec(builder.makePrepped(), builder.makeParams(id));
     }
@@ -431,7 +459,7 @@ public:
         // std::string sql = select_by_pkey_sql("contractor", "id");
         std::string sql = tableInfo->selectByIdSql();
         ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
-        SqlBuilder builder{"select_by_id", sql};
+        SqlBuilder builder{generate_id(), sql};
         builder.makePrepare(tx->conn());
         pqxx::result result = tx->exec(builder.makePrepped(), builder.makeParams(id));
         for (auto const &row: result) {
@@ -458,7 +486,7 @@ public:
         printf("nextval: %lu\n", id);
         std::string sql = tmp::postgres::helper::insert_sql("contractor", "id", "company_id", "email", "password", "name", "roles");
         ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
-        SqlBuilder builder{"insert_contractor", sql};
+        SqlBuilder builder{generate_id(), sql};
         builder.makePrepare(tx->conn());
         tx->exec(builder.makePrepped(), builder.makeParams(id, data.at("company_id"), data.at("email"), data.at("password"), data.at("name"), data.at("roles")));
         return id;
@@ -468,7 +496,7 @@ public:
         print_debug_v3("update ... ", typeid(*this).name());
         std::string sql = tmp::postgres::helper::update_by_pkey_sql("contractor", "id", "company_id", "email", "password", "name", "roles");
         ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
-        SqlBuilder builder{"update_contractor", sql};
+        SqlBuilder builder{generate_id(), sql};
         builder.makePrepare(tx->conn());
         tx->exec(builder.makePrepped(), builder.makeParams(id, data.at("company_id"), data.at("email"), data.at("password"), data.at("name"), data.at("roles")));
     }
@@ -477,7 +505,7 @@ public:
         print_debug_v3("remove ... ", typeid(*this).name());
         std::string sql = tmp::postgres::helper::delete_by_pkey_sql("contractor", "id");
         ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
-        SqlBuilder builder{"delete_contractor", sql};
+        SqlBuilder builder{generate_id(), sql};
         builder.makePrepare(tx->conn());
         tx->exec(builder.makePrepped(), builder.makeParams(id));
     }
@@ -486,7 +514,7 @@ public:
         print_debug_v3("findById ... ", typeid(*this).name());
         std::string sql = tmp::postgres::helper::select_by_pkey_sql("contractor", "id");
         ptr_print_debug<const std::string&, std::string&>("sql: \n", sql);
-        SqlBuilder builder{"select_contractor", sql};
+        SqlBuilder builder{generate_id(), sql};
         builder.makePrepare(tx->conn());
         pqxx::result result = tx->exec(builder.makePrepped(), builder.makeParams(id));
         std::map<std::string, std::string> data;
@@ -1083,6 +1111,14 @@ int test_postgres_insert_v4(uint64_t* id)
         *id = repo->insert(std::move(data));
         print_debug_v3("id: ", *id);
 // throw std::runtime_error("It's test runtime error.");
+        // std::map<std::string, std::string> data2;
+        // data.insert(std::make_pair("company_id", "B3_1000"));
+        // data.insert(std::make_pair("email", "joe@loki.org"));
+        // data.insert(std::make_pair("password", "joe1111"));
+        // data.insert(std::make_pair("name", "Joe"));
+        // data.insert(std::make_pair("roles", "USER"));
+        // uint64_t id_2 = repo->insert(std::move(data2));
+        // print_debug_v3("id_2: ", id_2);
         tx.commit();
         conn.close();
         std::clock_t end = clock();
