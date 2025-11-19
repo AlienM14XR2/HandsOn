@@ -600,10 +600,105 @@ public:
                     // mysql 同様すべて本メソッドで完結させたかったが
                     // posgresql ではそれらしいものが見当たらず断念した。
                     // 結局コールバック関数で、データをセットするものが外部に必要だと思う。
-                    result.push_back(dataSetHelper(row));
+                    result  .push_back(dataSetHelper(row));
                 }
             }
         }
+        return result;
+    }
+    void cudProc_v1(std::vector<std::string>&& sqlSyntax)
+    {
+        for(auto sql: sqlSyntax) {
+            tx->exec(sql);
+        }
+        // size_t size = sqlSyntax.size();
+        // size_t i = 0;
+        // for(auto sql: sqlSyntax) {
+        //     i++;
+        //     if(i < size) tx->exec(sql);
+        //     else {
+        //         // 結果の返却がないならもった単純にかけるね。
+        //         pqxx::result res = tx->exec(sql);
+        //         std::cout << "columns: " << res.columns() << std::endl;
+        //     }
+        // }
+    }
+};
+
+class SimplePrepare final {
+// e.g.
+// PREPARE fooplan (int, text, bool, numeric) AS
+// INSERT INTO foo VALUES($1, $2, $3, $4);
+// EXECUTE fooplan(1, 'Hunter Valley', 't', 200.00);
+
+private:
+    std::string name;
+    std::vector<std::string> types;
+    std::vector<std::string> values;
+    std::string query;
+
+    void pushValue(const std::string& _value)
+    {
+        values.push_back(_value);
+    }
+public:
+    SimplePrepare(const std::string& _name): name{_name}
+    {}
+    SimplePrepare& type(const std::string& _type)
+    {
+        types.push_back(_type);
+        return *this;
+    }
+    SimplePrepare& value(const int& _value)
+    {
+        pushValue(std::to_string(_value));
+        return *this;
+    }
+    SimplePrepare& value(const float& _value)
+    {
+        pushValue(std::to_string(_value));
+        return *this;
+    }
+    SimplePrepare& value(const std::string& _value)
+    {
+        std::string val = "'" + _value + "'";
+        values.push_back(val);
+        return *this;
+    }
+    SimplePrepare& setQuery(const std::string& _query) noexcept
+    {
+        query = _query;
+        return *this;
+    }
+    std::vector<std::string> build() const
+    {
+        std::vector<std::string> result;
+        // PREPARE
+        std::string prepare{"PREPARE "};
+        prepare.append(name).append("( ");
+        size_t i = 0;
+        std::string t{""};
+        for(const std::string& s: types) {
+            if(i == 0) t.append(s);
+            else t.append(", ").append(s);
+            i++;
+        }
+        t.append(") AS \n");
+        // query
+        t.append(query).append(";\n");
+        result.push_back(prepare + t);
+        // EXECUTE
+        std::string exec{"EXECUTE "};
+        exec.append(name).append("(");
+        i = 0;
+        std::string v{""};
+        for(const std::string& s: values) {
+            if(i == 0) v.append(s);
+            else v.append(", ").append(s);
+            i++;
+        }
+        v.append(");\n");
+        result.push_back(exec + v);
         return result;
     }
 };
@@ -1249,9 +1344,9 @@ int test_SqlExecutor_findProc_v1()
     }
 }
 
-int test_SqlExecutor_findProc_v1A1()
+int test_SqlExecutor_findProc_v1M1()
 {
-    puts("------ test_SqlExecutor_findProc_v1A1");
+    puts("------ test_SqlExecutor_findProc_v1M1");
     using Data = std::map<std::string,std::string>;
     try {
         Data (*helper)(const pqxx::const_result_iterator::reference&) = [](const pqxx::const_result_iterator::reference& row) -> Data {
@@ -1287,6 +1382,57 @@ int test_SqlExecutor_findProc_v1A1()
         return EXIT_FAILURE;
     }
 }
+
+int test_SimplePrepare_SqlExecutor_M1()
+{
+    puts("------ test_SimplePrepare_SqlExecutor_M1");
+    using Data = std::map<std::string,std::string>;
+    try {
+        // insert
+        tmp::postgres::SimplePrepare prepare{"insert_"};
+        prepare.setQuery(tmp::postgres::helper::insert_sql("contractor", "company_id", "email", "password", "name", "roles"));
+        prepare.type("text").type("text").type("text").type("text").type("text");
+        prepare.value("D1_1000").value("foo@loki.org").value("foo2222").value("Foo").value("Admin");
+        std::vector<std::string> ins_stmt = prepare.build();
+        for(auto s: ins_stmt) {
+            print_debug(s);
+        }
+        pqxx::connection conn{"hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234"};
+        pqxx::work tx(conn);
+        tmp::postgres::SqlExecutor exec{&tx};
+        exec.cudProc_v1(move(ins_stmt));
+        // select
+        Data (*helper)(const pqxx::const_result_iterator::reference&) = [](const pqxx::const_result_iterator::reference& row) -> Data {
+            Data data;
+            auto [id, company_id, email] = row.as<uint64_t, std::string, std::string>();
+            data.insert(std::make_pair("id", std::to_string(id)));
+            data.insert(std::make_pair("company_id", company_id));
+            data.insert(std::make_pair("email", email));
+            return data;
+        };
+        std::string syntax_1{"PREPARE select_(int) AS select id, company_id, email from contractor order by id desc limit $1;"};
+        std::string syntax_2{"EXECUTE select_(1);"};
+        std::vector<std::string> vec{syntax_1, syntax_2};
+        std::vector<Data> data = exec.findProc_v1(std::move(vec), helper);
+        print_debug("last id: ", data[0].at("id"));
+        // delete
+        tmp::postgres::SimplePrepare del_prepare{"delete_"};
+        del_prepare.setQuery(tmp::postgres::helper::delete_by_pkey_sql("contractor", "id"));
+        del_prepare.type("int");
+        del_prepare.value(data[0].at("id"));
+        std::vector<std::string> del_stmt = del_prepare.build();
+        for(auto s: del_stmt) {
+            print_debug(s);
+        }
+        exec.cudProc_v1(move(del_stmt));
+        tx.commit();
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 int main(void)
 {
     puts("START main ===");
@@ -1373,7 +1519,11 @@ int main(void)
         assert(ret == 0);
     }
     if(1) {
-        ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_SqlExecutor_findProc_v1A1());
+        ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_SqlExecutor_findProc_v1M1());
+        assert(ret == 0);
+    }
+    if(1) {
+        ptr_print_debug<const std::string&, int&>("Play and Result ... ", ret = test_SimplePrepare_SqlExecutor_M1());
         assert(ret == 0);
     }
     puts("=== main END");
