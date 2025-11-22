@@ -111,7 +111,7 @@ std::string delete_by_pkey_sql(const std::string& table, const std::string& pkey
 
 namespace tmp::mysql::helper {
 template <class... Args>
-std::string insert_sql_auto_id(const std::string& table, Args&&... fields)
+std::string insert_sql(const std::string& table, Args&&... fields)
 {
     // R"(INSERT INTO contractor (company_id, email, password, name, roles) VALUES (?, ?, ?, ?, ?))"
     size_t size = sizeof...(fields);

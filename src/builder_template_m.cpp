@@ -300,8 +300,28 @@ class ContractorRepository final : public tmp::Repository<uint64_t, std::map<std
     using Data = std::map<std::string, std::string>;
 private:
     mysqlx::Session* const session;
-    const std::string DB{"test"};
-    const std::string TABLE{"contractor"};
+    const std::string DB{"test"};               // 1. データベース名は固有
+    const std::string TABLE{"contractor"};      // 2. テーブル名は固有
+    Data rowToData(mysqlx::abi2::r0::Row&& r) const
+    {
+        uint64_t id              = r.get(0);
+        mysqlx::string companyId = r.get(1);
+        mysqlx::string email     = r.get(2);
+        mysqlx::string password  = r.get(3);
+        mysqlx::string name      = r.get(4);
+        std::optional<mysqlx::string> roles = std::nullopt;
+        if( !(r.get(5).isNull()) ) {
+            roles = r.get(5);
+        }
+        std::map<std::string, std::string> data;
+        data.insert(std::make_pair("id", std::to_string(id)));
+        data.insert(std::make_pair("company_id", companyId));
+        data.insert(std::make_pair("email", email));
+        data.insert(std::make_pair("password", password));
+        data.insert(std::make_pair("name", name));
+        if(roles) data.insert(std::make_pair("roles", roles.value()));
+        return data;
+    }
 public:
     ContractorRepository(mysqlx::Session* const _session) : session{_session}
     {}
@@ -311,6 +331,7 @@ public:
         mysqlx::Schema db{session->getSchema(DB)};
         mysqlx::Table table{db.getTable(TABLE)};
         // いいから、roles（Null 許可フィールド） も入れろという仕様です。
+        // 3. insert, values のパラメータは、テーブルに依存する。
         mysqlx::Result res = table.insert("company_id","email","password","name","roles")
                 .values(data.at("company_id"), data.at("email"), data.at("password"), data.at("name"), data.at("roles"))
                 .execute();
@@ -322,7 +343,9 @@ public:
         print_debug_v3("update ... ", typeid(*this).name());
         mysqlx::Schema db{session->getSchema(DB)};
         mysqlx::Table table{db.getTable(TABLE)};
+        // 4a. プライマリキの名称はテーブルに依存する。
         std::string condition{"id = :id"};
+        // 5. set する数はテーブルに依存する。
         mysqlx::Result res = table.update()
                 .set("company_id", data.at("company_id")).set("email", data.at("email")).set("password", data.at("password")).set("name", data.at("name")).set("roles", data.at("roles"))
                 .where(condition)
@@ -335,6 +358,7 @@ public:
         print_debug_v3("remove ... ", typeid(*this).name());
         mysqlx::Schema db{session->getSchema(DB)};
         mysqlx::Table table{db.getTable(TABLE)};
+        // 4b. プライマリキの名称はテーブルに依存する。
         std::string condition{"id = :id"};
         mysqlx::Result res = table.remove()
                             .where(condition)
@@ -346,30 +370,17 @@ public:
         print_debug_v3("findById ... ", typeid(*this).name());
         mysqlx::Schema db{session->getSchema(DB)};
         mysqlx::Table table{db.getTable(TABLE)};
+        // 4c. プライマリキの名称はテーブルに依存する。
         std::string condition{"id = :id"};
+        // 6. select のパラメータはテーブルに依存する。
         mysqlx::RowResult row = table.select("id","company_id","email","password","name","roles")
                                     .where(condition)
                                     .bind("id", id).execute();
+        // 7. foreach の中身すべてがテーブルに依存する（private のメンバ関数にまとめるのが先かな：）。
         for(mysqlx::abi2::r0::Row r: row) {
             ptr_print_debug<const char*,const char*>("row d type is ", typeid(r).name());
             std::cout << r.get(0) << '\t' << r.get(1) << '\t' << r.get(2) << '\t' << r.get(3) << '\t' << r.get(4)<< '\t' << r.get(5) << std::endl;
-            uint64_t id              = r.get(0);
-            mysqlx::string companyId = r.get(1);
-            mysqlx::string email     = r.get(2);
-            mysqlx::string password  = r.get(3);
-            mysqlx::string name      = r.get(4);
-            std::optional<mysqlx::string> roles = std::nullopt;
-            if( !(r.get(5).isNull()) ) {
-                roles = r.get(5);
-            }
-            std::map<std::string, std::string> data;
-            data.insert(std::make_pair("id", std::to_string(id)));
-            data.insert(std::make_pair("company_id", companyId));
-            data.insert(std::make_pair("email", email));
-            data.insert(std::make_pair("password", password));
-            data.insert(std::make_pair("name", name));
-            if(roles) data.insert(std::make_pair("roles", roles.value()));
-            return data;
+            return rowToData(std::move(r));
         }
         return std::nullopt;
     }
@@ -876,7 +887,7 @@ int test_output_prep_sql()
 {
     puts("------ test_output_prep_sql");
     try {
-        std::string sql_i = tmp::mysql::helper::insert_sql_auto_id("contractor", "company_id", "email", "password", "name");
+        std::string sql_i = tmp::mysql::helper::insert_sql("contractor", "company_id", "email", "password", "name");
         print_debug_v3("insert sql: ", sql_i);
 // PREPARE stmt FROM '
 // INSERT INTO contractor
@@ -929,7 +940,7 @@ int test_SimplePrepare_SqlExecutor_M1()
     try {
         // Insert
         tmp::mysql::v2::SimplePrepare insPrepare{"stmt1"};
-        insPrepare.setQuery(tmp::mysql::helper::insert_sql_auto_id("contractor", "company_id", "email", "password", "name"));
+        insPrepare.setQuery(tmp::mysql::helper::insert_sql("contractor", "company_id", "email", "password", "name"));
         std::vector<std::string> syntax = insPrepare.set("C3_3000").set("derek@loki.org").set("derek1111").set("DEREK").build();
         for(auto s: syntax) {
             print_debug_v3(s);
@@ -1019,7 +1030,7 @@ int main(void)
         print_debug_v3("Play and Result ... ", ret = test_output_prep_sql());
         assert(ret == 0);
     }
-    if(1) {
+    if(0) {
         print_debug_v3("Play and Result ... ", ret = test_SimplePrepare_SqlExecutor_M1());
         assert(ret == 0);
     }
