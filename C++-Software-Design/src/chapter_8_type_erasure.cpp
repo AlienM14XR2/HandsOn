@@ -205,7 +205,7 @@ public:
     template <class ShapeT,class DrawStrategy>
     Shape(ShapeT _shape, DrawStrategy _drawer) {
         using Model = detail::OwningShapeModel<ShapeT, DrawStrategy>;
-        // 新規作成したモデルを用いて pimpl を初期化すます。
+        // 新規作成したモデルを用いて pimpl を初期化します。
         pimpl = std::make_unique<Model>(std::move(_shape), std::move(_drawer));
     }
     /**
