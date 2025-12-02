@@ -618,11 +618,12 @@ public:
 };
 
 // Type Erasure パターン内のBridge パターンを実現している。
-class CudBridge {
+class CudBridge
+{
 private:
     // pointer-to-implementation.
     std::unique_ptr<tmp::CudConcept> pimpl;
-    // 次のフレンド関数は、自信の公開関数でも可能。
+    // 次のフレンド関数は、自身の公開関数でも可能。
     friend int64_t insert(const CudBridge& own)
     {
         return own.pimpl->insert();
@@ -653,17 +654,60 @@ public:
     }
 };
 
+
+template<class Data>
+class CrudBridge
+{
+private:
+    // pointer-to-implementation.
+    std::unique_ptr<tmp::r1::CrudConcept<Data>> pimpl;
+    // 次のフレンド関数は、自身の公開関数でも可能。
+    friend int64_t insert(const CrudBridge& own)
+    {
+        return own.pimpl->insert();
+    }
+    friend void update(const CrudBridge& own)
+    {
+        return own.pimpl->update();
+    }
+    friend void remove(const CrudBridge& own)
+    {
+        return own.pimpl->remove();
+    }
+    friend Data findById(const CrudBridge& own)
+    {
+        return own.pimpl->findById();
+    }
+public:
+    template<class Model>
+    CrudBridge(Data& data, Model& model)
+    {
+        pimpl = std::make_unique<tmp::r1::CrudModel<Data,Model>>(std::move(data), std::move(model));
+    }
+    CrudBridge(const CrudBridge& other): pimpl{other.pimpl->clone()}
+    {}
+    // コピー代入演算子の簡便で手軽な実装方法は copy-swap イディオムです。
+    CrudBridge& operator=(const CrudBridge& other) {
+        // Copy-and-Swap Idiom
+        CrudBridge copy(other);
+        pimpl.swap(copy.pimpl);
+        return *this;
+    }
+};
+
 }   // namespace tmp::mysql::r1
 
 
 struct Person {
+    uint64_t id = 0;
     std::string name;
+    Person() {};
     Person(const std::string& _name): name{_name}
     {}
 };
 
 // 扱うデータ構造をPerson に限定している。
-// RDBMS へのCUD の具体的な処理方法は、このクラスに任せている。
+// RDBMS へのCRUD の具体的な処理方法は、このクラスに任せている。
 class PersonModel {
 public:
     std::string toString(const Person& p) const
@@ -687,7 +731,44 @@ public:
         int status;
         print_debug_v3("--------- remove", abi::__cxa_demangle(typeid(*this).name() ,0,0,&status));
     }
+    Person findById(const Person& p) const
+    {
+        int status;
+        print_debug_v3("--------- findById", abi::__cxa_demangle(typeid(*this).name() ,0,0,&status));
+        // p の id が 600 と仮定して
+        Person result;
+        result.id = 600ul;
+        result.name = "Alice";
+        return result;
+    }
 };
+
+int test_CrudBridge()
+{
+    using namespace tmp::mysql::r1;
+    puts("------ test_CrudBridge");
+    try {
+        Person derek("Derek");
+        PersonModel model;
+        CrudBridge crud(derek, model);
+        print_debug_v3("id: ", insert(crud));
+        update(crud);
+        Person p = findById(crud);
+        print_debug_v3("id: ", p.id, "name: ", p.name);
+        remove(crud);
+        puts("--------- Can I use Copy Constructor ?");
+        CrudBridge crud2 = crud;
+        print_debug_v3("id: ", insert(crud2));
+        update(crud2);
+        Person p2 = findById(crud2);
+        print_debug_v3("id: ", p2.id, "name: ", p2.name);
+        remove(crud2);
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 int test_CudBridge()
 {
@@ -1161,6 +1242,8 @@ int main(void)
     }
     if(1) {
         print_debug_v3("Play and Result ... ", ret = test_CudBridge());
+        assert(ret == 0);
+        print_debug_v3("Play and Result ... ", ret = test_CrudBridge());
         assert(ret == 0);
     }
     puts("=== main END");
