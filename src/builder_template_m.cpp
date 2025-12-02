@@ -67,6 +67,7 @@
 #include <memory>
 #include <map>
 #include <vector>
+#include <cxxabi.h>
 // #include <codecvt> // For std::codecvt_utf8_utf16
 // #include <locale>  // For std::wstring_convert
 #include <Repository.hpp>
@@ -271,7 +272,7 @@ public:
 
 }   // namespace tmp::mysql::r0
 
-namespace tmp::mysql::v2 {
+namespace tmp::mysql::r1 {
 
 /**
  * PostgreSQL で行ったように、テーブル情報とリポジトリを分離したい。
@@ -327,7 +328,9 @@ public:
     {}
     virtual uint64_t insert(Data&& data) const override
     {
-        print_debug_v3("insert ... ", typeid(*this).name());
+        int status;
+        // print_debug_v3("insert ... ", typeid(*this).name());
+        print_debug_v3("insert ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
         mysqlx::Schema db{session->getSchema(DB)};
         mysqlx::Table table{db.getTable(TABLE)};
         // いいから、roles（Null 許可フィールド） も入れろという仕様です。
@@ -340,14 +343,27 @@ public:
     }
     virtual void update(const uint64_t& id, Data&& data) const override
     {
-        print_debug_v3("update ... ", typeid(*this).name());
+        int status;
+        // print_debug_v3("update ... ", typeid(*this).name());
+        print_debug_v3("update ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
         mysqlx::Schema db{session->getSchema(DB)};
         mysqlx::Table table{db.getTable(TABLE)};
         // 4a. プライマリキの名称はテーブルに依存する。
         std::string condition{"id = :id"};
         // 5. set する数はテーブルに依存する。
         mysqlx::Result res = table.update()
-                .set("company_id", data.at("company_id")).set("email", data.at("email")).set("password", data.at("password")).set("name", data.at("name")).set("roles", data.at("roles"))
+        // 次のように書いても問題はないのか、確認してみる。
+                
+                .set("company_id", data.at("company_id"))
+
+                .set("email", data.at("email"))
+
+                .set("password", data.at("password"))
+
+                .set("name", data.at("name"))
+
+                .set("roles", data.at("roles"))
+
                 .where(condition)
                 .bind("id", id)
                 .execute();
@@ -355,7 +371,9 @@ public:
     }
     virtual void remove(const uint64_t& id) const override
     {
-        print_debug_v3("remove ... ", typeid(*this).name());
+        int status;
+        // print_debug_v3("remove ... ", typeid(*this).name());
+        print_debug_v3("remove ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
         mysqlx::Schema db{session->getSchema(DB)};
         mysqlx::Table table{db.getTable(TABLE)};
         // 4b. プライマリキの名称はテーブルに依存する。
@@ -599,7 +617,107 @@ public:
     }
 };
 
-}   // namespace tmp::mysql::v2
+// Type Erasure パターン内のBridge パターンを実現している。
+class CudBridge {
+private:
+    // pointer-to-implementation.
+    std::unique_ptr<tmp::CudConcept> pimpl;
+    // 次のフレンド関数は、自信の公開関数でも可能。
+    friend int64_t insert(const CudBridge& own)
+    {
+        return own.pimpl->insert();
+    }
+    friend void update(const CudBridge& own)
+    {
+        return own.pimpl->update();
+    }
+    friend void remove(const CudBridge& own)
+    {
+        return own.pimpl->remove();
+    }
+public:
+    // 具体的なデータもその扱いも外部で決定される。
+    template<class Data, class Model>
+    CudBridge(Data& data, Model& model)
+    {
+        pimpl = std::make_unique<tmp::CudModel<Data,Model>>(std::move(data), std::move(model));
+    }
+    CudBridge(const CudBridge& other): pimpl{other.pimpl->clone()}
+    {}
+    // コピー代入演算子の簡便で手軽な実装方法は copy-swap イディオムです。
+    CudBridge& operator=(const CudBridge& other) {
+        // Copy-and-Swap Idiom
+        CudBridge copy(other);
+        pimpl.swap(copy.pimpl);
+        return *this;
+    }
+};
+
+}   // namespace tmp::mysql::r1
+
+
+struct Person {
+    std::string name;
+    Person(const std::string& _name): name{_name}
+    {}
+};
+
+// 扱うデータ構造をPerson に限定している。
+// RDBMS へのCUD の具体的な処理方法は、このクラスに任せている。
+class PersonModel {
+public:
+    std::string toString(const Person& p) const
+    {
+        int status;
+        return std::string(abi::__cxa_demangle(typeid(p).name() ,0,0,&status));
+    }
+    int64_t insert(const Person& p) const
+    {
+        int status;
+        print_debug_v3("--------- insert", abi::__cxa_demangle(typeid(*this).name() ,0,0,&status));
+        return 369UL;
+    }
+    void update(const Person& p) const
+    {
+        int status;
+        print_debug_v3("--------- update", abi::__cxa_demangle(typeid(*this).name() ,0,0,&status));
+    }
+    void remove(const Person& p) const
+    {
+        int status;
+        print_debug_v3("--------- remove", abi::__cxa_demangle(typeid(*this).name() ,0,0,&status));
+    }
+};
+
+int test_CudBridge()
+{
+    using namespace tmp::mysql::r1;
+    puts("------ test_CudBridge");
+    try {
+        Person derek("Derek");
+        PersonModel model;
+        CudBridge cud(derek, model);
+        print_debug_v3("id: ", insert(cud));
+        update(cud);
+        remove(cud);
+        // 個人的には unique_ptr(const unique_ptr&) = delete;
+        // の制限によって、コピーコンストラクタが使用できなくてもよいと思うが。
+        // ムーブコンストラクタは使えるので。
+        CudBridge cud2(std::move(cud));
+        print_debug_v3("id: ", insert(cud2));
+        update(cud2);
+        remove(cud2);
+        // CudBridge にコピーコンストラクタとコピー代入演算子を実装すれば、実現可能。
+        CudBridge cud3 = cud2;
+        print_debug_v3("id: ", insert(cud3));
+        update(cud3);
+        remove(cud3);
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        ptr_print_error<decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 int test_conn_mysqlx()
 {
@@ -693,12 +811,13 @@ int test_delete_mysqlx(uint64_t* id)
 
 int test_conn_mysqlx_v2()
 {
+    using namespace tmp::mysql::r1;
     puts("------ test_conn_mysqlx_v2");
     try {
         uint64_t id = 3;
         mysqlx::Session sess("localhost", 33060, "root", "root1234");
         std::unique_ptr<tmp::Repository<uint64_t,std::map<std::string, std::string>>> irepo
-                        = std::make_unique<tmp::mysql::v2::ContractorRepository>(&sess);
+                        = std::make_unique<ContractorRepository>(&sess);
         std::optional<std::map<std::string, std::string>> data = irepo->findById(id);
         if(data) {
             print_debug_v3("Hit data ... id: ", id);
@@ -717,6 +836,7 @@ int test_conn_mysqlx_v2()
 
 int test_insert_mysqlx_v2(uint64_t* id)
 {
+    using namespace tmp::mysql::r1;
     puts("------ test_insert_mysqlx_v2");
     std::clock_t start_1 = clock();
     mysqlx::Session sess("localhost", 33060, "root", "root1234");
@@ -732,7 +852,7 @@ int test_insert_mysqlx_v2(uint64_t* id)
         data.insert(std::make_pair("name", "Alice"));
         data.insert(std::make_pair("roles", ""));
         std::unique_ptr<tmp::Repository<uint64_t,std::map<std::string, std::string>>> irepo
-                        = std::make_unique<tmp::mysql::v2::ContractorRepository>(&sess);
+                        = std::make_unique<ContractorRepository>(&sess);
         *id = irepo->insert(std::move(data));
 // throw std::runtime_error("It's test.");
         // sess.commit();
@@ -751,6 +871,7 @@ int test_insert_mysqlx_v2(uint64_t* id)
 }
 
 int test_update_mysqlx_v2(uint64_t* id) {
+    using namespace tmp::mysql::r1;
     puts("------ test_update_mysqlx_v2");
     mysqlx::Session sess("localhost", 33060, "root", "root1234");
     std::unique_ptr<Transaction> tx = std::make_unique<MySqlTransaction>(&sess);
@@ -763,7 +884,7 @@ int test_update_mysqlx_v2(uint64_t* id) {
         data.insert(std::make_pair("name", "Foo"));
         data.insert(std::make_pair("roles", "Admin,User"));
         std::unique_ptr<tmp::Repository<uint64_t,std::map<std::string, std::string>>> irepo
-                        = std::make_unique<tmp::mysql::v2::ContractorRepository>(&sess);
+                        = std::make_unique<ContractorRepository>(&sess);
         irepo->update(*id, std::move(data));
         tx->commit();
         return EXIT_SUCCESS;
@@ -776,13 +897,14 @@ int test_update_mysqlx_v2(uint64_t* id) {
 
 int test_delete_mysqlx_v2(uint64_t* id)
 {
+    using namespace tmp::mysql::r1;
     puts("------ test_delete_mysqlx_v2");
     mysqlx::Session sess("localhost", 33060, "root", "root1234");
     std::unique_ptr<Transaction> tx = std::make_unique<MySqlTransaction>(&sess);
     try {
         tx->begin();
         std::unique_ptr<tmp::Repository<uint64_t,std::map<std::string, std::string>>> irepo
-                        = std::make_unique<tmp::mysql::v2::ContractorRepository>(&sess);
+                        = std::make_unique<ContractorRepository>(&sess);
         irepo->remove(*id);
         tx->commit();
         return EXIT_SUCCESS;
@@ -796,15 +918,16 @@ int test_delete_mysqlx_v2(uint64_t* id)
 int test_findOrderByIdDescLimitOffset_mysqlx_v2(uint64_t* id)
 {
     puts("------ test_findOrderByIdDescLimitOffset_mysqlx_v2");
+    using namespace tmp::mysql::r1;
     using Data = std::map<std::string, std::string>;
     using iface = tmp::Repository<uint64_t, Data>;
-    using subclazz = tmp::mysql::v2::ContractorRepository;
+    using subclazz = tmp::mysql::r1::ContractorRepository;
     mysqlx::Session sess("localhost", 33060, "root", "root1234");
     std::unique_ptr<Transaction> tx = std::make_unique<MySqlTransaction>(&sess);
     try {
         tx->begin();
         std::unique_ptr<iface> repo = std::make_unique<subclazz>(&sess);
-        tmp::mysql::v2::ContractorRepository* crepo = dynamic_cast<tmp::mysql::v2::ContractorRepository*>(repo.get());
+        ContractorRepository* crepo = dynamic_cast<ContractorRepository*>(repo.get());
         std::vector<Data> result = crepo->findSample(10, 0);
         tx->commit();
         if(result.size() == 0) std::cout << "No record." << std::endl;
@@ -856,11 +979,12 @@ int test_conn_mysqlx_v3()
 
 int test_SqlExecutor_findProc_v1()
 {
+    using namespace tmp::mysql::r1;
     puts("------ test_SqlExecutor_findProc_v1");
     using Data = std::map<std::string,std::string>;
     try {
         mysqlx::Session sess("localhost", 33060, "root", "root1234");
-        tmp::mysql::v2::SqlExecutor exec{&sess};
+        SqlExecutor exec{&sess};
         std::string s1 = R"(PREPARE stmt FROM '
         SELECT id, company_id, email
         FROM contractor
@@ -934,19 +1058,20 @@ int test_output_prep_sql()
 
 int test_SimplePrepare_SqlExecutor_M1()
 {
+    using namespace tmp::mysql::r1;
     puts("------ test_SimplePrepare_SqlExecutor_M1");
     using Data = std::map<std::string,std::string>;
     mysqlx::Session sess("localhost", 33060, "root", "root1234");
     try {
         // Insert
-        tmp::mysql::v2::SimplePrepare insPrepare{"stmt1"};
+        SimplePrepare insPrepare{"stmt1"};
         insPrepare.setQuery(tmp::mysql::helper::insert_sql("contractor", "company_id", "email", "password", "name"));
         std::vector<std::string> syntax = insPrepare.set("C3_3000").set("derek@loki.org").set("derek1111").set("DEREK").build();
         for(auto s: syntax) {
             print_debug_v3(s);
         }
         sess.startTransaction();
-        tmp::mysql::v2::SqlExecutor exec{&sess};
+        SqlExecutor exec{&sess};
         exec.cudProc_v1(std::move(syntax));
         sess.commit();
         // Insert 後の確認、ID の取得が目的。
@@ -960,7 +1085,7 @@ int test_SimplePrepare_SqlExecutor_M1()
             }
         }
         // Update
-        tmp::mysql::v2::SimplePrepare upPrepare{"stmt2"};
+        SimplePrepare upPrepare{"stmt2"};
         upPrepare.setQuery(tmp::mysql::helper::update_by_pkey_sql("contractor", "id", "company_id", "email", "password", "name"));
         std::vector<std::string> syntax_u = upPrepare.set("C3_3333").set("jack@loki.org").set("jack2222").set("JACK").set(std::stoi(r1[0].at("id"))).build();
         for(auto s: syntax_u) {
@@ -970,7 +1095,7 @@ int test_SimplePrepare_SqlExecutor_M1()
         exec.cudProc_v1(std::move(syntax_u));
         sess.commit();
         // Delete
-        tmp::mysql::v2::SimplePrepare delPrepare{"stmt3"};
+        SimplePrepare delPrepare{"stmt3"};
         delPrepare.setQuery(tmp::mysql::helper::delete_by_pkey_sql("contractor", "id"));
         std::vector<std::string> syntax_d = delPrepare.set(std::stoi(r1[0].at("id"))).build();
         for(auto s: syntax_d) {
@@ -1032,6 +1157,10 @@ int main(void)
     }
     if(0) {
         print_debug_v3("Play and Result ... ", ret = test_SimplePrepare_SqlExecutor_M1());
+        assert(ret == 0);
+    }
+    if(1) {
+        print_debug_v3("Play and Result ... ", ret = test_CudBridge());
         assert(ret == 0);
     }
     puts("=== main END");
