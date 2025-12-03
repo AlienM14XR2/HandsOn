@@ -86,7 +86,7 @@ public:
     virtual void update() const = 0;
     virtual void remove() const = 0;
     virtual std::unique_ptr<CrudConcept> clone() const = 0;
-    virtual Data findById() const = 0;
+    virtual std::optional<Data> findById() const = 0;
 };
 
 
@@ -122,7 +122,7 @@ public:
     std::unique_ptr<CrudConcept<Data>> clone() const override {
         return std::make_unique<CrudModel>(*this);
     }
-    virtual Data findById() const override
+    virtual std::optional<Data> findById() const override
     {
         return model.findById(data);
     }

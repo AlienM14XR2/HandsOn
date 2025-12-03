@@ -674,7 +674,7 @@ private:
     {
         return own.pimpl->remove();
     }
-    friend Data findById(const CrudBridge& own)
+    friend std::optional<Data> findById(const CrudBridge& own)
     {
         return own.pimpl->findById();
     }
@@ -707,7 +707,7 @@ struct Person {
 };
 
 // 扱うデータ構造をPerson に限定している。
-// RDBMS へのCRUD の具体的な処理方法は、このクラスに任せている。
+// RDBMS へのCRUD の具体的な処理方法は、このクラスに任せる。
 class PersonModel {
 public:
     std::string toString(const Person& p) const
@@ -731,7 +731,7 @@ public:
         int status;
         print_debug_v3("--------- remove", abi::__cxa_demangle(typeid(*this).name() ,0,0,&status));
     }
-    Person findById(const Person& p) const
+    std::optional<Person> findById(const Person& p) const
     {
         int status;
         print_debug_v3("--------- findById", abi::__cxa_demangle(typeid(*this).name() ,0,0,&status));
@@ -753,15 +753,15 @@ int test_CrudBridge()
         CrudBridge crud(derek, model);
         print_debug_v3("id: ", insert(crud));
         update(crud);
-        Person p = findById(crud);
-        print_debug_v3("id: ", p.id, "name: ", p.name);
+        std::optional<Person> p = findById(crud);
+        if(p) print_debug_v3("id: ", p.value().id, "name: ", p.value().name);
         remove(crud);
         puts("--------- Can I use Copy Constructor ?");
         CrudBridge crud2 = crud;
         print_debug_v3("id: ", insert(crud2));
         update(crud2);
-        Person p2 = findById(crud2);
-        print_debug_v3("id: ", p2.id, "name: ", p2.name);
+        std::optional<Person> p2 = findById(crud2);
+        if(p2) print_debug_v3("id: ", p2.value().id, "name: ", p2.value().name);
         remove(crud2);
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
