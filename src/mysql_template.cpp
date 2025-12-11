@@ -221,10 +221,9 @@ namespace tmp::mysql::r3
 // VarNode が保持できる型のリストを定義する
 using ValueType = std::variant<
     std::monostate, // 値がない状態を表す
-    int,
-    long,
-    unsigned int,
+    int64_t,
     uint64_t,
+    float,
     double,
     bool,
     std::string
@@ -255,30 +254,39 @@ struct VarNode
     {
         return std::holds_alternative<T>(data);
     }
-    VarNode* addChild(const std::string& _key, ValueType _data) {
+    VarNode* addChild(const std::string& _key, ValueType _data)
+    {
         children.push_back(std::make_unique<VarNode>(_key, _data, this));
         return children.back().get();
     }
     // debug関数は std::visit を使うと大幅に簡潔化できる
-    static void debug(const VarNode* const _node) {
+    static void debug(const VarNode* const _node, int indent = 0)
+    {
         if (_node == nullptr) {
             std::cerr << "node is nil." << std::endl;
             return;
         }
-        for (auto& n : _node->children) {
-            std::cout << "key: " << n->key << "\tdata: ";
-            // std::visit を使って、含まれている型に応じて処理を分岐
-            std::visit([](auto&& arg) {
-                // ここではstd::monostateは何も出力しない
-                using T = std::decay_t<decltype(arg)>;
-                if constexpr (!std::is_same_v<T, std::monostate>) {
+        // インデント表示
+        std::cout << std::string(indent * 2, ' ');
+        std::cout << "key: " << _node->key << "\tdata: ";
+
+        std::visit([](auto&& arg) {
+            using T = std::decay_t<decltype(arg)>;
+            if constexpr (!std::is_same_v<T, std::monostate>) {
+                if constexpr (std::is_same_v<T, bool>) {
+                    std::cout << (arg ? "true" : "false");
+                } else {
                     std::cout << arg;
                 }
-            }, n->data);
-            std::cout << std::endl;
-            if (!n->children.empty()) {
-                debug(n.get());
+            } else {
+                std::cout << "(null)";
             }
+        }, _node->data);
+        std::cout << std::endl;
+
+        // 子要素を再帰的に呼び出す
+        for (const auto& child : _node->children) {
+            debug(child.get(), indent + 1);
         }
     }
 };  // VarNode
@@ -333,16 +341,45 @@ std::vector<mysqlx::Value> convertVarNodeToSqlValues(const VarNode& data_tree)
     return values_to_bind;
 }
 
+// `convertVarNodeToSqlValues` の逆を行うヘルパー関数
+ValueType convertSqlValueToVarNode_Corrected(const mysqlx::Value& sql_val) {
+    using Type = mysqlx::abi2::r0::Value::Type;
+    switch (sql_val.getType()) {
+        case Type::VNULL:
+            return std::monostate{};
+        case Type::UINT64:
+            return sql_val.get<uint64_t>();
+        case Type::INT64:
+            return sql_val.get<int64_t>();
+        case Type::FLOAT:
+            return sql_val.get<float>();
+        case Type::DOUBLE:
+            return sql_val.get<double>();
+        case Type::BOOL:
+            return sql_val.get<bool>();
+        case Type::STRING:
+            return std::string{sql_val.get<mysqlx::string>()};
+        default:
+            throw std::runtime_error("Unsupported mysqlx::Value type encountered.");
+    }
+}
+
 template <class ID>
 class VarNodeRepository : public tmp::Repository<ID, VarNode> {
 private:
     mysqlx::Session* const session;
     std::string dbName;
     std::string tableName;
+    const std::string primaryKeyName;
 
 public:
-    VarNodeRepository(mysqlx::Session* const _session, const std::string& _db, const std::string& _table)
-    : session{_session}, dbName{_db}, tableName{_table}
+    VarNodeRepository(
+        mysqlx::Session* const _session
+        , const std::string&   _db
+        , const std::string&   _table
+        , const std::string&   _primaryKeyName = "id"
+    )
+    : session{_session}, dbName{_db}, tableName{_table}, primaryKeyName{_primaryKeyName}
     {}
 
     ID insert(VarNode&& data) const override
@@ -350,38 +387,28 @@ public:
         int status;
         print_debug("insert ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
         std::vector<std::string> cols;
-        // std::stringstream sql_cols;
-        // for(const auto& n: data.children) {
         for(size_t i=0; i < data.children.size(); i++) {
             cols.push_back(data.children[i]->key);
-            std::optional<std::string> str = get_value_safely_optional<std::string>(data.children[i].get());
-            if(str) print_debug("key: ", data.children[i]->key, "data: ", str.value());
-            std::optional<int> integer = get_value_safely_optional<int>(data.children[i].get());
-            if(integer) print_debug("key: ", data.children[i]->key, "data: ", integer.value());
-            std::optional<long> l = get_value_safely_optional<long>(data.children[i].get());
-            if(l) print_debug("key: ", data.children[i]->key, "data: ", l.value());
-            std::optional<unsigned int> ui = get_value_safely_optional<unsigned int>(data.children[i].get());
-            if(ui) print_debug("key: ", data.children[i]->key, "data: ", ui.value());
-            std::optional<uint64_t> ui64 = get_value_safely_optional<uint64_t>(data.children[i].get());
-            if(ui64) print_debug("key: ", data.children[i]->key, "data: ", ui64.value());
-            std::optional<double> d = get_value_safely_optional<double>(data.children[i].get());
-            if(d) print_debug("key: ", data.children[i]->key, "data: ", d.value());
-            std::optional<bool> b = get_value_safely_optional<bool>(data.children[i].get());
-            if(b) print_debug("key: ", data.children[i]->key, "data: ", b.value());
+            // std::optional<std::string> str = get_value_safely_optional<std::string>(data.children[i].get());
+            // if(str) print_debug("key: ", data.children[i]->key, "data: ", str.value());
+            // std::optional<int> integer = get_value_safely_optional<int>(data.children[i].get());
+            // if(integer) print_debug("key: ", data.children[i]->key, "data: ", integer.value());
+            // std::optional<long> l = get_value_safely_optional<long>(data.children[i].get());
+            // if(l) print_debug("key: ", data.children[i]->key, "data: ", l.value());
+            // std::optional<unsigned int> ui = get_value_safely_optional<unsigned int>(data.children[i].get());
+            // if(ui) print_debug("key: ", data.children[i]->key, "data: ", ui.value());
+            // std::optional<uint64_t> ui64 = get_value_safely_optional<uint64_t>(data.children[i].get());
+            // if(ui64) print_debug("key: ", data.children[i]->key, "data: ", ui64.value());
+            // std::optional<double> d = get_value_safely_optional<double>(data.children[i].get());
+            // if(d) print_debug("key: ", data.children[i]->key, "data: ", d.value());
+            // std::optional<bool> b = get_value_safely_optional<bool>(data.children[i].get());
+            // if(b) print_debug("key: ", data.children[i]->key, "data: ", b.value());
         }
         std::vector<mysqlx::Value> vals = convertVarNodeToSqlValues(data);
-        // AI の見解では次の rows() を利用する方がよいということだったが、コンパイルが通らなかった。
-        // あぁ、私の誘導もあるかもしれないが。
-        // std::vector<mysqlx::Value> single_row_values = convertVarNodeToSqlValues(data);
-        // ここで単一行を複数行コンテナにラップする
-        // std::vector<std::vector<mysqlx::Value>> multiple_rows_container;
-        // multiple_rows_container.push_back(std::move(single_row_values)); 
-
         mysqlx::Schema db{session->getSchema(dbName)};
         mysqlx::Table table{db.getTable(tableName)};
         mysqlx::Result res = table.insert(cols)
                 .values(vals)
-                // .rows(single_row_values) // ここを rows() に変更する
                 .execute();
         std::cout << "affected items count: " << res.getAffectedItemsCount() << std::endl; // 上記で Insert されたレコード件数
         return res.getAutoIncrementValue();
@@ -390,16 +417,34 @@ public:
     // findByIdの実装
     std::optional<VarNode> findById(const ID& id) const override
     {
-        // SELECT * FROM table WHERE id = ? を実行し、結果セットを取得
-        // ResultSet res = db_connection->execute("SELECT ...")
-
-        // VarNode result_entity;
-        // const auto& meta = Data::get_metadata();
-        // 結果セットの各カラム名に対応する Setter を呼び出し、Dataオブジェクトを動的に構築
-        // field_meta.setter(std::any(&result_entity), retrieved_db_value);
-
-        // return result_entity;
-        return std::nullopt;
+        mysqlx::Schema db{session->getSchema(dbName)};
+        mysqlx::Table table{db.getTable(tableName)};
+        std::string condition = primaryKeyName + " = :id";
+        mysqlx::RowResult rows = table.select()
+                                      .where(condition)
+                                      .bind("id", id)
+                                      .execute();
+        
+        if (rows.count() == 0) {
+            return std::nullopt;
+        }
+        mysqlx::Row row = rows.fetchOne();
+        // Columns オブジェクトを参照で受け取る (size() 等は使えない)
+        const auto& meta = rows.getColumns();
+        
+        VarNode result_entity("result_row", std::monostate{});
+        // インデックスではなく、範囲ベース for ループとカウンタを併用する
+        size_t i = 0;
+        for (const auto& col_meta : meta) {
+            const std::string& col_name = col_meta.getColumnName();
+            // 行オブジェクトからはインデックスで値を取得する
+            mysqlx::Value db_value = row.get(i);
+            // 正しい変換関数を使用
+            ValueType variant_value = convertSqlValueToVarNode_Corrected(db_value);
+            result_entity.addChild(col_name, variant_value);
+            i++;
+        }
+        return result_entity;
     }
 
     void update(const ID& id, VarNode&& data) const override { /* ... */ }
@@ -409,9 +454,33 @@ public:
 }   // namespace tmp::mysql::r3
 
 
-int test_VarNodeRepository()
+int test_VarNodeRepository_FindById(uint64_t* id)
 {
-    puts("------ test_VarNodeRepository");
+    puts("------ test_VarNodeRepository_FindById");
+    using Data = tmp::mysql::r3::VarNode;
+    mysqlx::Session sess("localhost", 33060, "root", "root1234");
+    try {
+        std::unique_ptr<tmp::Repository<uint64_t, Data>> irepo
+            = std::make_unique<tmp::mysql::r3::VarNodeRepository<uint64_t>>(&sess, "test", "contractor");
+
+        // e.g. Data sample
+        // Data data{0, "B3_1000", "alice@loki.org", "alice1111", "Alice", std::nullopt};
+        sess.startTransaction();
+        std::optional<Data> resultVNode = irepo->findById(*id);
+        sess.commit();
+        if(resultVNode) Data::debug(&(resultVNode.value()));
+        else throw std::runtime_error("test_VarNodeRepository_FindById() is failed.");
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        sess.rollback();
+        ptr_print_error<decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
+int test_VarNodeRepository_Insert(uint64_t* id)
+{
+    puts("------ test_VarNodeRepository_Insert");
     using Data = tmp::mysql::r3::VarNode;
     mysqlx::Session sess("localhost", 33060, "root", "root1234");
     try {
@@ -436,9 +505,9 @@ int test_VarNodeRepository()
         std::string name{"Alice"};
         root.addChild("name", name);
         sess.startTransaction();
-        uint64_t id = irepo->insert(std::move(root));
+        *id = irepo->insert(std::move(root));
         sess.commit();
-        print_debug("id: ", id);
+        print_debug("id: ", *id);
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         sess.rollback();
@@ -479,7 +548,10 @@ int main()
         assert(ret == 0);
     }
     if(1) {
-        print_debug("Play and Result ...", ret = test_VarNodeRepository());
+        uint64_t id = 0ul;
+        print_debug("Play and Result ...", ret = test_VarNodeRepository_Insert(&id));
+        assert(ret == 0);
+        print_debug("Play and Result ...", ret = test_VarNodeRepository_FindById(&id));
         assert(ret == 0);
     }
     puts("=== main END");
