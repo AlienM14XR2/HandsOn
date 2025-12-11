@@ -480,18 +480,57 @@ public:
                                         .execute();
         std::cout << "affected items count: " << res.getAffectedItemsCount() << std::endl;
     }
-    void remove(const ID& id) const override { /* ... */ }
+    virtual void remove(const ID& id) const override
+    {
+        int status;
+        print_debug("remove ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
+        mysqlx::Schema db{session->getSchema(dbName)};
+        mysqlx::Table table{db.getTable(tableName)};
+        std::string condition = primaryKeyName + " = :id";
+        mysqlx::Result res = table.remove()
+                            .where(condition)
+                            .bind("id", id)
+                            .execute();
+        std::cout << "affected items count: " << res.getAffectedItemsCount() << std::endl;
+	}
 };
 
 }   // namespace tmp::mysql::r3
 
 
+int test_VarNodeRepository_Remove(uint64_t* id)
+{
+    puts("------ test_VarNodeRepository_Remove");
+    using Data = tmp::mysql::r3::VarNode;
+    std::clock_t start_1 = clock();
+    mysqlx::Session sess("localhost", 33060, "root", "root1234");
+    try {
+        std::clock_t start_2 = clock();
+        std::unique_ptr<tmp::Repository<uint64_t, Data>> irepo
+            = std::make_unique<tmp::mysql::r3::VarNodeRepository<uint64_t>>(&sess, "test", "contractor", "id");
+
+        sess.startTransaction();
+        irepo->remove(*id);
+        sess.commit();
+        std::clock_t end = clock();
+        std::cout << "passed " << (double)(end-start_1)/CLOCKS_PER_SEC << " sec." << std::endl;
+        std::cout << "passed " << (double)(end-start_2)/CLOCKS_PER_SEC << " sec." << std::endl;
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        sess.rollback();
+        ptr_print_error<decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
+
 int test_VarNodeRepository_Update(uint64_t* id)
 {
     puts("------ test_VarNodeRepository_Update");
     using Data = tmp::mysql::r3::VarNode;
+    std::clock_t start_1 = clock();
     mysqlx::Session sess("localhost", 33060, "root", "root1234");
     try {
+        std::clock_t start_2 = clock();
         std::unique_ptr<tmp::Repository<uint64_t, Data>> irepo
             = std::make_unique<tmp::mysql::r3::VarNodeRepository<uint64_t>>(&sess, "test", "contractor", "id");
 
@@ -515,6 +554,9 @@ int test_VarNodeRepository_Update(uint64_t* id)
         sess.startTransaction();
         irepo->update(*id, std::move(root));
         sess.commit();
+        std::clock_t end = clock();
+        std::cout << "passed " << (double)(end-start_1)/CLOCKS_PER_SEC << " sec." << std::endl;
+        std::cout << "passed " << (double)(end-start_2)/CLOCKS_PER_SEC << " sec." << std::endl;
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         sess.rollback();
@@ -527,18 +569,21 @@ int test_VarNodeRepository_FindById(uint64_t* id)
 {
     puts("------ test_VarNodeRepository_FindById");
     using Data = tmp::mysql::r3::VarNode;
+    std::clock_t start_1 = clock();
     mysqlx::Session sess("localhost", 33060, "root", "root1234");
     try {
+        std::clock_t start_2 = clock();
         std::unique_ptr<tmp::Repository<uint64_t, Data>> irepo
             = std::make_unique<tmp::mysql::r3::VarNodeRepository<uint64_t>>(&sess, "test", "contractor");
 
-        // e.g. Data sample
-        // Data data{0, "B3_1000", "alice@loki.org", "alice1111", "Alice", std::nullopt};
         sess.startTransaction();
         std::optional<Data> resultVNode = irepo->findById(*id);
         sess.commit();
+        std::clock_t end = clock();
         if(resultVNode) Data::debug(&(resultVNode.value()));
         else throw std::runtime_error("test_VarNodeRepository_FindById() is failed.");
+        std::cout << "passed " << (double)(end-start_1)/CLOCKS_PER_SEC << " sec." << std::endl;
+        std::cout << "passed " << (double)(end-start_2)/CLOCKS_PER_SEC << " sec." << std::endl;
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         sess.rollback();
@@ -551,8 +596,10 @@ int test_VarNodeRepository_Insert(uint64_t* id)
 {
     puts("------ test_VarNodeRepository_Insert");
     using Data = tmp::mysql::r3::VarNode;
+    std::clock_t start_1 = clock();
     mysqlx::Session sess("localhost", 33060, "root", "root1234");
     try {
+        std::clock_t start_2 = clock();
         std::unique_ptr<tmp::Repository<uint64_t, Data>> irepo
             = std::make_unique<tmp::mysql::r3::VarNodeRepository<uint64_t>>(&sess, "test", "contractor");
 
@@ -576,7 +623,10 @@ int test_VarNodeRepository_Insert(uint64_t* id)
         sess.startTransaction();
         *id = irepo->insert(std::move(root));
         sess.commit();
+        std::clock_t end = clock();
         print_debug("id: ", *id);
+        std::cout << "passed " << (double)(end-start_1)/CLOCKS_PER_SEC << " sec." << std::endl;
+        std::cout << "passed " << (double)(end-start_2)/CLOCKS_PER_SEC << " sec." << std::endl;
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         sess.rollback();
@@ -623,6 +673,8 @@ int main()
         print_debug("Play and Result ...", ret = test_VarNodeRepository_FindById(&id));
         assert(ret == 0);
         print_debug("Play and Result ...", ret = test_VarNodeRepository_Update(&id));
+        assert(ret == 0);
+        print_debug("Play and Result ...", ret = test_VarNodeRepository_Remove(&id));
         assert(ret == 0);
     }
     puts("=== main END");
