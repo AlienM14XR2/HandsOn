@@ -447,12 +447,81 @@ public:
         return result_entity;
     }
 
-    void update(const ID& id, VarNode&& data) const override { /* ... */ }
+    void update(const ID& id, VarNode&& data) const override
+    {
+        int status;
+        print_debug("update ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
+        mysqlx::Schema db{session->getSchema(dbName)};
+        mysqlx::Table table{db.getTable(tableName)};
+        // 1. まず update ステートメントを開始する
+        auto tableUpdate = table.update();
+
+        // 2. VarNode の子ノード（更新対象カラム）をループ処理し、動的に set() を呼び出す
+        for (const auto& child : data.children) {
+            // child->key がカラム名
+            // child->data が更新する値 (ValueType)
+            // std::visit を使用して ValueType の中身を取り出し、mysqlx::Value に変換してセットする
+            std::visit([&](auto&& arg) {
+                using T = std::decay_t<decltype(arg)>;
+                if constexpr (!std::is_same_v<T, std::monostate>) {
+                    // mysqlx::Value のコンストラクタが arg の型を適切に処理する
+                    mysqlx::Value sql_val(arg);
+                    // set(カラム名, 値)
+                    tableUpdate.set(child->key, sql_val);
+                }
+                // monostate の場合は更新しない（NULLをセットしたい場合は別途ロジックが必要）
+            }, child->data);
+        }
+        // 3. WHERE句を設定して実行する
+        // primaryKeyName はコンストラクタで受け取ったメンバ変数
+        std::string condition = primaryKeyName + " = :id";
+        mysqlx::Result res = tableUpdate.where(condition)
+                                        .bind("id", id)
+                                        .execute();
+        std::cout << "affected items count: " << res.getAffectedItemsCount() << std::endl;
+    }
     void remove(const ID& id) const override { /* ... */ }
 };
 
 }   // namespace tmp::mysql::r3
 
+
+int test_VarNodeRepository_Update(uint64_t* id)
+{
+    puts("------ test_VarNodeRepository_Update");
+    using Data = tmp::mysql::r3::VarNode;
+    mysqlx::Session sess("localhost", 33060, "root", "root1234");
+    try {
+        std::unique_ptr<tmp::Repository<uint64_t, Data>> irepo
+            = std::make_unique<tmp::mysql::r3::VarNodeRepository<uint64_t>>(&sess, "test", "contractor", "id");
+
+        // e.g. Data sample
+        // Data data{"B3_3333", "foo@loki.org", "foo1111", "Foo", roles};
+        // ポリシの問題だが、更新時は別途、仮引数で値を渡しているため、ここでの設定はいらない（プライマリキの更新は不可が正しい）。
+        // データベース上でNULL を許可しているカラムは設定しなくてよい（contractor table では roles にあたる）。
+        // root ノードのKey とValue は空でなければ何でもよい（現状は）。
+        std::string pkcol{"id"};
+        Data root{"primaryKey", pkcol};
+        std::string companyId{"B3_3333"};
+        root.addChild("company_id", companyId);
+        std::string email{"foo@loki.org"};
+        root.addChild("email", email);
+        std::string password{"foo1111"};
+        root.addChild("password", password);
+        std::string name{"Foo"};
+        root.addChild("name", name);
+        std::string roles{"Admin,User"};
+        root.addChild("roles", roles);
+        sess.startTransaction();
+        irepo->update(*id, std::move(root));
+        sess.commit();
+        return EXIT_SUCCESS;
+    } catch(std::exception& e) {
+        sess.rollback();
+        ptr_print_error<decltype(e)&>(e);
+        return EXIT_FAILURE;
+    }
+}
 
 int test_VarNodeRepository_FindById(uint64_t* id)
 {
@@ -491,9 +560,9 @@ int test_VarNodeRepository_Insert(uint64_t* id)
         // Data data{0, "B3_1000", "alice@loki.org", "alice1111", "Alice", std::nullopt};
         // 
         // Data の作り方にひと工夫必要なはず。
-        // primaryKey is xxx という情報が最低限必要。
-        // VarNode のルートにその役割を持たせることにする。
+        // primaryKey is xxx という情報が最低限必要（VarNoderepository のコンストラクタの仮引数として解決した：）
         // データベース上でNULL を許可しているカラムは設定しなくてよい（contractor table では roles にあたる）。
+        // root ノードのKey とValue は空でなければ何でもよい（現状は）。
         std::string pkcol{"id"};
         Data root{"primaryKey", pkcol};
         std::string companyId{"B3_1000"};
@@ -552,6 +621,8 @@ int main()
         print_debug("Play and Result ...", ret = test_VarNodeRepository_Insert(&id));
         assert(ret == 0);
         print_debug("Play and Result ...", ret = test_VarNodeRepository_FindById(&id));
+        assert(ret == 0);
+        print_debug("Play and Result ...", ret = test_VarNodeRepository_Update(&id));
         assert(ret == 0);
     }
     puts("=== main END");
