@@ -268,7 +268,9 @@ class SqlBuilder final {
 private:
     // 内部で保持するデータを不変にすることで、SQL 単位の処理ということを担保している。
     // 別なSQL を利用したい場合は、本オブジェクトを作り直せということ。
-    const std::string sqlName;
+    // 多少記憶は古いが、コネクションをプーリングしている際は次のsqlName は何らかの方法
+    // でその一意性を確保しないとDB 側でエラーになる（はず）。
+    const std::string sqlName;  // postgres では発行PreparedStatement 単位で何らかの名前が必要。
     const std::string sql;
 public:
     SqlBuilder(const std::string& _sqlName, const std::string& _sql):
@@ -600,7 +602,7 @@ public:
                     // mysql 同様すべて本メソッドで完結させたかったが
                     // posgresql ではそれらしいものが見当たらず断念した。
                     // 結局コールバック関数で、データをセットするものが外部に必要だと思う。
-                    result  .push_back(dataSetHelper(row));
+                    result.push_back(dataSetHelper(row));
                 }
             }
         }

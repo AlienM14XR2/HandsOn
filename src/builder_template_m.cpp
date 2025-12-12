@@ -176,7 +176,7 @@ public:
         std::cout << "id: " << id << '\t';
         std::cout << "companyId: " << companyId << '\t';
         std::cout << "email: " << email << '\t';
-        std::cout << "password :" << password << '\t';
+        std::cout << "password: " << password << '\t';
         std::cout << "name: " << name << '\t';
         // if(roles) {
         //     std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> converter;
@@ -210,7 +210,8 @@ public:
     {}
     virtual uint64_t insert(Contractor&& data) const override
     {
-        puts("tmp::mysql::ContractorRepository::insert");
+        int status;
+        print_debug_v3("insert ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
         mysqlx::Schema db{session->getSchema(DB)};
         mysqlx::Table table{db.getTable(TABLE)};
         mysqlx::Result res = table.insert("company_id","email","password","name","roles")
@@ -221,36 +222,42 @@ public:
     }
     virtual void update(const uint64_t& id, Contractor&& data) const override
     {
-        puts("tmp::mysql::ContractorRepository::update");
+        int status;
+        print_debug_v3("update ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
         mysqlx::Schema db{session->getSchema(DB)};
         mysqlx::Table table{db.getTable(TABLE)};
-        std::string condition{"id="};
-        condition.append(std::to_string(id));
+        std::string condition{"id = :id"};
         mysqlx::Result res = table.update()
                 .set("company_id", data.getCompanyId()).set("email", data.getEmail()).set("password", data.getPassword()).set("name", data.getName()).set("roles", data.getRoles())
-                .where(condition.c_str())
+                .where(condition)
+                .bind("id", id)
                 .execute();
         std::cout << "affected items count: " << res.getAffectedItemsCount() << std::endl;
     }
     virtual void remove(const uint64_t& id) const override
     {
-        puts("tmp::mysql::ContractorRepository::remove");
+        int status;
+        print_debug_v3("remove ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
         mysqlx::Schema db{session->getSchema(DB)};
         mysqlx::Table table{db.getTable(TABLE)};
-        std::string condition{"id="};
-        condition.append(std::to_string(id));
-        mysqlx::Result res = table.remove().where(condition.c_str()).execute();
+        std::string condition{"id = :id"};
+        mysqlx::Result res = table.remove()
+            .where(condition)
+            .bind("id", id)
+            .execute();
         std::cout << "affected items count: " << res.getAffectedItemsCount() << std::endl;
     }
     virtual std::optional<Contractor> findById(const uint64_t& id) const override
     {
-        puts("tmp::mysql::ContractorRepository::findById");
+        int status;
+        print_debug_v3("findById ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
         mysqlx::Schema db{session->getSchema(DB)};
         mysqlx::Table table{db.getTable(TABLE)};
-        std::string condition{"id="};
-        condition.append(std::to_string(id));
+        std::string condition{"id = :id"};
         mysqlx::RowResult row = table.select("id","company_id","email","password","name","roles")
-                                        .where(condition.c_str()).execute();
+                                        .where(condition)
+                                        .bind("id", id)
+                                        .execute();
         for(mysqlx::abi2::r0::Row r: row) {
             ptr_print_debug<const char*,const char*>("row d type is ", typeid(r).name());
             std::cout << r.get(0) << '\t' << r.get(1) << '\t' << r.get(2) << '\t' << r.get(3) << '\t' << r.get(4)<< '\t' << r.get(5) << std::endl;            
@@ -380,7 +387,8 @@ public:
         std::string condition{"id = :id"};
         mysqlx::Result res = table.remove()
                             .where(condition)
-                            .bind("id", id).execute();
+                            .bind("id", id)
+                            .execute();
         std::cout << "affected items count: " << res.getAffectedItemsCount() << std::endl;
     }
     virtual std::optional<Data> findById(const uint64_t& id) const override
@@ -393,7 +401,8 @@ public:
         // 6. select のパラメータはテーブルに依存する。
         mysqlx::RowResult row = table.select("id","company_id","email","password","name","roles")
                                     .where(condition)
-                                    .bind("id", id).execute();
+                                    .bind("id", id)
+                                    .execute();
         // 7. foreach の中身すべてがテーブルに依存する（private のメンバ関数にまとめるのが先かな：）。
         for(mysqlx::abi2::r0::Row r: row) {
             ptr_print_debug<const char*,const char*>("row d type is ", typeid(r).name());
@@ -1197,7 +1206,7 @@ int main(void)
 {
     puts("START main ===");
     int ret = -1;
-    if(0) {
+    if(1) {
         print_debug_v3("Play and Result ... ", ret = test_conn_mysqlx());
         assert(ret == 0);
     }
@@ -1206,7 +1215,7 @@ int main(void)
         assert(ret == 0);
     }
     uint64_t id = 0;
-    if(0) {
+    if(1) {
         print_debug_v3("Play and Result ... ", ret = test_insert_mysqlx(&id));
         print_debug_v3("id: ", id);
         assert(ret == 0);
@@ -1228,15 +1237,15 @@ int main(void)
         print_debug_v3("Play and Result ... ", ret = test_SqlExecutor_findProc_v1());
         assert(ret == 0);
     }
-    if(0) {
+    if(1) {
         print_debug_v3("Play and Result ... ", ret = test_conn_mysqlx_v3());
         assert(ret == 0);
     }
-    if(0) {
+    if(1) {
         print_debug_v3("Play and Result ... ", ret = test_output_prep_sql());
         assert(ret == 0);
     }
-    if(0) {
+    if(1) {
         print_debug_v3("Play and Result ... ", ret = test_SimplePrepare_SqlExecutor_M1());
         assert(ret == 0);
     }
