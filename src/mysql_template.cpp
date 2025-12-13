@@ -33,6 +33,7 @@
 #include <functional>
 #include <optional>
 #include <sstream>
+#include <string_view> // C++17以降 @see void safe_print(const char* p)
 
 #include <Repository.hpp>
 #include <mysql/jdbc.h>
@@ -54,12 +55,28 @@ void (*ptr_print_error)(Error) = [](const auto e) -> void {
     std::cerr << "ERROR: " << e.what() << std::endl;
 };
 
+// ポインタ安全な出力のためのヘルパー関数オーバーロード
+void safe_print(const char* p)
+{
+    if (p == nullptr) {
+        std::cout << "(nullptr)";
+    } else {
+        std::cout << p;
+    }
+}
+// 他の型はそのまま出力する汎用テンプレート
+template <typename T>
+void safe_print(const T& element)
+{
+    std::cout << element;
+}
 template <class... Args>
 void print_debug(Args&&... args)
 {
     std::cout << "Debug: ";
     auto print_element = [](const auto& element) {
-        std::cout << element << '\t';
+        safe_print(element);
+        std::cout << '\t';
     };
     // C++17以降の pack expansion で要素を順に処理
     (print_element(std::forward<Args>(args)), ...);
@@ -270,18 +287,28 @@ struct VarNode
         std::cout << std::string(indent * 2, ' ');
         std::cout << "key: " << _node->key << "\tdata: ";
 
+        // std::visit のラムダ式内で、全ての型を明示的に処理する
         std::visit([](auto&& arg) {
             using T = std::decay_t<decltype(arg)>;
-            if constexpr (!std::is_same_v<T, std::monostate>) {
-                if constexpr (std::is_same_v<T, bool>) {
-                    std::cout << (arg ? "true" : "false");
-                } else {
-                    std::cout << arg;
-                }
-            } else {
+
+            if constexpr (std::is_same_v<T, std::monostate>) {
                 std::cout << "(null)";
+            } else if constexpr (std::is_same_v<T, bool>) {
+                std::cout << (arg ? "true" : "false");
+            } else if constexpr (std::is_same_v<T, int64_t> || 
+                                 std::is_same_v<T, uint64_t> ||
+                                 std::is_same_v<T, float> ||
+                                 std::is_same_v<T, double> ||
+                                 std::is_same_v<T, std::string>) {
+                // std::cout はこれらのプリミティブ型やstd::stringを安全に出力できる
+                std::cout << arg;
+            } else {
+                // 将来ValueTypeに新しい型（例えばカスタムオブジェクトやポインタ）が追加された場合
+                // コンパイルエラーにならずに、ここで処理を止めるか、汎用的な出力を行う
+                std::cout << "(Unknown/Unhandled Type)";
             }
         }, _node->data);
+        
         std::cout << std::endl;
 
         // 子要素を再帰的に呼び出す
