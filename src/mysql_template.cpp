@@ -233,124 +233,7 @@ public:
 namespace tmp::mysql::r3
 {
 
-// @see https://dev.mysql.com/doc/dev/connector-cpp/latest/classmysqlx_1_1abi2_1_1r0_1_1Value.html
-// このサンプルでは上記の型のみに対応しておけば良さそう。
-// VarNode が保持できる型のリストを定義する
-using ValueType = std::variant<
-    std::monostate, // 値がない状態を表す
-    int64_t,
-    uint64_t,
-    float,
-    double,
-    bool,
-    std::string
->;
-
-struct VarNode
-{
-    std::string key;
-    ValueType data;
-    VarNode* parent = nullptr;
-    std::vector<std::unique_ptr<VarNode>> children;
-
-    // コンストラクタを ValueType を受け取るように変更
-    VarNode(const std::string& _key, ValueType _data, VarNode* _parent = nullptr)
-        : key(_key), data(_data), parent(_parent)
-    {}
-
-    // 値の取得は std::get<T> を使う（型が違えば std::bad_variant_access を投げる）
-    template <class T>
-    T get() const
-    {
-        return std::get<T>(data);
-        // std::get_if を使って安全なポインタ取得を試みる
-        // return std::get_if<T>(data);
-    }
-    template <class T>
-    bool is_type() const
-    {
-        return std::holds_alternative<T>(data);
-    }
-    VarNode* addChild(const std::string& _key, ValueType _data)
-    {
-        children.push_back(std::make_unique<VarNode>(_key, _data, this));
-        return children.back().get();
-    }
-    // debug関数は std::visit を使うと大幅に簡潔化できる
-    static void debug(const VarNode* const _node, int indent = 0)
-    {
-        if (_node == nullptr) {
-            std::cerr << "node is nil." << std::endl;
-            return;
-        }
-        // インデント表示
-        std::cout << std::string(indent * 2, ' ');
-        std::cout << "key: " << _node->key << "\tdata: ";
-
-        // std::visit のラムダ式内で、全ての型を明示的に処理する
-        std::visit([](auto&& arg) {
-            using T = std::decay_t<decltype(arg)>;
-
-            if constexpr (std::is_same_v<T, std::monostate>) {
-                std::cout << "(null)";
-            } else if constexpr (std::is_same_v<T, bool>) {
-                std::cout << (arg ? "true" : "false");
-            } else if constexpr (std::is_same_v<T, int64_t> || 
-                                 std::is_same_v<T, uint64_t> ||
-                                 std::is_same_v<T, float> ||
-                                 std::is_same_v<T, double> ||
-                                 std::is_same_v<T, std::string>) {
-                // std::cout はこれらのプリミティブ型やstd::stringを安全に出力できる
-                std::cout << arg;
-            } else {
-                // 将来ValueTypeに新しい型（例えばカスタムオブジェクトやポインタ）が追加された場合
-                // コンパイルエラーにならずに、ここで処理を止めるか、汎用的な出力を行う
-                std::cout << "(Unknown/Unhandled Type)";
-            }
-        }, _node->data);
-        
-        std::cout << std::endl;
-
-        // 子要素を再帰的に呼び出す
-        for (const auto& child : _node->children) {
-            debug(child.get(), indent + 1);
-        }
-    }
-};  // VarNode
-
-template <typename T>
-std::unique_ptr<T> get_value_safely(const VarNode* const node)
-{
-    if (node == nullptr) {
-        // node 自体が nullptr の場合は runtime_error を投げる
-        throw std::runtime_error("VarNode* node is null.");
-    }
-    // std::get_if<T>(&node->data) が、VarNodeTypeFixer の役割を果たす
-    // - T 型が格納されていれば T* を返す
-    // - T 型でなければ nullptr を返す
-    if (const T* value_ptr = std::get_if<T>(&node->data)) {
-        // 値が見つかったので、unique_ptr でラップして返す
-        return std::make_unique<T>(*value_ptr);
-    } else {
-        // 型が一致しない場合は nullptr を返す
-        return nullptr;
-    }
-}
-
-template <typename T>
-std::optional<T> get_value_safely_optional(const VarNode* const node)
-{
-    if (node == nullptr) {
-        throw std::runtime_error("VarNode* node is null.");
-    }
-    if (const T* value_ptr = std::get_if<T>(&node->data)) {
-        return *value_ptr; // 値そのものを optional でラップして返す
-    } else {
-        return std::nullopt; // 値がないことを示す
-    }
-}
-
-std::vector<mysqlx::Value> convertVarNodeToSqlValues(const VarNode& data_tree)
+std::vector<mysqlx::Value> convertVarNodeToSqlValues(const tmp::VarNode& data_tree)
 {
     std::vector<mysqlx::Value> values_to_bind;
     for (const auto& child : data_tree.children) {
@@ -369,7 +252,7 @@ std::vector<mysqlx::Value> convertVarNodeToSqlValues(const VarNode& data_tree)
 }
 
 // `convertVarNodeToSqlValues` の逆を行うヘルパー関数
-ValueType convertSqlValueToVarNode_Corrected(const mysqlx::Value& sql_val) {
+tmp::ValueType convertSqlValueToVarNode_Corrected(const mysqlx::Value& sql_val) {
     using Type = mysqlx::abi2::r0::Value::Type;
     switch (sql_val.getType()) {
         case Type::VNULL:
@@ -392,7 +275,7 @@ ValueType convertSqlValueToVarNode_Corrected(const mysqlx::Value& sql_val) {
 }
 
 template <class ID>
-class VarNodeRepository : public tmp::Repository<ID, VarNode> {
+class VarNodeRepository : public tmp::Repository<ID, tmp::VarNode> {
 private:
     mysqlx::Session* const session;
     std::string dbName;
@@ -409,7 +292,7 @@ public:
     : session{_session}, dbName{_db}, tableName{_table}, primaryKeyName{_primaryKeyName}
     {}
 
-    ID insert(VarNode&& data) const override
+    ID insert(tmp::VarNode&& data) const override
     {
         int status;
         print_debug("insert ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
@@ -442,7 +325,7 @@ public:
     }
 
     // findByIdの実装
-    std::optional<VarNode> findById(const ID& id) const override
+    std::optional<tmp::VarNode> findById(const ID& id) const override
     {
         mysqlx::Schema db{session->getSchema(dbName)};
         mysqlx::Table table{db.getTable(tableName)};
@@ -474,7 +357,7 @@ public:
         return result_entity;
     }
 
-    void update(const ID& id, VarNode&& data) const override
+    void update(const ID& id, tmp::VarNode&& data) const override
     {
         int status;
         print_debug("update ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
@@ -528,7 +411,7 @@ public:
 int test_VarNodeRepository_Remove(uint64_t* id)
 {
     puts("------ test_VarNodeRepository_Remove");
-    using Data = tmp::mysql::r3::VarNode;
+    using Data = tmp::VarNode;
     std::clock_t start_1 = clock();
     mysqlx::Session sess("localhost", 33060, "root", "root1234");
     try {
@@ -553,7 +436,7 @@ int test_VarNodeRepository_Remove(uint64_t* id)
 int test_VarNodeRepository_Update(uint64_t* id)
 {
     puts("------ test_VarNodeRepository_Update");
-    using Data = tmp::mysql::r3::VarNode;
+    using Data = tmp::VarNode;
     std::clock_t start_1 = clock();
     mysqlx::Session sess("localhost", 33060, "root", "root1234");
     try {
@@ -595,7 +478,7 @@ int test_VarNodeRepository_Update(uint64_t* id)
 int test_VarNodeRepository_FindById(uint64_t* id)
 {
     puts("------ test_VarNodeRepository_FindById");
-    using Data = tmp::mysql::r3::VarNode;
+    using Data = tmp::VarNode;
     std::clock_t start_1 = clock();
     mysqlx::Session sess("localhost", 33060, "root", "root1234");
     try {
@@ -622,7 +505,7 @@ int test_VarNodeRepository_FindById(uint64_t* id)
 int test_VarNodeRepository_Insert(uint64_t* id)
 {
     puts("------ test_VarNodeRepository_Insert");
-    using Data = tmp::mysql::r3::VarNode;
+    using Data = tmp::VarNode;
     std::clock_t start_1 = clock();
     mysqlx::Session sess("localhost", 33060, "root", "root1234");
     try {

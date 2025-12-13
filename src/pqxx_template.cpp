@@ -27,6 +27,8 @@
 #include <ctime>
 #include <chrono>
 #include <string_view> // C++17以降 @see void safe_print(const char* p)
+#include <unordered_map>
+#include <algorithm> // for find_if, if you keep using vector
 
 #include <Repository.hpp>
 #include <sql_helper.hpp>
@@ -114,122 +116,6 @@ std::string generate_uid()
 
 namespace tmp::postgres::r3
 {
-
-// VarNode が保持できる型のリストを定義する
-using ValueType = std::variant<
-    std::monostate, // 値がない状態を表す
-    int64_t,
-    uint64_t,
-    float,
-    double,
-    bool,
-    std::string
->;
-// ValueType (std::variant) が表現する型であれば何でも保持可能な構造体
-// ディクトリ構造も表現可能なもの
-struct VarNode
-{
-    std::string key;
-    ValueType data;
-    VarNode* parent = nullptr;
-    std::vector<std::unique_ptr<VarNode>> children;
-
-    // コンストラクタを ValueType を受け取るように変更
-    VarNode(const std::string& _key, ValueType _data, VarNode* _parent = nullptr)
-        : key(_key), data(_data), parent(_parent)
-    {}
-
-    // 値の取得は std::get<T> を使う（型が違えば std::bad_variant_access を投げる）
-    template <class T>
-    T get() const
-    {
-        return std::get<T>(data);
-        // std::get_if を使って安全なポインタ取得を試みる
-        // return std::get_if<T>(data);
-    }
-    template <class T>
-    bool is_type() const
-    {
-        return std::holds_alternative<T>(data);
-    }
-    VarNode* addChild(const std::string& _key, ValueType _data)
-    {
-        children.push_back(std::make_unique<VarNode>(_key, _data, this));
-        return children.back().get();
-    }
-    // debug関数は std::visit を使うと大幅に簡潔化できる
-    static void debug(const VarNode* const _node, int indent = 0)
-    {
-        if (_node == nullptr) {
-            std::cerr << "node is nil." << std::endl;
-            return;
-        }
-        // インデント表示
-        std::cout << std::string(indent * 2, ' ');
-        std::cout << "key: " << _node->key << "\tdata: ";
-
-        // std::visit のラムダ式内で、全ての型を明示的に処理する
-        std::visit([](auto&& arg) {
-            using T = std::decay_t<decltype(arg)>;
-
-            if constexpr (std::is_same_v<T, std::monostate>) {
-                std::cout << "(null)";
-            } else if constexpr (std::is_same_v<T, bool>) {
-                std::cout << (arg ? "true" : "false");
-            } else if constexpr (std::is_same_v<T, int64_t> || 
-                                 std::is_same_v<T, uint64_t> ||
-                                 std::is_same_v<T, float> ||
-                                 std::is_same_v<T, double> ||
-                                 std::is_same_v<T, std::string>) {
-                // std::cout はこれらのプリミティブ型やstd::stringを安全に出力できる
-                std::cout << arg;
-            } else {
-                // 将来ValueTypeに新しい型（例えばカスタムオブジェクトやポインタ）が追加された場合
-                // コンパイルエラーにならずに、ここで処理を止めるか、汎用的な出力を行う
-                std::cout << "(Unknown/Unhandled Type)";
-            }
-        }, _node->data);
-        
-        std::cout << std::endl;
-
-        // 子要素を再帰的に呼び出す
-        for (const auto& child : _node->children) {
-            debug(child.get(), indent + 1);
-        }
-    }
-};  // VarNode
-
-template <typename T>
-std::unique_ptr<T> get_value_safely(const VarNode* const node)
-{
-    if (node == nullptr) {
-        // node 自体が nullptr の場合は runtime_error を投げる
-        throw std::runtime_error("VarNode* node is null.");
-    }
-    // std::get_if<T>(&node->data) が、VarNodeTypeFixer の役割を果たす
-    // - T 型が格納されていれば T* を返す
-    // - T 型でなければ nullptr を返す
-    if (const T* value_ptr = std::get_if<T>(&node->data)) {
-        // 値が見つかったので、unique_ptr でラップして返す
-        return std::make_unique<T>(*value_ptr);
-    } else {
-        // 型が一致しない場合は nullptr を返す
-        return nullptr;
-    }
-}
-
-template <typename T>
-std::optional<T> get_value_safely_optional(const VarNode* const node)
-{
-    if (node == nullptr) {
-        throw std::runtime_error("VarNode* node is null.");
-    }
-    if (const T* value_ptr = std::get_if<T>(&node->data)) {
-        return *value_ptr; // 値そのものを optional でラップして返す
-    } else {
-        return std::nullopt; // 値がないことを示す
-    }
-}
 
 
 class SqlBuilder final
@@ -345,9 +231,9 @@ public:
 };
 
 
-using VarNodeMapper = std::function<void(VarNode& root, const pqxx::row& row)>;
+using VarNodeMapper = std::function<void(tmp::VarNode& root, const pqxx::row& row)>;
 template <class ID>
-class VarNodeRepository : public tmp::Repository<ID, VarNode>
+class VarNodeRepository : public tmp::Repository<ID, tmp::VarNode>
 {
 private:
     pqxx::work* const tx;
@@ -373,19 +259,16 @@ public:
     )
     : tx{_tx}, tableName{_table}, idSeqName{_idseq}, mapper{std::move(_mapper)}, primaryKeyName{_primaryKeyName}
     {}
-    virtual ID insert(VarNode&& data) const override
+    virtual ID insert(tmp::VarNode&& data) const override
     {
         int status;
         print_debug("insert ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
         ID id = tx->query_value<ID>(SqlBuilder::nextvalSql(idSeqName));
         print_debug("nextval: ", id);
         // 悩ましい問題だが、id（プラマリキ）はリポジトリ内部で値が決定され、data 上の値を更新するものとする。
-        for(auto& child: data.children) {
-            if(child->key == primaryKeyName) {
-                child->data = id;
-                break;
-            }
-        }
+        auto pkeyNode = data.getChild(primaryKeyName);
+        if(pkeyNode) pkeyNode->data = id;
+        else throw std::runtime_error("primary key node is not found.");
         // DONE... 動的なSQL の発行が必要。
         std::string sql = SqlBuilder::insertSql(tableName, data);
         print_debug("sql: ", sql);
@@ -395,7 +278,7 @@ public:
         print_debug("affected rows: ", result.affected_rows());
         return id;
     }
-    virtual void update(const ID& id, VarNode&& data) const override
+    virtual void update(const ID& id, tmp::VarNode&& data) const override
     {
         int status;
         print_debug("update ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
@@ -405,12 +288,9 @@ public:
         SqlBuilder builder{generate_uid(), sql};
         builder.makePrepare(tx->conn());
         // id の値で data のプライマリキを先に更新する。その後、builder.makeParams(VarNode&&) を利用する。
-        for(auto& child: data.children) {
-            if(child->key == primaryKeyName) {
-                child->data = id;
-                break;
-            }
-        }
+        auto pkeyNode = data.getChild(primaryKeyName);
+        if(pkeyNode) pkeyNode->data = id;
+        else throw std::runtime_error("primary key node is not found.");
         pqxx::result result = tx->exec(builder.makePrepped(), builder.makeParams(std::move(data)));
         print_debug("affected rows: ", result.affected_rows());
     }
@@ -425,7 +305,7 @@ public:
         pqxx::result result = tx->exec(builder.makePrepped(), builder.makeParams(id));
         print_debug("affected rows: ", result.affected_rows());
     }
-    virtual std::optional<VarNode> findById(const ID& id) const override
+    virtual std::optional<tmp::VarNode> findById(const ID& id) const override
     {
         int status;
         print_debug("findById ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
@@ -455,7 +335,7 @@ public:
 int test_VarNodeRepository_Delete(uint64_t* id)
 {
     puts("------ test_VarNodeRepository_Delete");
-    using Data = tmp::postgres::r3::VarNode;
+    using Data = tmp::VarNode;
     try {
         pqxx::connection conn{"hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234"};
         pqxx::work tx(conn);
@@ -478,7 +358,7 @@ int test_VarNodeRepository_Delete(uint64_t* id)
 int test_VarNodeRepository_Update(uint64_t* id)
 {
     puts("------ test_VarNodeRepository_Update");
-    using Data = tmp::postgres::r3::VarNode;
+    using Data = tmp::VarNode;
     try {
         pqxx::connection conn{"hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234"};
         pqxx::work tx(conn);
@@ -522,7 +402,7 @@ int test_VarNodeRepository_Update(uint64_t* id)
 int test_VarNodeRepository_Find(uint64_t* id)
 {
     puts("------ test_VarNodeRepository_Find");
-    using Data = tmp::postgres::r3::VarNode;
+    using Data = tmp::VarNode;
     try {
         auto dataMapper = [](Data& root, const pqxx::row& row) -> void {
             // テーブルで、null を許可している場合は const char* を使わざるを得ない。
@@ -549,7 +429,7 @@ int test_VarNodeRepository_Find(uint64_t* id)
         conn.close();
         if(result) {
             // check...
-            tmp::postgres::r3::VarNode::debug(&(result.value()));
+            Data::debug(&(result.value()));
         } else {
             throw std::runtime_error("UnExpects Data.");
         }
@@ -563,7 +443,7 @@ int test_VarNodeRepository_Find(uint64_t* id)
 int test_VarNodeRepository_Insert(uint64_t* id)
 {
     puts("------ test_VarNodeRepository_Insert");
-    using Data = tmp::postgres::r3::VarNode;
+    using Data = tmp::VarNode;
     try {
         pqxx::connection conn{"hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234"};
         pqxx::work tx(conn);
