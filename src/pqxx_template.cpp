@@ -144,11 +144,12 @@ public:
         return pqxx::prepped{sqlName};
     }
     template <class... Args>
+    requires (!std::is_same_v<std::decay_t<std::tuple_element_t<0, std::tuple<Args...>>>, VarNode>)
     pqxx::params makeParams(Args&&... args) const
     {
         return pqxx::params{args...};
     }
-    pqxx::params makeParams(VarNode&& node) const
+    pqxx::params makeParams(const VarNode& node) const
     {
         pqxx::params params;
 		for (const auto& child : node.children) {
@@ -274,7 +275,8 @@ public:
         print_debug("sql: ", sql);
         SqlBuilder builder{generate_uid(), sql};
         builder.makePrepare(tx->conn());
-        pqxx::result result = tx->exec(builder.makePrepped(), builder.makeParams(std::move(data)));
+        pqxx::params params = builder.makeParams(data); // 一時オブジェクト
+        pqxx::result result = tx->exec(builder.makePrepped(), params);
         print_debug("affected rows: ", result.affected_rows());
         return id;
     }
@@ -291,7 +293,8 @@ public:
         auto pkeyNode = data.getChild(primaryKeyName);
         if(pkeyNode) pkeyNode->data = id;
         else throw std::runtime_error("primary key node is not found.");
-        pqxx::result result = tx->exec(builder.makePrepped(), builder.makeParams(std::move(data)));
+        pqxx::params params = builder.makeParams(data); // 一時オブジェクト
+        pqxx::result result = tx->exec(builder.makePrepped(), params);
         print_debug("affected rows: ", result.affected_rows());
     }
     virtual void remove(const ID& id) const override
