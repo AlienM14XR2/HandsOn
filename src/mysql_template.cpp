@@ -568,25 +568,25 @@ int test_GenericRepository()
     }
 }
 
-int main()
-{
-    puts("START main ===");
-    int ret = -1;
-    if(0) {
-        print_debug("Play and Result ...", ret = test_GenericRepository());
-        assert(ret == 0);
-    }
-    if(1) {
-        uint64_t id = 0ul;
-        print_debug("Play and Result ...", ret = test_VarNodeRepository_Insert(&id));
-        assert(ret == 0);
-        print_debug("Play and Result ...", ret = test_VarNodeRepository_FindById(&id));
-        assert(ret == 0);
-        print_debug("Play and Result ...", ret = test_VarNodeRepository_Update(&id));
-        assert(ret == 0);
-        print_debug("Play and Result ...", ret = test_VarNodeRepository_Remove(&id));
-        assert(ret == 0);
-    }
-    puts("=== main END");
-    return EXIT_SUCCESS;
-}
+// int main()
+// {
+//     puts("START main ===");
+//     int ret = -1;
+//     if(0) {
+//         print_debug("Play and Result ...", ret = test_GenericRepository());
+//         assert(ret == 0);
+//     }
+//     if(1) {
+//         uint64_t id = 0ul;
+//         print_debug("Play and Result ...", ret = test_VarNodeRepository_Insert(&id));
+//         assert(ret == 0);
+//         print_debug("Play and Result ...", ret = test_VarNodeRepository_FindById(&id));
+//         assert(ret == 0);
+//         print_debug("Play and Result ...", ret = test_VarNodeRepository_Update(&id));
+//         assert(ret == 0);
+//         print_debug("Play and Result ...", ret = test_VarNodeRepository_Remove(&id));
+//         assert(ret == 0);
+//     }
+//     puts("=== main END");
+//     return EXIT_SUCCESS;
+// }

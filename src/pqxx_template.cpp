@@ -485,23 +485,23 @@ int test_VarNodeRepository_Insert(uint64_t* id)
     }
 }
 
-int main()
-{
-    puts("START main ===");
-    // const int version_check = pqxx::internal::check_pqxx_version_7_10();
-    // print_debug("check_pqxx_version_7_10: ", version_check);
-    int ret = -1;
-    if(1) {
-        uint64_t id = 0;
-        print_debug("Play and Result ...", ret = test_VarNodeRepository_Insert(&id));
-        assert(ret == 0);
-        print_debug("Play and Result ...", ret = test_VarNodeRepository_Find(&id));
-        assert(ret == 0);
-        print_debug("Play and Result ...", ret = test_VarNodeRepository_Update(&id));
-        assert(ret == 0);
-        print_debug("Play and Result ...", ret = test_VarNodeRepository_Delete(&id));
-        assert(ret == 0);
-    }
-    puts("=== main END");
-    return EXIT_SUCCESS;
-}
+// int main()
+// {
+//     puts("START main ===");
+//     // const int version_check = pqxx::internal::check_pqxx_version_7_10();
+//     // print_debug("check_pqxx_version_7_10: ", version_check);
+//     int ret = -1;
+//     if(1) {
+//         uint64_t id = 0;
+//         print_debug("Play and Result ...", ret = test_VarNodeRepository_Insert(&id));
+//         assert(ret == 0);
+//         print_debug("Play and Result ...", ret = test_VarNodeRepository_Find(&id));
+//         assert(ret == 0);
+//         print_debug("Play and Result ...", ret = test_VarNodeRepository_Update(&id));
+//         assert(ret == 0);
+//         print_debug("Play and Result ...", ret = test_VarNodeRepository_Delete(&id));
+//         assert(ret == 0);
+//     }
+//     puts("=== main END");
+//     return EXIT_SUCCESS;
+// }
