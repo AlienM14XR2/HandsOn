@@ -35,50 +35,7 @@
 #include <pqxx/pqxx>
 #include <pqxx/version>
 
-template <class M, class D>
-void (*ptr_print_debug)(M, D) = [](const auto message, const auto debug) -> void
-{
-    std::cout << "DEBUG: " << message << '\t' << debug << std::endl;
-};
 
-template <class Error>
-concept ErrReasonable = requires(Error& e) {
-    e.what();
-};
-template <class Error>
-requires ErrReasonable<Error>
-void (*ptr_print_error)(Error) = [](const auto e) -> void
-{
-    std::cerr << "ERROR: " << e.what() << std::endl;
-};
-
-// ポインタ安全な出力のためのヘルパー関数オーバーロード
-void safe_print(const char* p)
-{
-    if (p == nullptr) {
-        std::cout << "(nullptr)";
-    } else {
-        std::cout << p;
-    }
-}
-// 他の型はそのまま出力する汎用テンプレート
-template <typename T>
-void safe_print(const T& element)
-{
-    std::cout << element;
-}
-template <class... Args>
-void print_debug(Args&&... args)
-{
-    std::cout << "Debug: ";
-    auto print_element = [](const auto& element) {
-        safe_print(element);
-        std::cout << '\t';
-    };
-    // C++17以降の pack expansion で要素を順に処理
-    (print_element(std::forward<Args>(args)), ...);
-    std::cout << std::endl;
-}
 
 /**
  * 乱数生成関数（C++）
@@ -353,7 +310,7 @@ int test_VarNodeRepository_Delete(uint64_t* id)
         conn.close();
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
-        ptr_print_error<decltype(e)&>(e);
+        tmp::ptr_print_error<decltype(e)&>(e);
         return EXIT_FAILURE;
     }
 }
@@ -397,7 +354,7 @@ int test_VarNodeRepository_Update(uint64_t* id)
         conn.close();
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
-        ptr_print_error<decltype(e)&>(e);
+        tmp::ptr_print_error<decltype(e)&>(e);
         return EXIT_FAILURE;
     }
 }
@@ -410,7 +367,7 @@ int test_VarNodeRepository_Find(uint64_t* id)
         auto dataMapper = [](Data& root, const pqxx::row& row) -> void {
             // テーブルで、null を許可している場合は const char* を使わざるを得ない。
             auto [id, companyId, email, password, name, roles] = row.as<uint64_t, std::string, std::string, std::string, std::string, const char*>();
-            print_debug(id, companyId, email, password, name, roles);
+            tmp::print_debug(id, companyId, email, password, name, roles);
             root.addChild("id", id);
             root.addChild("companyId", companyId);
             root.addChild("email", email);
@@ -438,7 +395,7 @@ int test_VarNodeRepository_Find(uint64_t* id)
         }
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
-        ptr_print_error<decltype(e)&>(e);
+        tmp::ptr_print_error<decltype(e)&>(e);
         return EXIT_FAILURE;
     }
 }
@@ -475,12 +432,12 @@ int test_VarNodeRepository_Insert(uint64_t* id)
         root.addChild("name", name);
 
         *id = repo->insert(std::move(root));
-        print_debug("id: ", *id);
+        tmp::print_debug("id: ", *id);
         tx.commit();
         conn.close();
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
-        ptr_print_error<decltype(e)&>(e);
+        tmp::ptr_print_error<decltype(e)&>(e);
         return EXIT_FAILURE;
     }
 }
@@ -489,17 +446,17 @@ int test_VarNodeRepository_Insert(uint64_t* id)
 // {
 //     puts("START main ===");
 //     // const int version_check = pqxx::internal::check_pqxx_version_7_10();
-//     // print_debug("check_pqxx_version_7_10: ", version_check);
+//     // tmp::print_debug("check_pqxx_version_7_10: ", version_check);
 //     int ret = -1;
 //     if(1) {
 //         uint64_t id = 0;
-//         print_debug("Play and Result ...", ret = test_VarNodeRepository_Insert(&id));
+//         tmp::print_debug("Play and Result ...", ret = test_VarNodeRepository_Insert(&id));
 //         assert(ret == 0);
-//         print_debug("Play and Result ...", ret = test_VarNodeRepository_Find(&id));
+//         tmp::print_debug("Play and Result ...", ret = test_VarNodeRepository_Find(&id));
 //         assert(ret == 0);
-//         print_debug("Play and Result ...", ret = test_VarNodeRepository_Update(&id));
+//         tmp::print_debug("Play and Result ...", ret = test_VarNodeRepository_Update(&id));
 //         assert(ret == 0);
-//         print_debug("Play and Result ...", ret = test_VarNodeRepository_Delete(&id));
+//         tmp::print_debug("Play and Result ...", ret = test_VarNodeRepository_Delete(&id));
 //         assert(ret == 0);
 //     }
 //     puts("=== main END");

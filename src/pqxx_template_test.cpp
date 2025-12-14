@@ -23,6 +23,7 @@ find /usr/local/lib -name 'libgtest.a' 2>/dev/null
  * 
  * e.g. compile
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror pqxx_template_test.cpp -o ../bin/pqxx_template_test_runner -I../inc -I/usr/local/include -L/usr/local/lib -lpqxx -lpq -lgtest -lgtest_main -lpthread
+ * g++ -O3 -DNEBUG -std=c++20 -pedantic-errors -Wall -Werror pqxx_template_test.cpp -o ../bin/pqxx_template_test_runner -I../inc -I/usr/local/include -L/usr/local/lib -lpqxx -lpq -lgtest -lgtest_main -lpthread
  */
 #include "gtest/gtest.h"
 #include <pqxx/pqxx>

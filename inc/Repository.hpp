@@ -6,6 +6,54 @@
 
 namespace tmp {
 
+template <class M, class D>
+void (*ptr_print_debug)(M, D) = [](const auto message, const auto debug) -> void
+{
+#ifdef DEBUG
+    std::cout << "DEBUG: " << message << '\t' << debug << std::endl;
+#endif
+};
+
+template <class Error>
+concept ErrReasonable = requires(Error& e) {
+    e.what();
+};
+template <class Error>
+requires ErrReasonable<Error>
+void (*ptr_print_error)(Error) = [](const auto e) -> void {
+    std::cerr << "ERROR: " << e.what() << std::endl;
+};
+
+// ポインタ安全な出力のためのヘルパー関数オーバーロード
+void safe_print(const char* p)
+{
+    if (p == nullptr) {
+        std::cout << "(nullptr)";
+    } else {
+        std::cout << p;
+    }
+}
+// 他の型はそのまま出力する汎用テンプレート
+template <typename T>
+void safe_print(const T& element)
+{
+    std::cout << element;
+}
+template <class... Args>
+void print_debug(Args&&... args)
+{
+#ifdef DEBUG
+    std::cout << "Debug: ";
+    auto print_element = [](const auto& element) {
+        safe_print(element);
+        std::cout << '\t';
+    };
+    // C++17以降の pack expansion で要素を順に処理
+    (print_element(std::forward<Args>(args)), ...);
+    std::cout << std::endl;
+#endif
+}
+
 template <class ID, class Data>
 class Repository {
 public:
@@ -73,6 +121,7 @@ struct VarNode
     // debug関数は std::visit を使うと大幅に簡潔化できる
     static void debug(const VarNode* const _node, int indent = 0)
     {
+#ifdef DEBUG
         if (_node == nullptr) {
             std::cerr << "node is nil." << std::endl;
             return;
@@ -109,6 +158,7 @@ struct VarNode
         for (const auto& child : _node->children) {
             debug(child.get(), indent + 1);
         }
+#endif  // static void debug()
     }
 };  // VarNode
 template <typename T>

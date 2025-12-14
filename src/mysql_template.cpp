@@ -39,50 +39,6 @@
 #include <mysql/jdbc.h>
 #include <mysqlx/xdevapi.h>
 
-template <class M, class D>
-void (*ptr_print_debug)(M, D) = [](const auto message, const auto debug) -> void
-{
-    std::cout << "DEBUG: " << message << '\t' << debug << std::endl;
-};
-
-template <class Error>
-concept ErrReasonable = requires(Error& e) {
-    e.what();
-};
-template <class Error>
-requires ErrReasonable<Error>
-void (*ptr_print_error)(Error) = [](const auto e) -> void {
-    std::cerr << "ERROR: " << e.what() << std::endl;
-};
-
-// ポインタ安全な出力のためのヘルパー関数オーバーロード
-void safe_print(const char* p)
-{
-    if (p == nullptr) {
-        std::cout << "(nullptr)";
-    } else {
-        std::cout << p;
-    }
-}
-// 他の型はそのまま出力する汎用テンプレート
-template <typename T>
-void safe_print(const T& element)
-{
-    std::cout << element;
-}
-template <class... Args>
-void print_debug(Args&&... args)
-{
-    std::cout << "Debug: ";
-    auto print_element = [](const auto& element) {
-        safe_print(element);
-        std::cout << '\t';
-    };
-    // C++17以降の pack expansion で要素を順に処理
-    (print_element(std::forward<Args>(args)), ...);
-    std::cout << std::endl;
-}
-
 
 
 namespace tmp::mysql::r2
@@ -299,20 +255,6 @@ public:
         std::vector<std::string> cols;
         for(size_t i=0; i < data.children.size(); i++) {
             cols.push_back(data.children[i]->key);
-            // std::optional<std::string> str = get_value_safely_optional<std::string>(data.children[i].get());
-            // if(str) print_debug("key: ", data.children[i]->key, "data: ", str.value());
-            // std::optional<int> integer = get_value_safely_optional<int>(data.children[i].get());
-            // if(integer) print_debug("key: ", data.children[i]->key, "data: ", integer.value());
-            // std::optional<long> l = get_value_safely_optional<long>(data.children[i].get());
-            // if(l) print_debug("key: ", data.children[i]->key, "data: ", l.value());
-            // std::optional<unsigned int> ui = get_value_safely_optional<unsigned int>(data.children[i].get());
-            // if(ui) print_debug("key: ", data.children[i]->key, "data: ", ui.value());
-            // std::optional<uint64_t> ui64 = get_value_safely_optional<uint64_t>(data.children[i].get());
-            // if(ui64) print_debug("key: ", data.children[i]->key, "data: ", ui64.value());
-            // std::optional<double> d = get_value_safely_optional<double>(data.children[i].get());
-            // if(d) print_debug("key: ", data.children[i]->key, "data: ", d.value());
-            // std::optional<bool> b = get_value_safely_optional<bool>(data.children[i].get());
-            // if(b) print_debug("key: ", data.children[i]->key, "data: ", b.value());
         }
         std::vector<mysqlx::Value> vals = convertVarNodeToSqlValues(data);
         mysqlx::Schema db{session->getSchema(dbName)};
@@ -320,7 +262,8 @@ public:
         mysqlx::Result res = table.insert(cols)
                 .values(vals)
                 .execute();
-        std::cout << "affected items count: " << res.getAffectedItemsCount() << std::endl; // 上記で Insert されたレコード件数
+        // 上記で Insert されたレコード件数
+        print_debug("affected items count: ", res.getAffectedItemsCount());
         return res.getAutoIncrementValue();
     }
 
@@ -388,7 +331,7 @@ public:
         mysqlx::Result res = tableUpdate.where(condition)
                                         .bind("id", id)
                                         .execute();
-        std::cout << "affected items count: " << res.getAffectedItemsCount() << std::endl;
+        print_debug("affected items count: ", res.getAffectedItemsCount());
     }
     virtual void remove(const ID& id) const override
     {
@@ -401,7 +344,7 @@ public:
                             .where(condition)
                             .bind("id", id)
                             .execute();
-        std::cout << "affected items count: " << res.getAffectedItemsCount() << std::endl;
+        print_debug("affected items count: ", res.getAffectedItemsCount());
 	}
 };
 
@@ -428,7 +371,7 @@ int test_VarNodeRepository_Remove(uint64_t* id)
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         sess.rollback();
-        ptr_print_error<decltype(e)&>(e);
+        tmp::ptr_print_error<decltype(e)&>(e);
         return EXIT_FAILURE;
     }
 }
@@ -470,7 +413,7 @@ int test_VarNodeRepository_Update(uint64_t* id)
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         sess.rollback();
-        ptr_print_error<decltype(e)&>(e);
+        tmp::ptr_print_error<decltype(e)&>(e);
         return EXIT_FAILURE;
     }
 }
@@ -497,7 +440,7 @@ int test_VarNodeRepository_FindById(uint64_t* id)
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         sess.rollback();
-        ptr_print_error<decltype(e)&>(e);
+        tmp::ptr_print_error<decltype(e)&>(e);
         return EXIT_FAILURE;
     }
 }
@@ -534,13 +477,13 @@ int test_VarNodeRepository_Insert(uint64_t* id)
         *id = irepo->insert(std::move(root));
         sess.commit();
         std::clock_t end = clock();
-        print_debug("id: ", *id);
+        tmp::print_debug("id: ", *id);
         std::cout << "passed " << (double)(end-start_1)/CLOCKS_PER_SEC << " sec." << std::endl;
         std::cout << "passed " << (double)(end-start_2)/CLOCKS_PER_SEC << " sec." << std::endl;
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         sess.rollback();
-        ptr_print_error<decltype(e)&>(e);
+        tmp::ptr_print_error<decltype(e)&>(e);
         return EXIT_FAILURE;
     }
 }
@@ -559,11 +502,11 @@ int test_GenericRepository()
         sess.startTransaction();
         uint64_t id = irepo->insert(std::move(data));
         sess.commit();
-        print_debug("id: ", id);
+        tmp::print_debug("id: ", id);
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         sess.rollback();
-        ptr_print_error<decltype(e)&>(e);
+        tmp::ptr_print_error<decltype(e)&>(e);
         return EXIT_FAILURE;
     }
 }
@@ -573,18 +516,18 @@ int test_GenericRepository()
 //     puts("START main ===");
 //     int ret = -1;
 //     if(0) {
-//         print_debug("Play and Result ...", ret = test_GenericRepository());
+//         tmp::print_debug("Play and Result ...", ret = test_GenericRepository());
 //         assert(ret == 0);
 //     }
 //     if(1) {
 //         uint64_t id = 0ul;
-//         print_debug("Play and Result ...", ret = test_VarNodeRepository_Insert(&id));
+//         tmp::print_debug("Play and Result ...", ret = test_VarNodeRepository_Insert(&id));
 //         assert(ret == 0);
-//         print_debug("Play and Result ...", ret = test_VarNodeRepository_FindById(&id));
+//         tmp::print_debug("Play and Result ...", ret = test_VarNodeRepository_FindById(&id));
 //         assert(ret == 0);
-//         print_debug("Play and Result ...", ret = test_VarNodeRepository_Update(&id));
+//         tmp::print_debug("Play and Result ...", ret = test_VarNodeRepository_Update(&id));
 //         assert(ret == 0);
-//         print_debug("Play and Result ...", ret = test_VarNodeRepository_Remove(&id));
+//         tmp::print_debug("Play and Result ...", ret = test_VarNodeRepository_Remove(&id));
 //         assert(ret == 0);
 //     }
 //     puts("=== main END");
