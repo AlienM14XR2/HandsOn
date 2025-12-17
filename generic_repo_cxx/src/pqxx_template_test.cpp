@@ -99,6 +99,7 @@ TEST_F(VarNodeRepositoryTest, InsertAndFindById)
     tmp::VarNode data_to_insert = create_test_var_node(
         "B3_TEST", "test@example.com", "testpass", "Test User"
     );
+    tmp::debug_print_varnode(&data_to_insert);
 
     // 3. 挿入実行
     unsigned long new_id = repo.insert(std::move(data_to_insert));

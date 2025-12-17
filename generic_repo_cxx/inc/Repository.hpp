@@ -154,16 +154,33 @@ void debug_print_varnode(const VarNode* const _node, std::ostream& os = std::cou
     os << std::string(indent * 2, ' ');
     os << "key: " << _node->key << "\tdata: ";
 
-    // std::visit を使った実装はそのまま利用
-    std::visit([&os](auto&& arg) { // os をキャプチャ
-        // ... (std::visit の中身は現状維持) ...
+    // std::visit のラムダ式内で、全ての型を明示的に処理する
+    std::visit([&](auto&& arg) {
+        using T = std::decay_t<decltype(arg)>;
+        if constexpr (std::is_same_v<T, std::monostate>) {
+            os << "(null)";
+        // この分岐は冗長に思うかもしれないが、現状はキープする
+        } else if constexpr (std::is_same_v<T, bool>) {
+            os << (arg ? "true" : "false");
+        // この分岐は冗長に思うかもしれないが、現状はキープする
+        } else if constexpr (std::is_same_v<T, int64_t> || 
+                            std::is_same_v<T, uint64_t> ||
+                            std::is_same_v<T, float> ||
+                            std::is_same_v<T, double> ||
+                            std::is_same_v<T, std::string>) {
+            // std::cout はこれらのプリミティブ型やstd::stringを安全に出力できる
+            os << arg;
+        } else {
+            // 将来ValueTypeに新しい型（例えばカスタムオブジェクトやポインタ）が追加された場合
+            // コンパイルエラーにならずに、ここで処理を止めるか、汎用的な出力を行う
+            os << "(Unknown/Unhandled Type)";
+        }
     }, _node->data);
-    
     os << std::endl;
 
     // 子要素を再帰的に呼び出す
     for (const auto& child : _node->children) {
-        debug_print_varnode(child.get(), os, indent + 1); // os を渡す
+        debug_print_varnode(child.get(), os, indent + 1);
     }
 }
 
