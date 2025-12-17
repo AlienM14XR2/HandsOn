@@ -1,0 +1,7 @@
+# .gitignore の内容例
+/build/
+/build_debug/
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
