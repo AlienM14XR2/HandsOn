@@ -81,6 +81,80 @@ TEST_F(VarNodeRepositoryTest, InsertAndFindByIdIntegration) {
         FAIL() << "Unexpected exception during Insert-Find integration: " << e.what();
     }
 }
+
+/**
+ * 命題：test_find_r1における検索結果の堅牢性検証
+ * 
+ * 
+1. 前提：
+   - 関数シグネチャ int test_find_r1(std::string* sid) を固定。
+   - JSON形式のデータ構造（MongoDB document）を利用。
+
+2. スキーマ構成：
+   - 必須：_id, company_id, email, password, name
+   - Nullable：roles
+
+3. 検証パターン：
+   - 未定義Key：スキーマ外（例: tel, address等）へのアクセス時の安全性。
+   - Nullデータ：Nullableである roles フィールドが欠落・Null時の処理。
+
+目的：Keyの欠落やNullが混在するJSON構造に対し、tmp::VarNodeによる操作の堅牢性を確立する。
+ * 
+ * 
+ * @brief 命題：存在しないKeyおよびNullデータ（欠落）に対する堅牢性検証テスト
+ */
+TEST_F(VarNodeRepositoryTest, RobustnessAgainstMissingAndNullKeys) {
+    using Data = tmp::VarNode;
+    using Interface = tmp::Repository<std::string, Data>;
+    using Subclazz = tmp::mongo::r1::VarNodeRepository;
+
+    mongocxx::uri uri(uri_str);
+    mongocxx::client client(uri);
+    std::unique_ptr<Interface> repo = std::make_unique<Subclazz>(&client, db_name, coll_name);
+
+    // 検証用データ準備：roles（Nullable）をあえて含めない構成
+    Data root{"primaryKey", std::string("id")};
+    root.addChild("company_id", std::string("C6_9999"));
+    root.addChild("name",       std::string("Robustness Test User"));
+    // roles は addChild しない（MongoDB上でフィールド欠落の状態を作る）
+
+    try {
+        // 1. データ挿入
+        std::string inserted_id = repo->insert(std::move(root));
+        ASSERT_FALSE(inserted_id.empty());
+
+        // 2. データ取得
+        std::optional<Data> ret = repo->findById(inserted_id);
+        ASSERT_TRUE(ret.has_value());
+        Data& node = ret.value();
+
+        // --- 検証パターンA：未定義Key（テーブル定義外） ---
+        // 仕様：getChild は未定義Keyに対し nullptr を返す
+        const Data* unknown_node = node.getChild("non_existent_field");
+        EXPECT_EQ(unknown_node, nullptr) << "Unknown key should return nullptr";
+
+        // --- 検証パターンB：Null/欠落フィールド (roles) ---
+        // 状況：挿入時に含めなかった Key へのアクセス
+        const Data* roles_node = node.getChild("roles");
+        
+        // Repositoryの実装が「存在しないフィールドを monostate として返す」か 
+        // 「nullptr を返す」かのいずれかであることを検証
+        if (roles_node == nullptr) {
+            // フィールド欠落を nullptr で表現する設計の場合
+            SUCCEED() << "Missing field 'roles' returned nullptr as expected.";
+        } else {
+            // フィールド欠落を monostate（空の値）として表現する設計の場合
+            // 仕様：get<std::string> は monostate に対して std::bad_variant_access を投げる
+            EXPECT_TRUE(roles_node->is_type<std::monostate>());
+            EXPECT_THROW({
+                roles_node->get<std::string>();
+            }, std::bad_variant_access);
+        }
+
+    } catch (const std::exception& e) {
+        FAIL() << "Test failed due to unexpected exception: " << e.what();
+    }
+}
 /**
  * @brief Insert -> Find -> Update -> Find の一連のライフサイクルと整合性を検証する
  */

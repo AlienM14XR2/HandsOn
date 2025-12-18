@@ -104,18 +104,6 @@
 using bsoncxx::builder::basic::kvp;
 using bsoncxx::builder::basic::make_document;
 
-template <class... Args>
-void print_debug_v3(Args&&... args)
-{
-    std::cout << "Debug v3: ";
-    auto print_element = [](const auto& element) {
-        std::cout << element << '\t';
-    };
-    // C++17以降の pack expansion で要素を順に処理
-    (print_element(std::forward<Args>(args)), ...);
-    std::cout << std::endl;
-}
-
 int test_find()
 {
     puts("------ test_find");
