@@ -1,98 +1,68 @@
-#ifndef _OBJECTPOOL_H_
-#define _OBJECTPOOL_H_
+#ifndef OBJECT_POOL_H_
+#define OBJECT_POOL_H_
 
 #include <queue>
 #include <memory>
 #include <mutex>
-#include <stdexcept> // std::runtime_error を使用
+#include <string>
+#include <iostream>
+#include <stdexcept>
+#include <functional>
 
-template <class T, class SmartPointer = std::unique_ptr<T>>
-class ObjectPool final {
+template <class T>
+class ObjectPool final : public std::enable_shared_from_this<ObjectPool<T>> {
+private:
+    // 1. コンストラクタを private に設定
+    struct PrivateTag {}; 
 public:
-    // --- コネクションガードクラスの定義 (RAII) ---
-    class ConnectionGuard {
-    private:
-        friend class ObjectPool;
-        SmartPointer ptr;
-        ObjectPool* pool;
+    // コンストラクタを PrivateTag 経由にすることで、外部からの直接呼び出しを禁止
+    ObjectPool(PrivateTag, std::string _credit) : credit(std::move(_credit)) {}
 
-        // プールからのみ生成可能
-        ConnectionGuard(SmartPointer&& p, ObjectPool* parent_pool)
-            : ptr(std::move(p)), pool(parent_pool) {}
+    // 2. static ファクトリ関数によるインスタンス生成の強制
+    // これにより、常に shared_ptr で管理されたインスタンスが生成される
+    static std::shared_ptr<ObjectPool<T>> create(std::string _credit = "none.") {
+        return std::make_shared<ObjectPool<T>>(PrivateTag{}, std::move(_credit));
+    }
 
-    public:
-        // ムーブコンストラクタとムーブ代入演算子を定義 (コピーは禁止)
-        ConnectionGuard(ConnectionGuard&& other) noexcept
-            : ptr(std::move(other.ptr)), pool(other.pool) {
-            other.pool = nullptr; // 所有権を移動
-        }
-        ConnectionGuard& operator=(ConnectionGuard&& other) noexcept {
-            if (this != &other) {
-                // 現在のコネクションをプールに返却
-                if (pool) { pool->push(std::move(ptr)); }
-                ptr = std::move(other.ptr);
-                pool = other.pool;
-                other.pool = nullptr;
-            }
-            return *this;
-        }
+    using Ptr = std::unique_ptr<T, std::function<void(T*)>>;
 
-        // デストラクタで自動的にプールに返却する
-        ~ConnectionGuard() {
-            if (pool && ptr) {
-                pool->push(std::move(ptr));
-            }
-        }
-        
-        // オブジェクトへのアクセスを提供
-        T* get() const { return ptr.get(); }
-        T* operator->() const { return ptr.operator->(); }
-        // 明示的な型変換を禁止し、get() か operator->() を強制する
-        // operator T*() const { return ptr.get(); } 
-    };
-    // ---------------------------------------------
-
-
-    ObjectPool() : credit(std::move("none.")) {}
-    ObjectPool(const std::string& _credit) : credit(std::move(_credit)) {}
     ~ObjectPool() {
-        // unique_ptr が自動的にメモリを管理するため、手動解放コードは不要
-        std::string message(R"(...... Done ObjectPool Destructor credit is )");
-        message.append(credit);
-        puts(message.c_str());
+        std::cout << "...... Done ObjectPool Destructor credit is " << credit << std::endl;
     }
 
-    bool empty() const { // const を追加してステートレス性を強調
+    void push(std::unique_ptr<T> pt) {
+        if (!pt) return;
         std::lock_guard<std::mutex> guard(m);
-        return q.empty();
+        q.push(std::move(pt));
     }
 
-    // SmartPointer をプールに戻す
-    void push(SmartPointer&& pt) const {
+    Ptr pop() {
         std::lock_guard<std::mutex> guard(m);
-        q.push(std::forward<SmartPointer>(pt));
-    }
-
-    // プールからオブジェクトを取得し、ConnectionGuard でラップして返す
-    ConnectionGuard pop() const {
-        std::lock_guard<std::mutex> guard(m);
-        if(q.empty()) {
+        if (q.empty()) {
             throw std::runtime_error("No objects available in the pool.");
         }
-        // std::move を修正箇所に追加
-        SmartPointer ret = std::move(q.front());
+
+        std::unique_ptr<T> raw_ptr = std::move(q.front());
         q.pop();
-        
-        // ガードオブジェクトを構築して所有権を移譲
-        return ConnectionGuard(std::move(ret), const_cast<ObjectPool*>(this));
+
+        // 3. shared_from_this を安全に実行可能
+        std::weak_ptr<ObjectPool<T>> weak_pool = this->shared_from_this();
+
+        return Ptr(raw_ptr.release(), [weak_pool](T* p) {
+            if (auto pool = weak_pool.lock()) {
+                pool->push(std::unique_ptr<T>(p));
+            } else {
+                delete p;
+            }
+        });
     }
 
 private:
     const std::string credit;
     mutable std::mutex m;
-    mutable std::queue<SmartPointer> q;
+    std::queue<std::unique_ptr<T>> q;
 
-    // コピー禁止
+    // コピー・ムーブ禁止
     ObjectPool(const ObjectPool&) = delete;
     ObjectPool& operator=(const ObjectPool&) = delete;
 };

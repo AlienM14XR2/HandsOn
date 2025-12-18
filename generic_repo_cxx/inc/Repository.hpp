@@ -1,5 +1,5 @@
-#ifndef _REPOSITORY_H_
-#define _REPOSITORY_H_
+#ifndef REPOSITORY_H_
+#define REPOSITORY_H_
 
 #include <optional>
 #include <variant>
