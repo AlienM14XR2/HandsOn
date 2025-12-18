@@ -1,6 +1,34 @@
 /**
  * pqxx_template.cpp
  * 
+ * e.g. 環境構築メモ
+ * libpqxx のビルド
+ * ```
+    sudo apt install libpq-dev 
+
+    git clone -b master --recursive https://github.com/jtv/libpqxx.git
+    cd ./libpqxx
+    ./configure --disable-shared --with-postgres-include
+    make
+    sudo make install
+    pg_config --libdir
+    pkg-config --cflags --libs libpqxx
+
+    -I/usr/local/include -I/usr/include/postgresql -L/usr/local/lib -lpqxx
+ * ```
+ * ```
+DROP TABLE IF EXISTS contractor;
+CREATE TABLE contractor (
+    id              SERIAL          PRIMARY KEY,
+    company_id      VARCHAR(100)    NOT NULL,
+    email           VARCHAR(100)    NOT NULL,
+    password        VARCHAR(255)    NOT NULL,
+    name            VARCHAR(100)    NOT NULL,
+    roles           VARCHAR(100)
+);
+ALTER TABLE contractor ADD CONSTRAINT email_uk unique (email);
+ * ```
+ * 
  * @see builder_template.cpp
  * 実現したいことは、mysql_template.cpp と同じで、VarNode を利用した。汎用リポジトリの実装
  * である。純粋仮想関数を持つインタフェースのクラスがひとつ、そのサブクラスもひとつ。エン

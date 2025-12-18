@@ -19,6 +19,65 @@
  * 私の知識・技術不足と汎用クラスを用いた処理が複雑化しないかということ。
  * 似通ったリポジトリは減らせるが、エンティティは無くせない。
  * 
+ * e.g. 環境構築メモ
+ * MySQL 処理再び、今回はDocker コンテナ上のMySQL を利用する。
+ * Docker Engine のインストール。
+ * ```
+ * sudo apt-get update
+ * sudo apt-get install docker-ce docker-ce-cli containerd.io docker-compose-plugin
+ * ```
+ * 
+ * Docker にMySQL をインストールする。
+ * ```
+ * docker pull mysql:8.0.44-debian
+ * docker run --name mysql -e MYSQL_ROOT_PASSWORD=root1234 \
+ * -p 3306:3306 -p 33060:33060 \
+ * -v $(pwd)/mysql-data:/var/lib/mysql \
+ * -d mysql:8.0.44-debian
+ * 
+ * docker exec -it mysql bash
+ * mysql -u root -p
+ * ```
+ * 
+ * データベースとテーブルの事前準備
+ * ```
+ * CREATE DATABASE IF NOT EXISTS test;
+ * 
+ * DROP TABLE IF EXISTS contractor;
+ * CREATE TABLE contractor (
+ *  id              SERIAL          PRIMARY KEY,
+ *  company_id      VARCHAR(100)    NOT NULL,
+ *  email           VARCHAR(100)    NOT NULL,
+ *  password        VARCHAR(255)    NOT NULL,
+ *  name            VARCHAR(100)    NOT NULL,
+ *  roles           VARCHAR(100));
+ * ALTER TABLE contractor ADD CONSTRAINT email_uk unique (email);
+ * 
+ * INSERT INTO contractor(company_id, email, password, name, roles)
+ * VALUES
+ * ('A1_1000', 'admin@example.com', '$2a$10$Ff.Tr2q.fBciJKiA1b4wAOwNpjr9RypX3DHeQwLQQg0GMxGrl4FcO', 'admin', 'ROLE_ADMIN'),
+ * ('A1_1000', 'student@example.com', '$2a$10$fzJDR7BSMQnRg9Odg/JDzemQdLc6g2a7lR/ccHoMQEoxpxhs6dT0m', 'student', 'ROLE_USER'); 
+ * 
+ * // MySQL のTx が有効であることを確認する
+ * use information_schema
+ * select table_schema, table_name, engine from tables where table_name = 'contractor';
+ * +--------------+------------+--------+
+ * | TABLE_SCHEMA | TABLE_NAME | ENGINE |
+ * +--------------+------------+--------+
+ * | test         | contractor | InnoDB |
+ * +--------------+------------+--------+
+ * ```
+ * 
+ * MySQL C++ Connector について
+ * ```
+ * sudo apt update
+ * # MySQL Connector/C++ の開発パッケージをインストールします
+ * sudo apt install libmysqlcppconn-dev
+ * # インストールライブラリの所在確認
+ * dpkg -L libmysqlcppconn10
+ * dpkg -L libmysqlcppconn-dev
+ * ```
+ * 
  * e.g. compile
  * g++ -O3 -std=c++20 -DDEBUG -pedantic-errors -Wall -Wextra -Werror -I../inc/ -I/usr/include/mysql-cppconn/ -L/usr/lib/x86_64-linux-gnu/ mysql_template.cpp -lmysqlcppconn -lmysqlcppconnx -o ../bin/mysql_template
  */
