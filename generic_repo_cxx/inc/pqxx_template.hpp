@@ -41,6 +41,9 @@ ALTER TABLE contractor ADD CONSTRAINT email_uk unique (email);
  * e.g. compile
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Wextra -Werror -I../inc -I/usr/local/include -I/usr/include/postgresql -L/usr/local/lib pqxx_template.cpp -lpqxx -lpq -o ../bin/pqxx_template
  */
+#ifndef PQXX_TEMPLATE_H_
+#define PQXX_TEMPLATE_H_
+
 #include <iostream>
 #include <memory>
 #include <vector>
@@ -471,23 +474,4 @@ int test_VarNodeRepository_Insert(uint64_t* id)
     }
 }
 
-// int main()
-// {
-//     puts("START main ===");
-//     // const int version_check = pqxx::internal::check_pqxx_version_7_10();
-//     // tmp::print_debug("check_pqxx_version_7_10: ", version_check);
-//     int ret = -1;
-//     if(1) {
-//         uint64_t id = 0;
-//         tmp::print_debug("Play and Result ...", ret = test_VarNodeRepository_Insert(&id));
-//         assert(ret == 0);
-//         tmp::print_debug("Play and Result ...", ret = test_VarNodeRepository_Find(&id));
-//         assert(ret == 0);
-//         tmp::print_debug("Play and Result ...", ret = test_VarNodeRepository_Update(&id));
-//         assert(ret == 0);
-//         tmp::print_debug("Play and Result ...", ret = test_VarNodeRepository_Delete(&id));
-//         assert(ret == 0);
-//     }
-//     puts("=== main END");
-//     return EXIT_SUCCESS;
-// }
+#endif

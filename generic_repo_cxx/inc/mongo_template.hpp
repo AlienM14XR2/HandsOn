@@ -82,6 +82,9 @@
  * 実験、サンプリングでは以下を推奨（-Wextra があると簡単に関数内をすべてコメントとかできないから。
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror -I../inc -I/usr/local/include/bson-2.1.2/ mongodb_quickstart.cpp $(pkg-config --cflags --libs libmongocxx) -lbson2 -o ../bin/mongodb_quickstart
  */
+#ifndef MONGO_TEMPLATE_H_
+#define MONGO_TEMPLATE_H_
+
 #include <iostream>
 #include <cstdint>
 #include <memory>
@@ -634,48 +637,4 @@ private:
 // }
 
 
-// int main() {
-//     puts("START main ===");
-//     int ret = -1;
-//     std::clock_t start_1 = clock();
-//     mongocxx::instance instance;
-//     std::clock_t end = clock();
-//     std::cout << "passed " << (double)(end-start_1)/CLOCKS_PER_SEC << " sec." << std::endl;
-//     if(0) {
-//         printf("Play and Result ... %d\n", ret = test_find());
-//         assert(ret == 0);
-//     }
-//     if(0) {
-//         printf("Play and Result ... %d\n", ret = test_insert_one());
-//         assert(ret == 0);
-//         printf("Play and Result ... %d\n", ret = test_update_one());
-//         assert(ret == 0);
-//         printf("Play and Result ... %d\n", ret = test_delete_one());
-//         assert(ret == 0);
-//     }
-//     if(0) {
-//         std::string sid{""};
-//         printf("Play and Result ... %d\n", ret = test_insert_one_v2(&sid));
-//         assert(ret == 0);
-//         printf("Play and Result ... %d\n", ret = test_update_one_v2(&sid));
-//         assert(ret == 0);
-//         printf("Play and Result ... %d\n", ret = test_find_v2(&sid));
-//         assert(ret == 0);
-//         printf("Play and Result ... %d\n", ret = test_delete_one_v2(&sid));
-//         assert(ret == 0);
-//     }
-//     if(1) {
-//         std::string sid{""};
-//         printf("Play and Result ... %d\n", ret = test_insert_one_r1(&sid));
-//         assert(ret == 0);
-//         printf("Play and Result ... %d\n", ret = test_update_one_r1(&sid));
-//         assert(ret == 0);
-//         // TODO ユニットテストでも構わないから、存在しないKey（カラム）を含めた検索はやろうね。
-//         printf("Play and Result ... %d\n", ret = test_find_r1(&sid));
-//         assert(ret == 0);
-//         printf("Play and Result ... %d\n", ret = test_delete_one_r1(&sid));
-//         assert(ret == 0);
-//     }
-//     puts("=== main END");
-//     return EXIT_SUCCESS;
-// }
+#endif

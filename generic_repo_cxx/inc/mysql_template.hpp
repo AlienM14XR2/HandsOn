@@ -81,6 +81,9 @@
  * e.g. compile
  * g++ -O3 -std=c++20 -DDEBUG -pedantic-errors -Wall -Wextra -Werror -I../inc/ -I/usr/include/mysql-cppconn/ -L/usr/lib/x86_64-linux-gnu/ mysql_template.cpp -lmysqlcppconn -lmysqlcppconnx -o ../bin/mysql_template
  */
+#ifndef MYSQL_TEMPLATE_H_
+#define MYSQL_TEMPLATE_H_
+
 #include <iostream>
 #include <memory>
 #include <vector>
@@ -575,25 +578,4 @@ public:
 //     }
 // }
 
-// int main()
-// {
-//     puts("START main ===");
-//     int ret = -1;
-//     if(0) {
-//         tmp::print_debug("Play and Result ...", ret = test_GenericRepository());
-//         assert(ret == 0);
-//     }
-//     if(1) {
-//         uint64_t id = 0ul;
-//         tmp::print_debug("Play and Result ...", ret = test_VarNodeRepository_Insert(&id));
-//         assert(ret == 0);
-//         tmp::print_debug("Play and Result ...", ret = test_VarNodeRepository_FindById(&id));
-//         assert(ret == 0);
-//         tmp::print_debug("Play and Result ...", ret = test_VarNodeRepository_Update(&id));
-//         assert(ret == 0);
-//         tmp::print_debug("Play and Result ...", ret = test_VarNodeRepository_Remove(&id));
-//         assert(ret == 0);
-//     }
-//     puts("=== main END");
-//     return EXIT_SUCCESS;
-// }
+#endif
