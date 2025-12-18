@@ -415,7 +415,7 @@ public:
 	}
 };  // VarNodeRepository
 
-};   // namespace tmp::mysql::r3
+}   // namespace tmp::mysql::r3
 
 
 // int test_VarNodeRepository_Remove(uint64_t* id)
