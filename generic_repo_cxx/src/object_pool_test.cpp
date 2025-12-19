@@ -7,6 +7,11 @@ struct Dummy {
     explicit Dummy(int i) : id(i) {}
 };
 
+/**
+ * 特記事項
+ * ObjectPool のプールを実現しているメンバ変数は std::queue<std::unique_ptr<T>>
+ * 
+ */
 class ObjectPoolTest : public ::testing::Test {
 protected:
     // ヘルパー：初期状態で3つオブジェクトを入れたプールを作成
@@ -26,7 +31,7 @@ TEST_F(ObjectPoolTest, BasicPushPopCycle) {
     {
         auto obj = pool->pop();
         ASSERT_NE(obj, nullptr);
-        EXPECT_EQ(obj->id, 1);  // fast-in-fast-out を理解、そのため 1 と判定している。
+        EXPECT_EQ(obj->id, 1);  // first-in-first-out を理解、そのため 1 と判定している。
         // この時点でプール内は 2, 3
     } 
     // スコープを抜けて obj がプールに戻る
