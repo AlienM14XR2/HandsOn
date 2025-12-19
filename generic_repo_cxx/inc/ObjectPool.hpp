@@ -33,6 +33,8 @@ public:
     void push(std::unique_ptr<T> pt) {
         if (!pt) return;
         std::lock_guard<std::mutex> guard(m);
+        int status;
+        tmp::print_debug("push ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
         q.push(std::move(pt));
     }
 
