@@ -39,7 +39,7 @@ public:
     Ptr pop() {
         std::lock_guard<std::mutex> guard(m);
         if (q.empty()) {
-            throw std::runtime_error("No objects available in the pool.");
+            return nullptr;
         }
 
         std::unique_ptr<T> raw_ptr = std::move(q.front());

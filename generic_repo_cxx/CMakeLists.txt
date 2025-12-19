@@ -80,3 +80,16 @@ target_link_libraries(mongo_template_test_runner PRIVATE
 )
 target_compile_options(mongo_template_test_runner PRIVATE ${COMMON_COMPILE_OPTIONS})
 target_compile_definitions(mongo_template_test_runner PRIVATE ${COMMON_COMPILE_DEFINITIONS})
+
+
+# 4. ObjectPool 単体テストランナー (今回追加)
+add_executable(object_pool_test_runner src/object_pool_test.cpp)
+target_include_directories(object_pool_test_runner PRIVATE 
+    inc 
+    ${GTEST_INCLUDE_DIRS}
+)
+target_link_libraries(object_pool_test_runner PRIVATE 
+    GTest::gtest_main 
+)
+target_compile_options(object_pool_test_runner PRIVATE ${COMMON_COMPILE_OPTIONS})
+target_compile_definitions(object_pool_test_runner PRIVATE ${COMMON_COMPILE_DEFINITIONS})
