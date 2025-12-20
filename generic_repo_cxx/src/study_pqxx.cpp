@@ -78,15 +78,11 @@
 //     PostgresTransaction& operator=(const PostgresTransaction&) = delete;
 // };
 
-// サービス基底クラス（またはインターフェース）
-class ServiceExecutor {
-public:
-    virtual ~ServiceExecutor() = default;
-    virtual void execute() = 0;
-};
-
+// サービス層のサンプル
+// サンプルでは一つのテーブルで表現しているが、複数の異なるテーブルに
+// 対応したリポジトリが扱える。
 template<typename... Repos>
-class MyBusinessService : public ServiceExecutor {
+class MyBusinessService : public tmp::ServiceExecutor {
     using Data = tmp::VarNode;
 private:
     std::tuple<Repos...> repos; // 複数のリポジトリを保持
@@ -136,29 +132,10 @@ public:
     }
 };
 
-void execute_service_with_tx(pqxx::work& tx, ServiceExecutor& service) {
-    try {
-        //tx.begin();
-        // ServiceExecutor 内部には、DIされた複数のリポジトリが
-        // MyBusinessService の tuple 等に既に保持されている状態
-        service.execute();        
-        tx.commit();
-        // tx.abort();
-    } catch (const std::exception& e) {
-        tx.abort();
-        tmp::ptr_print_error<decltype(e)&>(e);
-        throw;
-    } catch (...) {
-        tx.abort();
-        tmp::print_debug("Transaction failed due to unknown error.");
-        throw;
-    }
-}
-
 int test_execute_service_with_tx_M1()
 {
     using Data = tmp::VarNode;
-    puts("test_execute_service_with_tx_M1");
+    puts("------ test_execute_service_with_tx_M1");
     // Poolオブジェクトの作成
     auto pool = ObjectPool<pqxx::connection>::create("postgres");
     // コネクション（セッション）をひとつPool に確保。
@@ -192,7 +169,7 @@ int test_execute_service_with_tx_M1()
             std::move(find_repo),
             std::move(remove_repo)
         );
-        execute_service_with_tx(tx, service);
+        tmp::postgres::r3::execute_service_with_tx(tx, service);
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         tmp::ptr_print_error<decltype(e)&>(e);

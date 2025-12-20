@@ -319,6 +319,20 @@ public:
     }
 };
 
+void execute_service_with_tx(pqxx::work& tx, tmp::ServiceExecutor& service) {
+    try {
+        service.execute();
+        tx.commit();
+    } catch (const std::exception& e) {
+        tx.abort();
+        tmp::ptr_print_error<decltype(e)&>(e);
+        throw;
+    } catch (...) {
+        tx.abort();
+        tmp::print_debug("Transaction failed due to unknown error.");
+        throw;
+    }
+}
 
 }   // namespace tmp::postgres::r3
 

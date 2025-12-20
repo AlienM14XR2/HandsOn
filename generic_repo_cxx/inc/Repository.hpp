@@ -54,6 +54,22 @@ inline void print_debug([[maybe_unused]] Args&&... args)
 #endif
 }
 
+class Transaction
+{
+public:
+    virtual ~Transaction() = default;
+    virtual void begin() = 0;
+    virtual void commit() = 0;
+    virtual void rollback() = 0;
+};
+
+// サービス基底クラス（インターフェース）
+class ServiceExecutor {
+public:
+    virtual ~ServiceExecutor() = default;
+    virtual void execute() = 0;
+};
+
 template <class ID, class Data>
 class Repository {
 public:

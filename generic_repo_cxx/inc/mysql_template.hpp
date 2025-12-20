@@ -417,6 +417,55 @@ public:
 	}
 };  // VarNodeRepository
 
+class MySqlTransaction final : public tmp::Transaction {
+private:
+    mysqlx::Session* const tx;
+public:
+    MySqlTransaction(mysqlx::Session* const _tx): tx{_tx}
+    {}
+    void begin() override
+    {
+        int status;
+        tmp::print_debug("tx begin ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
+        tx->startTransaction();
+    }
+    void commit() override
+    {
+        int status;
+        tmp::print_debug("tx commit ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
+        tx->commit();
+    }
+    void rollback() override
+    {
+        int status;
+        tmp::print_debug("tx rollback ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
+        tx->rollback();
+    }
+    // コピー禁止
+    MySqlTransaction(const MySqlTransaction&) = delete;
+    MySqlTransaction& operator=(const MySqlTransaction&) = delete;
+};  // MySqlTransaction
+
+/**
+ * ServiceExecutor を受け取り、トランザクション境界を提供するラップ関数
+ * 
+ */
+void execute_service_with_tx(tmp::Transaction& tx, tmp::ServiceExecutor& service) {
+    try {
+        tx.begin();
+        service.execute();
+        tx.commit();
+    } catch (const std::exception& e) {
+        tx.rollback();
+        tmp::ptr_print_error<decltype(e)&>(e);
+        throw;
+    } catch (...) {
+        tx.rollback();
+        tmp::print_debug("Transaction failed due to unknown error.");
+        throw;
+    }
+}
+
 }   // namespace tmp::mysql::r3
 
 

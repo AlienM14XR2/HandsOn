@@ -30,57 +30,12 @@
 
 
 
-class Transaction
-{
-public:
-    virtual ~Transaction() = default;
-    virtual void begin() = 0;
-    virtual void commit() = 0;
-    virtual void rollback() = 0;
-};
-
-class MySqlTransaction final : public Transaction {
-private:
-    mysqlx::Session* const tx;
-public:
-    MySqlTransaction(mysqlx::Session* const _tx): tx{_tx}
-    {}
-    void begin() override
-    {
-        int status;
-        tmp::print_debug("tx begin ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
-        tx->startTransaction();
-    }
-    void commit() override
-    {
-        int status;
-        tmp::print_debug("tx commit ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
-        tx->commit();
-    }
-    void rollback() override
-    {
-        int status;
-        tmp::print_debug("tx rollback ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
-        tx->rollback();
-    }
-    // コピー禁止
-    MySqlTransaction(const MySqlTransaction&) = delete;
-    MySqlTransaction& operator=(const MySqlTransaction&) = delete;
-};
-
-// サービス基底クラス（またはインターフェース）
-class ServiceExecutor {
-public:
-    virtual ~ServiceExecutor() = default;
-    virtual void execute() = 0;
-};
-
 // ユーザーが実装する具体的なサービス
 // template<typename... Repos>
 // concept AllRepos = (tmp::mysql::r3::VarNodeRepository<std::uint64_t><Repos> && ...);
 // template<AllRepos... Args>
 template<typename... Repos>
-class MyBusinessService : public ServiceExecutor {
+class MyBusinessService : public tmp::ServiceExecutor {
     using Data = tmp::VarNode;
 private:
     std::tuple<Repos...> repos; // 複数のリポジトリを保持
@@ -129,26 +84,6 @@ public:
     }
 };
 
-/**
- * ServiceExecutor を受け取り、トランザクション境界を提供するラップ関数
- * 
- */
-void execute_service_with_tx(Transaction& tx, ServiceExecutor& service) {
-    try {
-        tx.begin();
-        service.execute();
-        tx.commit();
-    } catch (const std::exception& e) {
-        tx.rollback();
-        tmp::ptr_print_error<decltype(e)&>(e);
-        throw;
-    } catch (...) {
-        tx.rollback();
-        tmp::print_debug("Transaction failed due to unknown error.");
-        throw;
-    }
-}
-
 int test_execute_service_with_tx_M1()
 {
     // Poolオブジェクトの作成
@@ -157,14 +92,14 @@ int test_execute_service_with_tx_M1()
     pool->push(std::make_unique<mysqlx::Session>(mysqlx::Session("localhost", 33060, "root", "root1234")));
     // Poolから取り出す
     auto sess = pool->pop();
-    MySqlTransaction tx(sess.get());
+    tmp::mysql::r3::MySqlTransaction tx(sess.get());
     try {
         tmp::mysql::r3::VarNodeRepository<uint64_t> insert_repo{sess.get(), "test", "contractor"};
         tmp::mysql::r3::VarNodeRepository<uint64_t> update_repo{sess.get(), "test", "contractor"};
         tmp::mysql::r3::VarNodeRepository<uint64_t> find_repo{sess.get(), "test", "contractor"};
         tmp::mysql::r3::VarNodeRepository<uint64_t> remove_repo{sess.get(), "test", "contractor"};
         MyBusinessService service(std::move(insert_repo), std::move(update_repo), std::move(find_repo), std::move(remove_repo));
-        execute_service_with_tx(tx, service);
+        tmp::mysql::r3::execute_service_with_tx(tx, service);
         // tx.begin();
         // service.execute();
         // tx.commit();
@@ -182,7 +117,7 @@ int test_MyBusinessService_M1()
     auto pool = ObjectPool<mysqlx::Session>::create("mysql");
     pool->push(std::make_unique<mysqlx::Session>(mysqlx::Session("localhost", 33060, "root", "root1234")));
     auto sess = pool->pop();
-    MySqlTransaction tx(sess.get());
+    tmp::mysql::r3::MySqlTransaction tx(sess.get());
     try {
         tmp::mysql::r3::VarNodeRepository<uint64_t> insert_repo{sess.get(), "test", "contractor"};
         tmp::mysql::r3::VarNodeRepository<uint64_t> update_repo{sess.get(), "test", "contractor"};
@@ -199,7 +134,9 @@ int test_MyBusinessService_M1()
         return EXIT_FAILURE;
     }
 }
-
+//
+// 以下はもう利用しない。
+// 
 using Data = tmp::VarNode;
 using ID = uint64_t;
 struct InsertOp
@@ -243,7 +180,7 @@ public:
 
 // TODO ... 次の課題、RepoExecutor& を template <class... Repos> として複数の任意のリポジトリ実行ができるのか検証する。
 // Tx ラッピング関数。Insert の実行。
-auto execute_transaction(Transaction& tx, RepoExecutor& repoExec, InsertOp& op) {
+auto execute_transaction(tmp::Transaction& tx, RepoExecutor& repoExec, InsertOp& op) {
     try {
         tx.begin();
         auto ret = repoExec(op); // ビジネスロジックの実行
@@ -256,7 +193,7 @@ auto execute_transaction(Transaction& tx, RepoExecutor& repoExec, InsertOp& op) 
 }
 
 // Tx ラッピング関数。Update の実行。
-void execute_transaction(Transaction& tx, RepoExecutor& repoExec, UpdateOp& op) {
+void execute_transaction(tmp::Transaction& tx, RepoExecutor& repoExec, UpdateOp& op) {
     try {
         tx.begin();
         repoExec(op);
@@ -268,7 +205,7 @@ void execute_transaction(Transaction& tx, RepoExecutor& repoExec, UpdateOp& op) 
 }
 
 // Tx ラッピング関数。FindById の実行（find はトランザクションをはる必要は本来ないが、他と合わせている）。
-auto execute_transaction(Transaction& tx, RepoExecutor& repoExec, FindByIdOp& op) {
+auto execute_transaction(tmp::Transaction& tx, RepoExecutor& repoExec, FindByIdOp& op) {
     try {
         tx.begin();
         auto ret = repoExec(op);
@@ -280,7 +217,7 @@ auto execute_transaction(Transaction& tx, RepoExecutor& repoExec, FindByIdOp& op
     }
 }
 // Tx ラッピング関数。Remove の実行。
-void execute_transaction(Transaction& tx, RepoExecutor& repoExec, RemoveOp& op) {
+void execute_transaction(tmp::Transaction& tx, RepoExecutor& repoExec, RemoveOp& op) {
     try {
         tx.begin();
         repoExec(op);
@@ -299,7 +236,7 @@ int test_RepoExecutor_Insert(uint64_t* id)
     try {
         pool->push(std::make_unique<mysqlx::Session>(mysqlx::Session("localhost", 33060, "root", "root1234")));
         auto sess = pool->pop();
-        MySqlTransaction tx(sess.get());
+        tmp::mysql::r3::MySqlTransaction tx(sess.get());
         std::unique_ptr<tmp::Repository<uint64_t, Data>> irepo
             = std::make_unique<tmp::mysql::r3::VarNodeRepository<uint64_t>>(sess.get(), "test", "contractor");
         // データベース上でNULL を許可しているカラムは設定しなくてよい（contractor table では roles にあたる）。
@@ -335,7 +272,7 @@ int test_RepoExecutor_Update(uint64_t* id)
     try {
         pool->push(std::make_unique<mysqlx::Session>(mysqlx::Session("localhost", 33060, "root", "root1234")));
         auto sess = pool->pop();
-        MySqlTransaction tx(sess.get());
+        tmp::mysql::r3::MySqlTransaction tx(sess.get());
         std::unique_ptr<tmp::Repository<uint64_t, Data>> irepo
             = std::make_unique<tmp::mysql::r3::VarNodeRepository<uint64_t>>(sess.get(), "test", "contractor");
         // データベース上でNULL を許可しているカラムは設定しなくてよい（contractor table では roles にあたる）。
@@ -371,7 +308,7 @@ int test_RepoExecutor_FindById(uint64_t* id)
     try {
         pool->push(std::make_unique<mysqlx::Session>(mysqlx::Session("localhost", 33060, "root", "root1234")));
         auto sess = pool->pop();
-        MySqlTransaction tx(sess.get());
+        tmp::mysql::r3::MySqlTransaction tx(sess.get());
         std::unique_ptr<tmp::Repository<uint64_t, Data>> irepo
             = std::make_unique<tmp::mysql::r3::VarNodeRepository<uint64_t>>(sess.get(), "test", "contractor");
 
@@ -396,7 +333,7 @@ int test_RepoExecutor_Remove(uint64_t* id)
     try {
         pool->push(std::make_unique<mysqlx::Session>(mysqlx::Session("localhost", 33060, "root", "root1234")));
         auto sess = pool->pop();
-        MySqlTransaction tx(sess.get());
+        tmp::mysql::r3::MySqlTransaction tx(sess.get());
         std::unique_ptr<tmp::Repository<uint64_t, Data>> irepo
             = std::make_unique<tmp::mysql::r3::VarNodeRepository<uint64_t>>(sess.get(), "test", "contractor");
 
