@@ -333,6 +333,8 @@ public:
     // findByIdの実装
     std::optional<tmp::VarNode> findById(const ID& id) const override
     {
+        int status;
+        print_debug("findById ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
         // ここからは元のロジックを維持
         mysqlx::Schema db{session->getSchema(dbName)};
         mysqlx::Table table{db.getTable(tableName)};
