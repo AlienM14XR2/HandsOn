@@ -1,5 +1,5 @@
-#ifndef _REPOSITORY_H_
-#define _REPOSITORY_H_
+#ifndef REPOSITORY_H_
+#define REPOSITORY_H_
 
 #include <optional>
 #include <variant>
@@ -58,9 +58,9 @@ template <class ID, class Data>
 class Repository {
 public:
     virtual ~Repository() = default;
-    virtual ID insert(Data&&) const = 0;
-    virtual void update(const ID&, Data&&) const = 0;
-    virtual void remove(const ID&) const = 0;
+    virtual ID insert(Data&&)              = 0;
+    virtual void update(const ID&, Data&&) = 0;
+    virtual void remove(const ID&)         = 0;
     virtual std::optional<Data> findById(const ID&) const = 0;
 };
 
@@ -198,9 +198,9 @@ class CudConcept
 {
 public:
     virtual ~CudConcept() = default;
-    virtual uint64_t insert() const = 0;
-    virtual void update() const = 0;
-    virtual void remove() const = 0;
+    virtual uint64_t insert() = 0;
+    virtual void update() = 0;
+    virtual void remove() = 0;
     virtual std::unique_ptr<CudConcept> clone() const = 0;
 };
 
@@ -221,15 +221,15 @@ private:
 public:
     CudModel(Data _data, Model _model): data{std::move(_data)}, model{std::move(_model)}
     {}
-    virtual uint64_t insert() const override
+    virtual uint64_t insert() override
     {
         return model.insert(data);
     }
-    virtual void update() const override
+    virtual void update() override
     {
         model.update(data);
     }
-    virtual void remove() const override
+    virtual void remove() override
     {
         model.remove(data);
     }
@@ -259,9 +259,9 @@ class CrudConcept
 {
 public:
     virtual ~CrudConcept() = default;
-    virtual uint64_t insert() const = 0;
-    virtual void update() const = 0;
-    virtual void remove() const = 0;
+    virtual uint64_t insert() = 0;
+    virtual void update() = 0;
+    virtual void remove() = 0;
     virtual std::unique_ptr<CrudConcept> clone() const = 0;
     virtual std::optional<Data> findById() const = 0;
 };
@@ -284,15 +284,15 @@ private:
 public:
     CrudModel(Data _data, Model _model): data{std::move(_data)}, model{std::move(_model)}
     {}
-    virtual uint64_t insert() const override
+    virtual uint64_t insert() override
     {
         return model.insert(data);
     }
-    virtual void update() const override
+    virtual void update() override
     {
         model.update(data);
     }
-    virtual void remove() const override
+    virtual void remove() override
     {
         model.remove(data);
     }

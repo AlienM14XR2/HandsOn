@@ -31,8 +31,11 @@ CREATE TABLE contractor (
 ALTER TABLE contractor ADD CONSTRAINT email_uk unique (email);
  * ```
  * 
+ * 未来の私への忠告だ、このソースは現在、理想を求めすぎたRepositry を参照、インクルードしていることに留意しろ。
+ * 完成形が知りたければ、generic_repo_cxx ディレクトリをみろ。
+ * 
  * e.g. compile.
- * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror -I../inc -I/usr/local/include -I/usr/include/postgresql -L/usr/local/lib builder_template.cpp -lpqxx -lpq -o ../bin/builder_template
+ * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Wextra -Werror -I../inc -I/usr/local/include -I/usr/include/postgresql -L/usr/local/lib builder_template.cpp -lpqxx -lpq -o ../bin/builder_template
  */
 #include <iostream>
 #include <memory>
@@ -42,6 +45,10 @@ ALTER TABLE contractor ADD CONSTRAINT email_uk unique (email);
 #include <random>
 #include <ctime>
 #include <chrono>
+#include <algorithm>
+#include <string_view> // C++17以降 @see void safe_print(const char* p)
+#include <unordered_map>
+#include <algorithm> // for find_if, if you keep using vector
 
 #include <ObjectPool.hpp>
 #include <Repository.hpp>
@@ -422,7 +429,7 @@ private:
 public:
     PqxxRepository(pqxx::work* const _tx, TableInfo<uint64_t, Data>* const _tableInfo): tx{_tx}, tableInfo{_tableInfo}
     {}
-    virtual uint64_t insert(Data&& data) const override
+    virtual uint64_t insert(Data&& data) override
     {
         print_debug_v3("insert ... ", typeid(*this).name());
         std::string sql = tableInfo->insertSql();
@@ -436,7 +443,7 @@ public:
         tx->exec(builder.makePrepped(), tableInfo->makeParams4Save(builder, id, std::move(data)));
         return id;
     }
-    virtual void update(const uint64_t& id, Data&& data) const override
+    virtual void update(const uint64_t& id, Data&& data) override
     {
         print_debug_v3("update ... ", typeid(*this).name());
         std::string sql = tableInfo->updateSql();
@@ -445,7 +452,7 @@ public:
         builder.makePrepare(tx->conn());
         tx->exec(builder.makePrepped(), tableInfo->makeParams4Save(builder, id, std::move(data)));
     }
-    virtual void remove(const uint64_t& id) const override
+    virtual void remove(const uint64_t& id) override
     {
         print_debug_v3("remove ... ", typeid(*this).name());
         // std::string sql = delete_by_pkey_sql("contractor", "id");
@@ -479,7 +486,7 @@ private:
 public:
     ContractorRepository(pqxx::work* const _tx): tx{_tx}
     {}
-    virtual uint64_t insert(std::map<std::string, std::string>&& data) const override
+    virtual uint64_t insert(std::map<std::string, std::string>&& data) override
     {
         print_debug_v3("insert ... ", typeid(*this).name());
         uint64_t id = tx->query_value<uint64_t>(
@@ -493,7 +500,7 @@ public:
         tx->exec(builder.makePrepped(), builder.makeParams(id, data.at("company_id"), data.at("email"), data.at("password"), data.at("name"), data.at("roles")));
         return id;
     }
-    virtual void update(const uint64_t& id, std::map<std::string, std::string>&& data) const override
+    virtual void update(const uint64_t& id, std::map<std::string, std::string>&& data) override
     {
         print_debug_v3("update ... ", typeid(*this).name());
         std::string sql = tmp::postgres::helper::update_by_pkey_sql("contractor", "id", "company_id", "email", "password", "name", "roles");
@@ -502,7 +509,7 @@ public:
         builder.makePrepare(tx->conn());
         tx->exec(builder.makePrepped(), builder.makeParams(id, data.at("company_id"), data.at("email"), data.at("password"), data.at("name"), data.at("roles")));
     }
-    virtual void remove(const uint64_t& id) const override
+    virtual void remove(const uint64_t& id) override
     {
         print_debug_v3("remove ... ", typeid(*this).name());
         std::string sql = tmp::postgres::helper::delete_by_pkey_sql("contractor", "id");
@@ -550,16 +557,16 @@ private:
 public:
     RepositoryAdapter(interface* const _adaptee): adaptee{_adaptee}
     {}
-    virtual std::string insert(std::map<std::string, std::string>&& data) const override
+    virtual std::string insert(std::map<std::string, std::string>&& data) override
     {
         uint64_t id = adaptee->insert(std::forward<std::map<std::string, std::string>>(data));
         return std::to_string(id);
     }
-    virtual void update(const std::string& id, std::map<std::string, std::string>&& data) const override
+    virtual void update(const std::string& id, std::map<std::string, std::string>&& data) override
     {
         adaptee->update(std::stoul(id), std::forward<std::map<std::string, std::string>>(data));
     }
-    virtual void remove(const std::string& id) const override
+    virtual void remove(const std::string& id) override
     {
         adaptee->remove(std::stoul(id));
     }
@@ -779,18 +786,18 @@ int test_ObjectPool()
 {
     puts("------ test_ObjectPool");
     try {
-        ObjectPool<pqxx::connection> pool("pqxx::connection");
+        // ObjectPool<pqxx::connection> pool("pqxx::connection");
         std::unique_ptr<pqxx::connection> conn1 = std::make_unique<pqxx::connection>("hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234");
         std::unique_ptr<pqxx::connection> conn2 = std::make_unique<pqxx::connection>("hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234");
         std::unique_ptr<pqxx::connection> conn3 = std::make_unique<pqxx::connection>("hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234");
-        pool.push(move(conn1));
-        pool.push(move(conn2));
-        pool.push(move(conn3));
+        // pool.push(move(conn1));
+        // pool.push(move(conn2));
+        // pool.push(move(conn3));
 
-        while(!pool.empty()) {
-           auto conn = pool.pop();
-           ptr_print_debug<const std::string&, decltype(conn)&>("conn: ", conn);
-        }
+        // while(!pool.empty()) {
+        //    auto conn = pool.pop();
+        //    ptr_print_debug<const std::string&, decltype(conn)&>("conn: ", conn);
+        // }
         return EXIT_SUCCESS;
     } catch(std::exception& e) {
         ptr_print_error<const decltype(e)&>(e);
@@ -802,16 +809,16 @@ int test_postgres_connection()
 {
     puts("------ test_postgres_connection");
     try {
-        ObjectPool<pqxx::connection> pool{"pqxx::connection"};
-        std::unique_ptr<pqxx::connection> conn1 = std::make_unique<pqxx::connection>("hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234");
-        pool.push(move(conn1));
+        // ObjectPool<pqxx::connection> pool{"pqxx::connection"};
+        // std::unique_ptr<pqxx::connection> conn1 = std::make_unique<pqxx::connection>("hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234");
+        // pool.push(move(conn1));
 
-        // pqxx::connection conn{"hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234"};
-        std::unique_ptr<pqxx::connection> conn = pool.pop();
-        pqxx::work tx(*(conn.get()));
+        pqxx::connection conn{"hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234"};
+        // std::unique_ptr<pqxx::connection> conn = pool.pop();
+        pqxx::work tx(conn);
         pqxx::result result = tx.exec("SELECT 1, 2, 'Hello', 3");
         tx.commit();
-        pool.push(move(conn));
+        // pool.push(move(conn));
 
         std::cout << result.column_name(0) << std::endl;
         puts("usage 1 ------");

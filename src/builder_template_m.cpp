@@ -59,7 +59,12 @@
  * dpkg -L libmysqlcppconn-dev
  * ```
  * 
- * e.g.
+ * 未来の私への忠告だ、このソースは現在、理想を求めすぎたRepositry を参照、インクルードしていることに留意しろ。
+ * 完成形が知りたければ、generic_repo_cxx ディレクトリをみろ。
+ * 
+ * e.g. compile
+ * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Wextra -Werror -I../inc/ -I/usr/include/mysql-cppconn/ -L/usr/lib/x86_64-linux-gnu/ builder_template_m.cpp -lmysqlcppconn -lmysqlcppconnx -o ../bin/builder_template_m
+ * 上記は、実験や確認段階では厳格すぎる。と感じたら。
  * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror -I../inc/ -I/usr/include/mysql-cppconn/ -L/usr/lib/x86_64-linux-gnu/ builder_template_m.cpp -lmysqlcppconn -lmysqlcppconnx -o ../bin/builder_template_m
  */
 #include <iostream>
@@ -68,6 +73,7 @@
 #include <map>
 #include <vector>
 #include <cxxabi.h>
+#include <algorithm>
 // #include <codecvt> // For std::codecvt_utf8_utf16
 // #include <locale>  // For std::wstring_convert
 #include <Repository.hpp>
@@ -106,15 +112,15 @@ void print_debug_v3(Args&&... args)
 
 class Transaction {
 public:
-    virtual void begin() const
+    virtual void begin()
     {
         puts("tx begin");
     }
-    virtual void commit() const
+    virtual void commit()
     {
         puts("tx commit");
     }
-    virtual void rollback() const
+    virtual void rollback()
     {
         puts("tx rollback");
     }
@@ -127,17 +133,17 @@ private:
 public:
     MySqlTransaction(mysqlx::Session* const _tx): tx{_tx}
     {}
-    virtual void begin() const override
+    virtual void begin() override
     {
         puts("tx begin");
         tx->startTransaction();
     }
-    virtual void commit() const override
+    virtual void commit() override
     {
         puts("tx commit");
         tx->commit();
     }
-    virtual void rollback() const override
+    virtual void rollback() override
     {
         puts("tx rollback");
         tx->rollback();
@@ -208,7 +214,7 @@ private:
 public:
     ContractorRepository(mysqlx::Session* const _session) : session{_session}
     {}
-    virtual uint64_t insert(Contractor&& data) const override
+    virtual uint64_t insert(Contractor&& data) override
     {
         int status;
         print_debug_v3("insert ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
@@ -220,7 +226,7 @@ public:
         std::cout << "affected items count: " << res.getAffectedItemsCount() << std::endl; // 上記で Insert されたレコード件数
         return res.getAutoIncrementValue();
     }
-    virtual void update(const uint64_t& id, Contractor&& data) const override
+    virtual void update(const uint64_t& id, Contractor&& data) override
     {
         int status;
         print_debug_v3("update ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
@@ -234,7 +240,7 @@ public:
                 .execute();
         std::cout << "affected items count: " << res.getAffectedItemsCount() << std::endl;
     }
-    virtual void remove(const uint64_t& id) const override
+    virtual void remove(const uint64_t& id) override
     {
         int status;
         print_debug_v3("remove ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
@@ -333,7 +339,7 @@ private:
 public:
     ContractorRepository(mysqlx::Session* const _session) : session{_session}
     {}
-    virtual uint64_t insert(Data&& data) const override
+    virtual uint64_t insert(Data&& data) override
     {
         int status;
         // print_debug_v3("insert ... ", typeid(*this).name());
@@ -348,7 +354,7 @@ public:
         std::cout << "affected items count: " << res.getAffectedItemsCount() << std::endl; // 上記で Insert されたレコード件数
         return res.getAutoIncrementValue();
     }
-    virtual void update(const uint64_t& id, Data&& data) const override
+    virtual void update(const uint64_t& id, Data&& data) override
     {
         int status;
         // print_debug_v3("update ... ", typeid(*this).name());
@@ -376,7 +382,7 @@ public:
                 .execute();
         std::cout << "affected items count: " << res.getAffectedItemsCount() << std::endl;
     }
-    virtual void remove(const uint64_t& id) const override
+    virtual void remove(const uint64_t& id) override
     {
         int status;
         // print_debug_v3("remove ... ", typeid(*this).name());
@@ -724,18 +730,18 @@ public:
         int status;
         return std::string(abi::__cxa_demangle(typeid(p).name() ,0,0,&status));
     }
-    int64_t insert(const Person& p) const
+    int64_t insert(const Person& p)
     {
         int status;
         print_debug_v3("--------- insert", abi::__cxa_demangle(typeid(*this).name() ,0,0,&status));
         return 369UL;
     }
-    void update(const Person& p) const
+    void update(const Person& p)
     {
         int status;
         print_debug_v3("--------- update", abi::__cxa_demangle(typeid(*this).name() ,0,0,&status));
     }
-    void remove(const Person& p) const
+    void remove(const Person& p)
     {
         int status;
         print_debug_v3("--------- remove", abi::__cxa_demangle(typeid(*this).name() ,0,0,&status));
