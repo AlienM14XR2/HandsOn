@@ -1,5 +1,5 @@
-#ifndef _STRINGPARSE_H_
-#define _STRINGPARSE_H_
+#ifndef STRINGPARSE_H_
+#define STRINGPARSE_H_
 
 #ifdef __cplusplus
 extern "C" {

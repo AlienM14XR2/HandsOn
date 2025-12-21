@@ -1,5 +1,5 @@
-#ifndef _HTREE_H_
-#define _HTREE_H_
+#ifndef HTREE_H_
+#define HTREE_H_
 
 #ifdef __cplusplus
 extern "C" {
