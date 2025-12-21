@@ -1,5 +1,5 @@
-#ifndef _MYSQLXCREATESTRATEGY_H_
-#define _MYSQLXCREATESTRATEGY_H_
+#ifndef MYSQLXCREATESTRATEGY_H_
+#define MYSQLXCREATESTRATEGY_H_
 
 #include "Repository.hpp"
 #include "RdbProcStrategy.hpp"

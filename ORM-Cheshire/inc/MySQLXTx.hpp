@@ -1,5 +1,5 @@
-#ifndef _MYSQLXTX_H_
-#define _MYSQLXTX_H_
+#ifndef MYSQLXTX_H_
+#define MYSQLXTX_H_
 
 #include "RdbTransaction.hpp"
 #include "RdbProcStrategy.hpp"

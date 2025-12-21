@@ -1,5 +1,5 @@
-#ifndef _SHAPE_H_
-#define _SHAPE_H_
+#ifndef SHAPE_H_
+#define SHAPE_H_
 
 namespace shape {
 

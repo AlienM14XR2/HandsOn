@@ -1,5 +1,5 @@
-#ifndef _RDBDATASTRATEGY_H_
-#define _RDBDATASTRATEGY_H_
+#ifndef RDBDATASTRATEGY_H_
+#define RDBDATASTRATEGY_H_
 
 /**
  * RDB の Data に共通する処理のインタフェース。

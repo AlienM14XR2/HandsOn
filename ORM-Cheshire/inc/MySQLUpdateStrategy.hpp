@@ -1,5 +1,5 @@
-#ifndef _MYSQLUPDATESTRATEGY_H_
-#define _MYSQLUPDATESTRATEGY_H_
+#ifndef MYSQLUPDATESTRATEGY_H_
+#define MYSQLUPDATESTRATEGY_H_
 
 #include "RdbProcStrategy.hpp"
 #include "Repository.hpp"

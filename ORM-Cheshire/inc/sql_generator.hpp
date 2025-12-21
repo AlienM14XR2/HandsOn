@@ -1,5 +1,5 @@
-#ifndef _SQL_GENERATOR_H_
-#define _SQL_GENERATOR_H_
+#ifndef SQL_GENERATOR_H_
+#define SQL_GENERATOR_H_
 
 #include <iostream>
 #include <string>

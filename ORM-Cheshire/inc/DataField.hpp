@@ -1,5 +1,5 @@
-#ifndef _DATA_FIELD_H_
-#define _DATA_FIELD_H_
+#ifndef DATA_FIELD_H_
+#define DATA_FIELD_H_
 
 template <class T>
 class DataField {

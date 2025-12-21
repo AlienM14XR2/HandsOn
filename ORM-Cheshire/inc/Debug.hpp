@@ -1,5 +1,5 @@
-#ifndef _DEBUG_H_
-#define _DEBUG_H_
+#ifndef DEBUG_H_
+#define DEBUG_H_
 
 #include <iostream>
 

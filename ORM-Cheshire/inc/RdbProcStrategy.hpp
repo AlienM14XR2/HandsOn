@@ -1,5 +1,5 @@
-#ifndef _RDBPROCSTRATEGY_H_
-#define _RDBPROCSTRATEGY_H_
+#ifndef RDBPROCSTRATEGY_H_
+#define RDBPROCSTRATEGY_H_
 
 #include <optional>
 

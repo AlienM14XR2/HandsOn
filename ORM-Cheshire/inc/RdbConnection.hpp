@@ -1,5 +1,5 @@
-#ifndef _RDBCONNECTION_H_
-#define _RDBCONNECTION_H_
+#ifndef RDBCONNECTION_H_
+#define RDBCONNECTION_H_
 
 #include <string>
 

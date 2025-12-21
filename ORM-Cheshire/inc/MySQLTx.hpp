@@ -1,5 +1,5 @@
-#ifndef _MYSQLTX_H_
-#define _MYSQLTX_H_
+#ifndef MYSQLTX_H_
+#define MYSQLTX_H_
 
 #include <optional>
 #include "/usr/include/mysql-cppconn-8/mysql/jdbc.h"

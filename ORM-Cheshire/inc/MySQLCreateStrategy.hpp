@@ -1,5 +1,5 @@
-#ifndef _MYSQLCREATESTRATEGY_H_
-#define _MYSQLCREATESTRATEGY_H_
+#ifndef MYSQLCREATESTRATEGY_H_
+#define MYSQLCREATESTRATEGY_H_
 
 #include <optional>
 

@@ -1,7 +1,8 @@
-#ifndef _MYSQLCONNECTION_H_
-#define _MYSQLCONNECTION_H_
+#ifndef MYSQLCONNECTION_H_
+#define MYSQLCONNECTION_H_
 
 #include "RdbConnection.hpp"
+// 当時のこれでいいでしょ感がすごいな
 #include "/usr/include/mysql-cppconn-8/mysql/jdbc.h"
 
 /**

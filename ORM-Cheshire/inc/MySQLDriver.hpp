@@ -1,5 +1,5 @@
-#ifndef _MYSQLDRIVER_H_
-#define _MYSQLDRIVER_H_
+#ifndef MYSQLDRIVER_H_
+#define MYSQLDRIVER_H_
 
 #include "./RdbDriver.hpp"
 #include "/usr/include/mysql-cppconn-8/mysql/jdbc.h"

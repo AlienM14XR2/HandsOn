@@ -1,5 +1,5 @@
-#ifndef _EXCEPTION_H_
-#define _EXCEPTION_H_
+#ifndef EXCEPTION_H_
+#define EXCEPTION_H_
 
 class NoPoolException final : std::exception {
 public:

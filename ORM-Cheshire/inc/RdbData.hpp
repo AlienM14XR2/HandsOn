@@ -1,5 +1,5 @@
-#ifndef _RDBDATA_H_
-#define _RDBDATA_H_
+#ifndef RDBDATA_H_
+#define RDBDATA_H_
 
 /**
  * テーブルデータに関する共通処理を宣言している、インタフェース。

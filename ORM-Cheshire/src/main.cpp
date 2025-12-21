@@ -76,7 +76,7 @@ NG 今この中間ファイルでは正しく動作しない、このコンパ�
 #include "Debug.hpp"
 #include "DataField.hpp"
 #include "RdbDataStrategy.hpp"
-#include "PersonStrategy.hpp"
+#include <PersonStrategy.hpp>
 #include "PersonData.hpp"
 #include "MySQLDriver.hpp"
 #include "ConnectionPool.hpp"

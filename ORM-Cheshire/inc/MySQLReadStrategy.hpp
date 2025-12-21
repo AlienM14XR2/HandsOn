@@ -1,5 +1,5 @@
-#ifndef _MYSQLREADSTRATEGY_H_
-#define _MYSQLREADSTRATEGY_H_
+#ifndef MYSQLREADSTRATEGY_H_
+#define MYSQLREADSTRATEGY_H_
 
 #include "RdbProcStrategy.hpp"
 #include "Repository.hpp"

@@ -1,5 +1,5 @@
-#ifndef _CONNECTIONPOOL_H_
-#define _CONNECTIONPOOL_H_
+#ifndef CONNECTIONPOOL_H_
+#define CONNECTIONPOOL_H_
 
 #include <queue>
 #include <mutex>

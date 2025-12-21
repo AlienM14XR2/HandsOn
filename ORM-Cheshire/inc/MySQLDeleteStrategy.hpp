@@ -1,5 +1,5 @@
-#ifndef _MYSQLDELETESTRATEGY_H_
-#define _MYSQLDELETESTRATEGY_H_
+#ifndef MYSQLDELETESTRATEGY_H_
+#define MYSQLDELETESTRATEGY_H_
 
 #include "RdbProcStrategy.hpp"
 #include "Repository.hpp"

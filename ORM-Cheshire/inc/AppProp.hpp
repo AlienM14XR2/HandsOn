@@ -1,5 +1,5 @@
-#ifndef _APPPROP_H_
-#define _APPPROP_H_
+#ifndef APPPROP_H_
+#define APPPROP_H_
 
 #include <string>
 

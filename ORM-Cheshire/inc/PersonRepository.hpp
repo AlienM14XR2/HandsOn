@@ -1,5 +1,5 @@
-#ifndef _PERSONREPOSITORY_H_
-#define _PERSONREPOSITORY_H_
+#ifndef PERSONREPOSITORY_H_
+#define PERSONREPOSITORY_H_
 
 #include "Debug.hpp"
 #include "Repository.hpp"

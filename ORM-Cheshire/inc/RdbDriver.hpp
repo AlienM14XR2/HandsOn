@@ -1,5 +1,5 @@
-#ifndef _RDBDRIVER_H_
-#define _RDBDRIVER_H_
+#ifndef RDBDRIVER_H_
+#define RDBDRIVER_H_
 
 template <class D>
 class RdbDriver {
