@@ -8,6 +8,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <functional>
+#include <Repository.hpp>
 
 template <class T>
 class ObjectPool final : public std::enable_shared_from_this<ObjectPool<T>> {

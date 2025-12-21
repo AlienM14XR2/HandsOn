@@ -31,9 +31,9 @@
  */
 #include "gtest/gtest.h"
 #include <mysqlx/xdevapi.h> // X Dev API のヘッダー
-// あなたの環境に合わせて正しいパスを指定してください
-// #include "mysql_template.cpp" // AI が一番最初に指定した方法、本来はヘッダファイルであるべきもの
+#include <memory>
 #include <mysql_template.hpp>
+#include <ObjectPool.hpp>
 
 tmp::VarNode create_test_var_node(
     const std::string& company_id,
@@ -52,6 +52,60 @@ tmp::VarNode create_test_var_node(
     }
     return root;
 }
+
+// ユーザーが実装する具体的なサービス
+// template<typename... Repos>
+// concept AllRepos = (tmp::mysql::r3::VarNodeRepository<std::uint64_t><Repos> && ...);
+// template<AllRepos... Args>
+template<typename... Repos>
+class MyBusinessService : public tmp::ServiceExecutor {
+    using Data = tmp::VarNode;
+private:
+    std::tuple<Repos...> repos; // 複数のリポジトリを保持
+
+public:
+    // 可変引数でリポジトリを受け取る
+    explicit MyBusinessService(Repos&&... args) : repos(args...) {}
+
+    void execute() override {
+        // 1. リポジトリの取り出し
+        // 2. 複数のリポジトリを「串刺し」にしたビジネスロジック
+        // 例: std::get<0>(repos)->insert(...);
+        // Insert
+        std::string pkcol{"id"};
+        Data root{"primaryKey", pkcol};
+        std::string companyId{"B3_1000"};
+        root.addChild("company_id", companyId);
+        std::string email{"alice@loki.org"};
+        root.addChild("email", email);
+        std::string password{"alice1111"};
+        root.addChild("password", password);
+        std::string name{"Alice"};
+        root.addChild("name", name);
+        int64_t id = static_cast<tmp::mysql::r3::VarNodeRepository<uint64_t>>(std::get<0>(repos)).insert(std::move(root));
+        tmp::print_debug("id: ", id);
+        // Update
+        std::string pkcol_u{"id"};
+        Data updateData{"primaryKey", pkcol_u};
+        std::string companyId_u{"B3_3333"};
+        updateData.addChild("company_id", companyId_u);
+        std::string email_u{"alice_uloki.org"};
+        updateData.addChild("email", email_u);
+        std::string password_u{"alice3333"};
+        updateData.addChild("password", password_u);
+        std::string name_u{"Alice_U"};
+        updateData.addChild("name", name_u);
+        std::string role_u{"Admin,User"};
+        updateData.addChild("roles", role_u);
+        static_cast<tmp::mysql::r3::VarNodeRepository<uint64_t>>(std::get<1>(repos)).update(id, std::move(updateData));
+        // Find
+        std::optional<Data> fnode = static_cast<tmp::mysql::r3::VarNodeRepository<uint64_t>>(std::get<2>(repos)).findById(id);
+        if(!fnode) throw std::runtime_error("Unexpected case.");
+        else tmp::debug_print_varnode(&(fnode.value()));
+        // Remove
+        static_cast<tmp::mysql::r3::VarNodeRepository<uint64_t>>(std::get<3>(repos)).remove(id);
+    }
+};
 
 
 class MySqlRepositoryTest : public ::testing::Test
@@ -79,6 +133,11 @@ protected:
         }
     }
 
+    // pool->push(std::make_unique<mysqlx::Session>(mysqlx::Session("localhost", 33060, "root", "root1234")));
+    const std::string HOST = "localhost";
+    const int64_t     PORT = 33060;
+    const std::string USER = "root";
+    const std::string PASSWORD = "root1234";
     // プールマネージャーの unique_ptr を保持
     std::unique_ptr<mysqlx::Session> sess; 
     const std::string TEST_SCHEMA = "test";
@@ -200,6 +259,27 @@ TEST_F(MySqlRepositoryTest, Insert_Remove_FindById)
     std::optional<tmp::VarNode> found_node = repo.findById(new_id);
     // 7. 検索結果が存在しないことを確認
     ASSERT_FALSE(found_node.has_value());
+}
+TEST_F(MySqlRepositoryTest, ServiceLayer_CRUD_cycle) {
+    // Poolオブジェクトの作成
+    auto pool = ObjectPool<mysqlx::Session>::create("mysql");
+    // コネクション（セッション）をひとつPool に確保。
+    pool->push(std::make_unique<mysqlx::Session>(mysqlx::Session(HOST, PORT, USER, PASSWORD)));
+    // Poolから取り出す
+    auto sess = pool->pop();
+    tmp::mysql::r3::MySqlTransaction tx(sess.get());
+    tmp::mysql::r3::VarNodeRepository<uint64_t> insert_repo{sess.get(), TEST_SCHEMA, TEST_TABLE};
+    tmp::mysql::r3::VarNodeRepository<uint64_t> update_repo{sess.get(), TEST_SCHEMA, TEST_TABLE};
+    tmp::mysql::r3::VarNodeRepository<uint64_t> find_repo{sess.get(), TEST_SCHEMA, TEST_TABLE};
+    tmp::mysql::r3::VarNodeRepository<uint64_t> remove_repo{sess.get(), TEST_SCHEMA, TEST_TABLE};
+    MyBusinessService service(std::move(insert_repo), std::move(update_repo), std::move(find_repo), std::move(remove_repo));
+    // 6. 共通プロトコルによる実行
+    EXPECT_NO_THROW({
+        tmp::mysql::r3::execute_service_with_tx(tx, service);
+    });
+
+    // sess_ptr のスコープを抜ける際、デストラクタによりセッションはPoolに返却、
+    // またはPoolと共に安全に破棄される（ObjectPoolの仕様に依存）
 }
 
 // --- main関数 ---

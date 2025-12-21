@@ -27,9 +27,9 @@ find /usr/local/lib -name 'libgtest.a' 2>/dev/null
  */
 #include "gtest/gtest.h"
 #include <pqxx/pqxx>
-// あなたの環境に合わせて正しいパスを指定してください
-// #include "pqxx_template.cpp"    // AI が最初に指定した方法、本来はヘッダファイルであるべきもの。
 #include <pqxx_template.hpp>
+#include <ObjectPool.hpp>
+#include <memory>
 
 tmp::VarNode create_test_var_node(
     const std::string& company_id,
@@ -49,6 +49,60 @@ tmp::VarNode create_test_var_node(
     }
     return root;
 }
+
+// サービス層のサンプル
+// サンプルでは一つのテーブルで表現しているが、複数の異なるテーブルに
+// 対応したリポジトリが扱える。
+template<typename... Repos>
+class MyBusinessService : public tmp::ServiceExecutor {
+    using Data = tmp::VarNode;
+private:
+    std::tuple<Repos...> repos; // 複数のリポジトリを保持
+
+public:
+    // 可変引数でリポジトリを受け取る
+    explicit MyBusinessService(Repos&&... args) : repos(args...) {}
+
+    void execute() override {
+        using Data = tmp::VarNode;
+        // Insert
+        const std::string pkey  = "id";
+        Data root{"__DATA__KEY__", std::monostate{}};
+        uint64_t nid{0};
+        root.addChild(pkey, nid);
+        std::string companyId{"B3_1000"};
+        root.addChild("company_id", companyId);
+        std::string email{"alice@loki.org"};
+        root.addChild("email", email);
+        std::string password{"alice1111"};
+        root.addChild("password", password);
+        std::string name{"Alice"};
+        root.addChild("name", name);
+        int64_t id = static_cast<tmp::postgres::r3::VarNodeRepository<uint64_t>>(std::get<0>(repos)).insert(std::move(root));
+        tmp::print_debug("id: ", id);
+        // Update
+        Data updateNode{"__DATA__KEY__", std::monostate{}};
+        uint64_t u_nid{0};
+        updateNode.addChild(pkey, u_nid);
+        std::string u_companyId{"B3_3333"};
+        updateNode.addChild("company_id", u_companyId);
+        std::string u_email{"foo@loki.org"};
+        updateNode.addChild("email", u_email);
+        std::string u_password{"foo1111"};
+        updateNode.addChild("password", u_password);
+        std::string u_name{"Foo"};
+        updateNode.addChild("name", u_name);
+        std::string u_roles{"Admin,User"};
+        updateNode.addChild("roles", u_roles);
+        static_cast<tmp::postgres::r3::VarNodeRepository<uint64_t>>(std::get<1>(repos)).update(id, std::move(updateNode));
+        // Find
+        std::optional<Data> f_result = static_cast<tmp::postgres::r3::VarNodeRepository<uint64_t>>(std::get<2>(repos)).findById(id);
+        if(!(f_result)) throw std::runtime_error("Unexpected case.");
+        else tmp::debug_print_varnode(&(f_result.value()));
+        // 4. Remove
+        static_cast<tmp::postgres::r3::VarNodeRepository<uint64_t>>(std::get<3>(repos)).remove(id);
+    }
+};
 
 // --- テストフィクスチャークラス ---
 class VarNodeRepositoryTest : public ::testing::Test
@@ -77,6 +131,8 @@ protected:
         // connection は unique_ptr のデストラクタで自動的に閉じられる
     }
 
+    // pool->push(std::make_unique<pqxx::connection>(pqxx::connection("hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234")));
+    const std::string CONN_STR = "hostaddr=127.0.0.1 port=5432 dbname=derek user=derek password=derek1234";
     // フィクスチャで共有するメンバ変数
     std::unique_ptr<pqxx::connection> conn;
     std::unique_ptr<pqxx::work> tx;
@@ -235,6 +291,44 @@ TEST_F(VarNodeRepositoryTest, Insert_Remove_FindById)
     // 7. 検索結果が存在しないことを確認
     ASSERT_FALSE(found_node.has_value());
 }
-
+TEST_F(VarNodeRepositoryTest, ServiceLayer_CRUD_cycle)
+{
+    using Data = tmp::VarNode;
+    // Poolオブジェクトの作成
+    auto pool = ObjectPool<pqxx::connection>::create("postgres");
+    // コネクション（セッション）をひとつPool に確保。
+    pool->push(std::make_unique<pqxx::connection>(pqxx::connection(CONN_STR)));
+    // Poolから取り出す
+    auto conn = pool->pop();
+    pqxx::work tx(*(conn.get()));   // これが実質 Tx BEGIN
+    const std::string table = "contractor";
+    const std::string idseq = "contractor_id_seq";
+    const std::string pkey  = "id";
+    tmp::postgres::r3::VarNodeRepository<uint64_t> insert_repo{&tx, table, idseq, pkey};
+    tmp::postgres::r3::VarNodeRepository<uint64_t> update_repo{&tx, table, idseq, pkey};
+    auto dataMapper = [](Data& root, const pqxx::row& row) -> void {
+        // テーブルで、null を許可している場合は const char* を使わざるを得ない。
+        auto [id, companyId, email, password, name, roles] = row.as<uint64_t, std::string, std::string, std::string, std::string, const char*>();
+        tmp::print_debug(id, companyId, email, password, name, roles);
+        root.addChild("id", id);
+        root.addChild("companyId", companyId);
+        root.addChild("email", email);
+        root.addChild("password", password);
+        root.addChild("name", name);
+        if(roles) root.addChild("roles", std::string(roles));
+        else root.addChild("roles", std::monostate{});
+    };
+    tmp::postgres::r3::VarNodeRepository<uint64_t> find_repo{&tx, table, idseq, dataMapper, pkey};
+    tmp::postgres::r3::VarNodeRepository<uint64_t> remove_repo{&tx, table, idseq, pkey};
+    MyBusinessService service(
+        std::move(insert_repo), 
+        std::move(update_repo), 
+        std::move(find_repo),
+        std::move(remove_repo)
+    );
+	EXPECT_NO_THROW({
+        tmp::postgres::r3::execute_service_with_tx(tx, service);
+    });
+}
 // --- main関数は不要 ---
 // libgtest_main.a をリンクすることで main 関数が提供されます
