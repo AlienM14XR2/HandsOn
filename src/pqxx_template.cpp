@@ -11,7 +11,7 @@
  * 楽がしたい：）では進めてみよう。
  * 
  * e.g. compile
- * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Werror -I../inc -I/usr/local/include -I/usr/include/postgresql -L/usr/local/lib pqxx_template.cpp -lpqxx -lpq -o ../bin/pqxx_template
+ * g++ -O3 -DDEBUG -std=c++20 -pedantic-errors -Wall -Wextra -Werror -I../inc -I/usr/local/include -I/usr/include/postgresql -L/usr/local/lib pqxx_template.cpp -lpqxx -lpq -o ../bin/pqxx_template
  */
 #include <iostream>
 #include <memory>
@@ -217,7 +217,7 @@ public:
     )
     : tx{_tx}, tableName{_table}, idSeqName{_idseq}, mapper{std::move(_mapper)}, primaryKeyName{_primaryKeyName}
     {}
-    virtual ID insert(tmp::VarNode&& data) const override
+    virtual ID insert(tmp::VarNode&& data) override
     {
         int status;
         print_debug("insert ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
@@ -237,7 +237,7 @@ public:
         print_debug("affected rows: ", result.affected_rows());
         return id;
     }
-    virtual void update(const ID& id, tmp::VarNode&& data) const override
+    virtual void update(const ID& id, tmp::VarNode&& data) override
     {
         int status;
         print_debug("update ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
@@ -254,7 +254,7 @@ public:
         pqxx::result result = tx->exec(builder.makePrepped(), params);
         print_debug("affected rows: ", result.affected_rows());
     }
-    virtual void remove(const ID& id) const override
+    virtual void remove(const ID& id) override
     {
         int status;
         print_debug("remove ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));

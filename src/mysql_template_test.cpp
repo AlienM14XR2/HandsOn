@@ -27,7 +27,7 @@
  * 
  * e.g. compile
  * g++ -O3 -std=c++20 -DDEBUG -pedantic-errors -Wall -Werror mysql_template_test.cpp -o ../bin/mysql_template_test_runner -I../inc/ -I/usr/include/mysql-cppconn/ -I/usr/local/include -L/usr/lib/x86_64-linux-gnu/ -L/usr/local/lib -lmysqlcppconn -lmysqlcppconnx -lgtest -lgtest_main -lpthread
- * g++ -O3 -std=c++20 -DNDEBUG -pedantic-errors -Wall -Werror mysql_template_test.cpp -o ../bin/mysql_template_test_runner -I../inc/ -I/usr/include/mysql-cppconn/ -I/usr/local/include -L/usr/lib/x86_64-linux-gnu/ -L/usr/local/lib -lmysqlcppconn -lmysqlcppconnx -lgtest -lgtest_main -lpthread
+ * g++ -O3 -std=c++20 -DNDEBUG -pedantic-errors -Wall -Wextra -Werror mysql_template_test.cpp -o ../bin/mysql_template_test_runner -I../inc/ -I/usr/include/mysql-cppconn/ -I/usr/local/include -L/usr/lib/x86_64-linux-gnu/ -L/usr/local/lib -lmysqlcppconn -lmysqlcppconnx -lgtest -lgtest_main -lpthread
  */
 #include "gtest/gtest.h"
 #include <mysqlx/xdevapi.h> // X Dev API のヘッダー

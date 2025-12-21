@@ -20,6 +20,7 @@
  * 似通ったリポジトリは減らせるが、エンティティは無くせない。
  * 
  * e.g. compile
+ * g++ -O3 -std=c++20 -DDEBUG -pedantic-errors -Wall -Wextra -Werror -I../inc/ -I/usr/include/mysql-cppconn/ -L/usr/lib/x86_64-linux-gnu/ mysql_template.cpp -lmysqlcppconn -lmysqlcppconnx -o ../bin/mysql_template
  * g++ -O3 -std=c++20 -DDEBUG -pedantic-errors -Wall -Werror -I../inc/ -I/usr/include/mysql-cppconn/ -L/usr/lib/x86_64-linux-gnu/ mysql_template.cpp -lmysqlcppconn -lmysqlcppconnx -o ../bin/mysql_template
  */
 #include <iostream>
@@ -142,7 +143,7 @@ public:
     : session{_session}, db{_db}, table{_table}
     {}
 
-    ID insert(Data&& data) const override {
+    ID insert(Data&& data) override {
         const auto& meta = Data::get_metadata();
         std::stringstream sql_cols;
         std::stringstream sql_vals;
@@ -178,8 +179,8 @@ public:
         return result_entity;
     }
 
-    void update(const ID&, Data&&) const override { /* ... */ }
-    void remove(const ID&) const override { /* ... */ }
+    void update(const ID&, Data&&) override { /* ... */ }
+    void remove(const ID&) override { /* ... */ }
 };
 
 
@@ -248,7 +249,7 @@ public:
     : session{_session}, dbName{_db}, tableName{_table}, primaryKeyName{_primaryKeyName}
     {}
 
-    ID insert(tmp::VarNode&& data) const override
+    ID insert(tmp::VarNode&& data) override
     {
         int status;
         print_debug("insert ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
@@ -270,6 +271,8 @@ public:
     // findByIdの実装
     std::optional<tmp::VarNode> findById(const ID& id) const override
     {
+        int status;
+        print_debug("find ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
         mysqlx::Schema db{session->getSchema(dbName)};
         mysqlx::Table table{db.getTable(tableName)};
         std::string condition = primaryKeyName + " = :id";
@@ -300,7 +303,7 @@ public:
         return result_entity;
     }
 
-    void update(const ID& id, tmp::VarNode&& data) const override
+    void update(const ID& id, tmp::VarNode&& data) override
     {
         int status;
         print_debug("update ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
@@ -333,7 +336,7 @@ public:
                                         .execute();
         print_debug("affected items count: ", res.getAffectedItemsCount());
     }
-    virtual void remove(const ID& id) const override
+    virtual void remove(const ID& id) override
     {
         int status;
         print_debug("remove ... ", abi::__cxa_demangle(typeid(*this).name(),0,0,&status));
