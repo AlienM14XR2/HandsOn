@@ -1,5 +1,5 @@
-#ifndef _PERSONSTRATEGY_H_
-#define _PERSONSTRATEGY_H_
+#ifndef PERSONSTRATEGY_H_
+#define PERSONSTRATEGY_H_
 
 #include <vector>
 #include <string>

@@ -1,5 +1,5 @@
-#ifndef _SQL_HELPER_H_
-#define _SQL_HELPER_H_
+#ifndef SQL_HELPER_H_
+#define SQL_HELPER_H_
 
 #include <string>
 
