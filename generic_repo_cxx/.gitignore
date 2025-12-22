@@ -1,8 +1,0 @@
-# .gitignore の内容例
-CMakeCache.txt
-/build/
-/build_debug/
-CMakeFiles/
-cmake_install.cmake
-Makefile
-
