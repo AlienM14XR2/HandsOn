@@ -34,6 +34,7 @@
 #include <memory>
 #include <mysql_template.hpp>
 #include <ObjectPool.hpp>
+#include <sql_helper.hpp>
 
 tmp::VarNode create_test_var_node(
     const std::string& company_id,
@@ -280,6 +281,70 @@ TEST_F(MySqlRepositoryTest, ServiceLayer_CRUD_cycle) {
 
     // sess_ptr のスコープを抜ける際、デストラクタによりセッションはPoolに返却、
     // またはPoolと共に安全に破棄される（ObjectPoolの仕様に依存）
+}
+TEST_F(MySqlRepositoryTest, SimplePrepare_SqlExecutor_LifecycleTest) {
+    using namespace tmp::mysql::r3;
+    using Data = std::map<std::string, std::string>;
+
+    // SqlExecutor はフィクスチャの sess を借用
+    tmp::mysql::r3::SqlExecutor exec{this->sess.get(), TEST_SCHEMA};
+
+    // 1. Insert
+    tmp::mysql::r3::SimplePrepare insPrepare{"stmt1"};
+    insPrepare.setQuery(tmp::mysql::helper::insert_sql(TEST_TABLE, "company_id", "email", "password", "name"));
+    
+    std::vector<std::string> ins_syntax = insPrepare
+        .set("C3_3000")
+        .set("derek@loki.org")
+        .set("derek1111")
+        .set("DEREK")
+        .build();
+
+    // 実行（例外が発生しないことを確認）
+    ASSERT_NO_THROW(exec.cudProc_v1(std::move(ins_syntax)));
+
+    // 2. Find (Insertしたデータの確認とID取得)
+    std::string select_sql = "SELECT * FROM " + TEST_TABLE + " ORDER BY " + TEST_PK + " DESC LIMIT 1;";
+    std::vector<std::string> find_vec{select_sql};
+    
+    std::vector<Data> r1 = exec.findProc_v1(std::move(find_vec));
+    
+    ASSERT_FALSE(r1.empty()) << "挿入したデータが取得できませんでした。";
+    std::string current_id = r1[0].at(TEST_PK);
+    EXPECT_EQ(r1[0].at("name"), "DEREK");
+
+    // 3. Update
+    SimplePrepare upPrepare{"stmt2"};
+    upPrepare.setQuery(tmp::mysql::helper::update_by_pkey_sql(TEST_TABLE, TEST_PK, "company_id", "email", "password", "name"));
+    
+    std::vector<std::string> up_syntax = upPrepare
+        .set("C3_3333")
+        .set("jack@loki.org")
+        .set("jack2222")
+        .set("JACK")
+        .set(std::stoi(current_id))
+        .build();
+
+    ASSERT_NO_THROW(exec.cudProc_v1(std::move(up_syntax)));
+
+    // 更新後の再確認
+    std::vector<Data> r2 = exec.findProc_v1({"SELECT name FROM " + TEST_TABLE + " WHERE " + TEST_PK + " = " + current_id + ";"});
+    ASSERT_FALSE(r2.empty());
+    EXPECT_EQ(r2[0].at("name"), "JACK");
+
+    // 4. Delete
+    SimplePrepare delPrepare{"stmt3"};
+    delPrepare.setQuery(tmp::mysql::helper::delete_by_pkey_sql(TEST_TABLE, TEST_PK));
+    
+    std::vector<std::string> del_syntax = delPrepare
+        .set(std::stoi(current_id))
+        .build();
+
+    ASSERT_NO_THROW(exec.cudProc_v1(std::move(del_syntax)));
+
+    // 削除確認
+    std::vector<Data> r3 = exec.findProc_v1({"SELECT * FROM " + TEST_TABLE + " WHERE " + TEST_PK + " = " + current_id + ";"});
+    EXPECT_TRUE(r3.empty()) << "データが削除されていません。ID: " << current_id;
 }
 
 // --- main関数 ---

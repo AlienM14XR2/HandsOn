@@ -330,5 +330,57 @@ TEST_F(VarNodeRepositoryTest, ServiceLayer_CRUD_cycle)
         tmp::postgres::r3::execute_service_with_tx(tx, service);
     });
 }
+TEST_F(VarNodeRepositoryTest, SimplePrepare_SqlExecutor_LifecycleTest) {
+    using namespace tmp::postgres::r3;
+    using Data = std::map<std::string, std::string>;
+
+    // SqlExecutor はフィクスチャの tx (pqxx::work) を借用
+    SqlExecutor exec{this->tx.get()};
+
+    // 1. Insert
+    SimplePrepare insPrepare{"insert_"};
+    insPrepare.setQuery(tmp::postgres::helper::insert_sql(TEST_TABLE, "company_id", "email", "password", "name", "roles"));
+    
+    // Postgres版の形式: 型指定と値指定
+    insPrepare.type("text").type("text").type("text").type("text").type("text");
+    std::vector<std::string> ins_stmt = insPrepare
+        .value("D1_1000")
+        .value("foo@loki.org")
+        .value("foo2222")
+        .value("Foo")
+        .value("Admin")
+        .build();
+
+    ASSERT_NO_THROW(exec.cudProc_v1(std::move(ins_stmt)));
+
+    // 2. Find (Insertしたデータの確認とID取得)
+    // 自動パースの findProc_v2 を使用
+    std::string s1 = "PREPARE select_(int) AS SELECT id, company_id, email FROM " + TEST_TABLE + " ORDER BY " + TEST_PK + " DESC LIMIT $1;";
+    std::string s2 = "EXECUTE select_(1);";
+    
+    std::vector<Data> r1 = exec.findProc_v2({s1, s2});
+    
+    ASSERT_FALSE(r1.empty()) << "挿入したデータが取得できませんでした。";
+    std::string current_id = r1[0].at(TEST_PK);
+    EXPECT_EQ(r1[0].at("company_id"), "D1_1000");
+
+    // 3. Delete (取得したIDを使用して削除)
+    SimplePrepare delPrepare{"delete_"};
+    delPrepare.setQuery(tmp::postgres::helper::delete_by_pkey_sql(TEST_TABLE, TEST_PK));
+    
+    std::vector<std::string> del_stmt = delPrepare
+        .type("int")
+        .value(current_id) // stringを渡しても内部で to_string(int) 相当が動くか確認
+        .build();
+
+    ASSERT_NO_THROW(exec.cudProc_v1(std::move(del_stmt)));
+
+    // 4. Final Check (削除確認)
+    // 再度 PREPARE する際は DEALLOCATE が必要になる可能性があるが、
+    // 同一セッションでの別名指定か、findProc_v2 で直接実行
+    std::string check_sql = "SELECT id FROM " + TEST_TABLE + " WHERE " + TEST_PK + " = " + current_id + ";";
+    std::vector<Data> r2 = exec.findProc_v2({check_sql});
+    EXPECT_TRUE(r2.empty()) << "データが削除されていません。ID: " << current_id;
+}
 // --- main関数は不要 ---
 // libgtest_main.a をリンクすることで main 関数が提供されます

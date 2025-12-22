@@ -60,6 +60,7 @@ ALTER TABLE contractor ADD CONSTRAINT email_uk unique (email);
 #include <string_view> // C++17以降 @see void safe_print(const char* p)
 #include <unordered_map>
 #include <algorithm> // for find_if, if you keep using vector
+#include <format> // C++20
 
 #include <Repository.hpp>
 #include <sql_helper.hpp>
@@ -333,6 +334,219 @@ void execute_service_with_tx(pqxx::work& tx, tmp::ServiceExecutor& service) {
         throw;
     }
 }
+
+class SqlExecutor final {
+    using Data = std::map<std::string,std::string>;
+private:
+    pqxx::work* const tx;
+public:
+    SqlExecutor(pqxx::work* const _tx): tx{_tx}
+    {}
+    std::vector<Data> findProc_v1(std::vector<std::string>&& sqlSyntax, Data (*dataSetHelper)(const pqxx::const_result_iterator::reference& _row))
+    {
+        // 事前に次のデータを登録した。
+        // INSERT INTO contractor(company_id, email, password, name, roles)
+        // VALUES
+        // ('A1_1000', 'admin@example.com', '$2a$10$Ff.Tr2q.fBciJKiA1b4wAOwNpjr9RypX3DHeQwLQQg0GMxGrl4FcO', 'admin', 'ROLE_ADMIN'),
+        // ('A1_1000', 'student@example.com', '$2a$10$fzJDR7BSMQnRg9Odg/JDzemQdLc6g2a7lR/ccHoMQEoxpxhs6dT0m', 'student', 'ROLE_USER');
+
+        // psql ではPrepared Statement に同じ名前を利用するとError になる。
+        // PREPARE stmt_1(text) AS
+        // 	SELECT id, company_id, email FROM contractor
+        // 	WHERE company_id = $1;
+        // EXECUTE stmt_1('A1_1000');
+        size_t size = sqlSyntax.size();
+        size_t i = 0;
+        std::vector<Data> result;
+        for(auto sql: sqlSyntax) {
+            i++;
+            if(i < size) tx->exec(sql);
+            else {
+                pqxx::result res = tx->exec(sql);
+                for (auto const &row: res) {
+                    tmp::print_debug("colums: ", res.columns());
+                    // mysql 同様すべて本メソッドで完結させたかったが
+                    // posgresql ではそれらしいものが見当たらず断念した。
+                    // 結局コールバック関数で、データをセットするものが外部に必要だと思う。
+                    result.push_back(dataSetHelper(row));
+                }
+            }
+        }
+        return result;
+    }
+    std::vector<Data> findProc_v2(std::vector<std::string>&& sqlSyntax)
+    {
+        size_t size = sqlSyntax.size();
+        size_t i = 0;
+        std::vector<Data> result;
+
+        for(const auto& sql : sqlSyntax) { // コピーを避け参照に
+            i++;
+            try {
+                pqxx::result res = tx->exec(sql);
+                // 最後のクエリ（EXECUTE等）の結果を処理
+                if(i == size) {
+                    tmp::print_debug("row count: ", res.size());
+                    tmp::print_debug("columns: ", res.columns());
+                    for (const auto& row : res) {
+                        Data data;
+                        // カラム名と値を動的に取得してmapに詰める
+                        for (const auto& field : row) {
+                            std::string colName = field.name();
+                            if (field.is_null()) {
+                                data.insert({colName, "NULL"});
+                            } else {
+                                // libpqxxのfieldは直接stringへ変換可能
+                                data.insert({colName, field.as<std::string>()});
+                            }
+                        }
+                        result.push_back(data);
+                    }
+                }
+            } catch (const std::exception& e) {
+                tmp::print_debug("Postgres Error at step ", i);
+                tmp::print_debug("Query: ", sql);
+                tmp::print_debug("Message: ", e.what());
+                throw;
+            }
+        }
+        return result;
+    }
+    // void cudProc_v1(std::vector<std::string>&& sqlSyntax)
+    // {
+    //     for(auto sql: sqlSyntax) {
+    //         tx->exec(sql);
+    //     }
+    //     // size_t size = sqlSyntax.size();
+    //     // size_t i = 0;
+    //     // for(auto sql: sqlSyntax) {
+    //     //     i++;
+    //     //     if(i < size) tx->exec(sql);
+    //     //     else {
+    //     //         // 結果の返却がないならもった単純にかけるね。
+    //     //         pqxx::result res = tx->exec(sql);
+    //     //         std::cout << "columns: " << res.columns() << std::endl;
+    //     //     }
+    //     // }
+    // }
+    void cudProc_v1(std::vector<std::string>&& sqlSyntax)
+    {
+        size_t size = sqlSyntax.size();
+        size_t i = 0;
+        for(const auto& sql : sqlSyntax) {
+            i++;
+            try {
+                pqxx::result res = tx->exec(sql);
+                
+                // 最後の命令（EXECUTE等）の影響行数を表示
+                if(i == size) {
+                    // psqlの "UPDATE 1" 等の出力を再現
+                    tmp::print_debug("affected rows: ", res.affected_rows());
+                }
+            } catch (const std::exception& e) {
+                tmp::print_debug("Postgres Error at step ", i);
+                tmp::print_debug("Query: ", sql);
+                tmp::print_debug("Message: ", e.what());
+                throw;
+            }
+        }
+    }
+};  // SqlExecutor
+
+
+class SimplePrepare final {
+// e.g.
+// PREPARE fooplan (int, text, bool, numeric) AS
+// INSERT INTO foo VALUES($1, $2, $3, $4);
+// EXECUTE fooplan(1, 'Hunter Valley', 't', 200.00);
+
+private:
+    std::string name;
+    std::vector<std::string> types;
+    std::vector<std::string> values;
+    std::string query;
+
+    // 1 & 2: ロジックを集約し、エスケープとクォートを管理
+    void pushValue(std::string val, bool is_string)
+    {
+        if (is_string) {
+            // PostgreSQL/MySQL共通の簡易エスケープ: ' を \' に置換
+            size_t pos = 0;
+            while ((pos = val.find("'", pos)) != std::string::npos) {
+                val.replace(pos, 1, "\\'");
+                pos += 2;
+            }
+            // クォートで囲む
+            val = "'" + val + "'";
+        }
+        values.push_back(val);
+    }
+public:
+    SimplePrepare(const std::string& _name): name{_name}
+    {}
+    // 数値型（is_string = false）
+    SimplePrepare& value(const int& _value)
+    {
+        pushValue(std::to_string(_value), false);
+        return *this;
+    }
+
+    SimplePrepare& value(const float& _value)
+    {
+        // std::to_string(_value) ではなく std::format を使用
+        // "{}" は最適な精度を自動選択します
+        pushValue(std::format("{}", _value), false);
+        return *this;
+    }
+
+    // 文字列型（is_string = true）
+    SimplePrepare& value(const std::string& _value)
+    {
+        pushValue(_value, true);
+        return *this;
+    }
+    SimplePrepare& type(const std::string& _type)
+    {
+        types.push_back(_type);
+        return *this;
+    }
+    SimplePrepare& setQuery(const std::string& _query) noexcept
+    {
+        query = _query;
+        return *this;
+    }
+    std::vector<std::string> build() const
+    {
+        std::vector<std::string> result;
+        // PREPARE
+        std::string prepare{"PREPARE "};
+        prepare.append(name).append("( ");
+        size_t i = 0;
+        std::string t{""};
+        for(const std::string& s: types) {
+            if(i == 0) t.append(s);
+            else t.append(", ").append(s);
+            i++;
+        }
+        t.append(") AS \n");
+        // query
+        t.append(query).append(";");
+        result.push_back(prepare + t);
+        // EXECUTE
+        std::string exec{"EXECUTE "};
+        exec.append(name).append("(");
+        i = 0;
+        std::string v{""};
+        for(const std::string& s: values) {
+            if(i == 0) v.append(s);
+            else v.append(", ").append(s);
+            i++;
+        }
+        v.append(");");
+        result.push_back(exec + v);
+        return result;
+    }
+};  // SimplePrepare
 
 }   // namespace tmp::postgres::r3
 

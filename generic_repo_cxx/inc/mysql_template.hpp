@@ -96,6 +96,7 @@
 #include <optional>
 #include <sstream>
 #include <string_view> // C++17以降 @see void safe_print(const char* p)
+#include <format> // C++20
 
 #include <Repository.hpp>
 #include <mysql/jdbc.h>
@@ -465,6 +466,204 @@ void execute_service_with_tx(tmp::Transaction& tx, tmp::ServiceExecutor& service
         throw;
     }
 }
+
+class SqlExecutor final {
+    using Data = std::map<std::string, std::string>;
+private:
+    mysqlx::Session* const sess;
+    const std::string db;
+public:
+    SqlExecutor(mysqlx::Session* const _sess, const std::string& _db)
+    : sess{_sess}, db{_db}
+    {}
+    std::vector<Data> findProc_v1(std::vector<std::string>&& sqlSyntax)
+    {
+    // e.g.
+    // mysql> PREPARE stmt FROM 'SELECT id, company_id, email FROM contractor WHERE company_id = ?';
+    // mysql> SET @1 = 'A1_1000';
+    // mysql> EXECUTE stmt USING @1;
+        using Type = mysqlx::Value::Type; // abi2::r0 を排除
+        std::vector<Data> result;
+        sess->sql("USE "+db).execute();
+        size_t size = sqlSyntax.size();
+        size_t i = 0;
+
+        for(auto& s: sqlSyntax) {
+            i++;
+            try {
+                mysqlx::SqlResult sqlResult = sess->sql(s).execute();
+                // 最後のクエリ（SELECT等）のみ結果セットを処理する
+                if(i == size) {
+                    // mysqlx::RowResult rowResult = sqlResult; // SqlResultからRowResultへ
+                    auto& rowResult = sqlResult;
+                    auto cols = rowResult.getColumnCount();
+                    tmp::print_debug("row count: ", rowResult.count());
+                    tmp::print_debug("column count: ", cols);
+
+                    for(mysqlx::Row r: rowResult) { // abi2::r0 を排除
+                        Data data;
+                        for(decltype(cols) j=0; j < cols; j++) {
+                            auto colName = rowResult.getColumn(j).getColumnName();
+                            
+                            if(r.get(j).isNull()) {
+                                data.insert({colName, "NULL"}); // CUIトレースとしてNULLを明示
+                                continue;
+                            }
+
+                            // 型に応じた文字列変換
+                            switch(r.get(j).getType()) {
+                                case Type::VNULL:
+                                    data.insert({colName, "NULL"});
+                                    break;
+                                case Type::UINT64:
+                                    data.insert({colName, std::to_string((uint64_t)r.get(j))});
+                                    break;
+                                case Type::INT64:
+                                    data.insert({colName, std::to_string((int64_t)r.get(j))});
+                                    break;
+                                case Type::FLOAT:
+                                    data.insert({colName, std::to_string((float)r.get(j))});
+                                    break;
+                                case Type::DOUBLE:
+                                    data.insert({colName, std::to_string((double)r.get(j))});
+                                    break;
+                                case Type::BOOL:
+                                    data.insert({colName, (bool)r.get(j) ? "true" : "false"});
+                                    break;
+                                case Type::STRING:
+                                    data.insert({colName, (std::string)r.get(j)});
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                        result.push_back(data);
+                    }
+                }
+            } catch (const mysqlx::Error& err) {
+                tmp::print_debug("SQL Error at step ", i);
+                tmp::print_debug("Query: ", s);
+                tmp::print_debug("Message: ", err.what());
+                throw;
+            }
+        }
+        return result;
+    }
+    void cudProc_v1(std::vector<std::string>&& sqlSyntax)
+    {
+        sess->sql("USE "+db).execute();
+        size_t size = sqlSyntax.size();
+        size_t i = 0;
+        for(auto& s: sqlSyntax) {
+            i++;
+            try {
+                mysqlx::SqlResult result = sess->sql(s).execute();
+                
+                if(i == size) {
+                    tmp::print_debug("affected items: ", result.getAffectedItemsCount());
+                    if (result.getWarningsCount() > 0) {
+                        for (const auto& warn : result.getWarnings()) {
+                            tmp::print_debug("Warning: ", warn.getMessage());
+                        }
+                    }
+                }
+            } catch (const mysqlx::Error& err) {
+                // エラーが発生した具体的なSQL文を記録して、コンソールのように振る舞う
+                tmp::print_debug("SQL Error at step ", i);
+                tmp::print_debug("Query: ", s);
+                tmp::print_debug("Message: ", err.what());
+                throw; // トランザクション・ロールバックのために再スロー
+            }
+        }
+    }
+};  // SqlExecutor
+
+class SimplePrepare final {
+private:
+    std::string name;
+    std::string query;
+    std::vector<std::string> sets;
+
+    // 1 & 2: ロジックを集約し、エスケープとクォートを管理
+    void valueToSets(std::string val, bool is_string)
+    {
+        if (is_string) {
+            // 簡易エスケープ: ' を \' に置換
+            size_t pos = 0;
+            while ((pos = val.find("'", pos)) != std::string::npos) {
+                val.replace(pos, 1, "\\'");
+                pos += 2;
+            }
+            // クォートで囲む
+            val = "'" + val + "'";
+        }
+
+        const size_t count = sets.size() + 1;
+        std::string elm;
+        elm.append("SET @").append(std::to_string(count)).append("=").append(val).append(";");
+        sets.push_back(elm);
+    }
+
+public:
+    SimplePrepare(const std::string _name): name{_name}
+    {}
+
+    SimplePrepare& setQuery(const std::string _query) noexcept
+    {
+        query = _query;
+        return *this;
+    }
+
+    // 数値型は is_string = false で集約
+    SimplePrepare& set(const int64_t& val)
+    {
+        valueToSets(std::to_string(val), false);
+        return *this;
+    }
+
+    SimplePrepare& set(const int& val)
+    {
+        valueToSets(std::to_string(val), false);
+        return *this;
+    }
+
+    SimplePrepare& set(const double& val)
+    {
+        // std::to_string(val) ではなく、精度を指定して文字列化
+        // "{}" はデフォルトで最適な精度を選択し、丸めを最小限に抑えます
+        valueToSets(std::format("{}", val), false);
+        return *this;
+    }
+
+    // 文字列型は is_string = true で集約
+    SimplePrepare& set(const std::string& val)
+    {
+        valueToSets(val, true);
+        return *this;
+    }
+
+    std::vector<std::string> build() const
+    {
+        std::vector<std::string> result;
+        std::string prepare_syntax{"PREPARE "};
+        std::string using_syntax{""};
+        std::string execute_syntax{""};
+        size_t i = 0;
+        // PREPARE からクエリまで
+        prepare_syntax.append(name).append(" FROM '\n")
+        .append(query).append("';");
+        result.push_back(prepare_syntax);
+        // SET 句以降
+        for(const std::string& s: sets) {
+            result.push_back(std::string(s + "\n"));
+            if(i == 0) using_syntax.append("@").append(std::to_string(++i));
+            else using_syntax.append(", @").append(std::to_string(++i));
+        }
+        execute_syntax.append("EXECUTE ").append(name).append(" USING ").append(using_syntax).append(";");
+        result.push_back(execute_syntax);
+        return result;
+    }
+};  // SimplePrepare
 
 }   // namespace tmp::mysql::r3
 
