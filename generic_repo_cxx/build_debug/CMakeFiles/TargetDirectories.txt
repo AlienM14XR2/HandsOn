@@ -1,0 +1,6 @@
+/home/jack/dev2/Paradise-Lost/C++/2025/generic_repo_cxx/build_debug/CMakeFiles/pqxx_template_test_runner.dir
+/home/jack/dev2/Paradise-Lost/C++/2025/generic_repo_cxx/build_debug/CMakeFiles/mysql_template_test_runner.dir
+/home/jack/dev2/Paradise-Lost/C++/2025/generic_repo_cxx/build_debug/CMakeFiles/mongo_template_test_runner.dir
+/home/jack/dev2/Paradise-Lost/C++/2025/generic_repo_cxx/build_debug/CMakeFiles/object_pool_test_runner.dir
+/home/jack/dev2/Paradise-Lost/C++/2025/generic_repo_cxx/build_debug/CMakeFiles/edit_cache.dir
+/home/jack/dev2/Paradise-Lost/C++/2025/generic_repo_cxx/build_debug/CMakeFiles/rebuild_cache.dir

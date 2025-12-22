@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/pqxx_template_test_runner.dir/src/pqxx_template_test.cpp.o -o pqxx_template_test_runner  -lpqxx -lpq /usr/lib/x86_64-linux-gnu/libgtest_main.a /usr/lib/x86_64-linux-gnu/libgtest.a 

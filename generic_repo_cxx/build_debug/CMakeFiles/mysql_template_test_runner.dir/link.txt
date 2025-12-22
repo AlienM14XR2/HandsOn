@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/mysql_template_test_runner.dir/src/mysql_template_test.cpp.o -o mysql_template_test_runner  -lmysqlcppconn -lmysqlcppconnx /usr/lib/x86_64-linux-gnu/libgtest_main.a /usr/lib/x86_64-linux-gnu/libgtest.a 

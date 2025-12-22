@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/mongo_template_test_runner.dir/src/mongo_template_test.cpp.o -o mongo_template_test_runner  -lmongocxx -lbsoncxx -lbson2 /usr/lib/x86_64-linux-gnu/libgtest_main.a /usr/lib/x86_64-linux-gnu/libgtest.a 
